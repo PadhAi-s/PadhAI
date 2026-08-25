@@ -1,6 +1,4 @@
-import { FormEvent, useState } from "react";
-import { supabase } from "../../lib/supabase";
-
+import { useState, type FormEvent } from "react";import { supabase } from "../../lib/supabase";
 export function StudentLogin() {
   const [isSignup, setIsSignup] = useState(false);
   const [fullName, setFullName] = useState("");
