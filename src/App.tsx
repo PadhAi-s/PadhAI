@@ -6,6 +6,7 @@ import { RootLayout } from "./layouts/RootLayout";
 import { Home } from "./pages/Home";
 import { StudentLogin } from "./pages/student/Login";
 import { StudentDashboard } from "./pages/student/Dashboard";
+import { StudentProfile } from "./pages/student/Profile";
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { NotFound } from "./pages/NotFound";
@@ -26,7 +27,12 @@ export default function App() {
                 path="student/login"
                 element={<StudentLogin />}
               />
-
+<Route element={<ProtectedRoute allowedRole="student" />}>
+  <Route
+    path="student/profile"
+    element={<StudentProfile />}
+  />
+</Route>
               {/* Protected Student Dashboard */}
               <Route element={<ProtectedRoute allowedRole="student" />}>
                 <Route
