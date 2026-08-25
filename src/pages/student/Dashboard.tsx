@@ -39,24 +39,13 @@ export function StudentDashboard() {
     navigate("/student/profile");
   }
 
-  function handleSettings() {
-    setMenuOpen(false);
-    navigate("/student/settings");
-  }
-
-  function handleTheme() {
-    toggleTheme();
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+      {/* Header */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
-            <h1 className="text-2xl font-bold text-blue-600">
-              PadhAI
-            </h1>
-
+            <h1 className="text-2xl font-bold text-blue-600">PadhAI</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Student Dashboard
             </p>
@@ -73,6 +62,7 @@ export function StudentDashboard() {
               </p>
             </div>
 
+            {/* 3 Dot Menu */}
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -86,7 +76,6 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                  {/* My Profile */}
                   <button
                     type="button"
                     onClick={handleProfile}
@@ -102,10 +91,9 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
-                  {/* Theme */}
                   <button
                     type="button"
-                    onClick={handleTheme}
+                    onClick={toggleTheme}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span className="text-lg">
@@ -114,9 +102,7 @@ export function StudentDashboard() {
 
                     <span>
                       <span className="block">
-                        {theme === "dark"
-                          ? "Light Mode"
-                          : "Dark Mode"}
+                        {theme === "dark" ? "Light Mode" : "Dark Mode"}
                       </span>
 
                       <span className="text-xs font-normal text-slate-400">
@@ -125,10 +111,9 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
-                  {/* Settings */}
                   <button
                     type="button"
-                    onClick={handleSettings}
+                    onClick={() => setMenuOpen(false)}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span className="text-lg">⚙️</span>
@@ -136,21 +121,19 @@ export function StudentDashboard() {
                     <span>
                       <span className="block">Settings</span>
                       <span className="text-xs font-normal text-slate-400">
-                        Account settings
+                        Coming soon
                       </span>
                     </span>
                   </button>
 
                   <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
 
-                  {/* Logout */}
                   <button
                     type="button"
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     <span className="text-lg">🚪</span>
-
                     <span>Logout</span>
                   </button>
                 </div>
@@ -160,7 +143,9 @@ export function StudentDashboard() {
         </div>
       </header>
 
+      {/* Main */}
       <main className="mx-auto max-w-6xl px-4 py-8">
+        {/* Welcome */}
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Welcome to PadhAI 👋
@@ -170,6 +155,7 @@ export function StudentDashboard() {
             {profile?.full_name || user?.email || "Student"}
           </p>
 
+          {/* Profile Info */}
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/40">
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -202,8 +188,14 @@ export function StudentDashboard() {
             </div>
           </div>
 
+          {/* Features */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+            {/* Syllabus */}
+            <button
+              type="button"
+              onClick={() => navigate("/student/syllabus")}
+              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
               <div className="text-3xl">📚</div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
@@ -211,11 +203,19 @@ export function StudentDashboard() {
               </h3>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Your class and syllabus will appear here.
+                View your class-wise subjects and chapters.
               </p>
-            </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+              <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
+                Open Syllabus →
+              </span>
+            </button>
+
+            {/* AI */}
+            <button
+              type="button"
+              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
               <div className="text-3xl">🤖</div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
@@ -225,9 +225,17 @@ export function StudentDashboard() {
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 Ask questions and get AI-powered solutions.
               </p>
-            </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+              <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
+                Coming soon
+              </span>
+            </button>
+
+            {/* Videos */}
+            <button
+              type="button"
+              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
               <div className="text-3xl">🎥</div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
@@ -235,13 +243,19 @@ export function StudentDashboard() {
               </h3>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Relevant learning videos will appear here.
+                Relevant learning videos for your studies.
               </p>
-            </div>
+
+              <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
+                Coming soon
+              </span>
+            </button>
           </div>
 
+          {/* Profile */}
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
             <button
+              type="button"
               onClick={() => navigate("/student/profile")}
               className="rounded-xl border border-blue-600 px-5 py-3 font-semibold text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-950/30"
             >
