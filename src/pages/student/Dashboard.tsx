@@ -39,16 +39,19 @@ export function StudentDashboard() {
     navigate("/student/profile");
   }
 
+  function handleSettings() {
+    setMenuOpen(false);
+    navigate("/student/settings");
+  }
+
   function handleTheme() {
     toggleTheme();
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* Header */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          {/* Logo */}
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI
@@ -59,9 +62,7 @@ export function StudentDashboard() {
             </p>
           </div>
 
-          {/* Right Side */}
           <div className="flex items-center gap-3">
-            {/* User name */}
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-slate-800 dark:text-white">
                 {profile?.full_name || "Student"}
@@ -72,7 +73,6 @@ export function StudentDashboard() {
               </p>
             </div>
 
-            {/* 3 Dot Menu */}
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -86,7 +86,7 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                  {/* Profile */}
+                  {/* My Profile */}
                   <button
                     type="button"
                     onClick={handleProfile}
@@ -128,7 +128,7 @@ export function StudentDashboard() {
                   {/* Settings */}
                   <button
                     type="button"
-                    onClick={() => setMenuOpen(false)}
+                    onClick={handleSettings}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span className="text-lg">⚙️</span>
@@ -136,7 +136,7 @@ export function StudentDashboard() {
                     <span>
                       <span className="block">Settings</span>
                       <span className="text-xs font-normal text-slate-400">
-                        Coming soon
+                        Account settings
                       </span>
                     </span>
                   </button>
@@ -160,9 +160,7 @@ export function StudentDashboard() {
         </div>
       </header>
 
-      {/* Main */}
       <main className="mx-auto max-w-6xl px-4 py-8">
-        {/* Welcome */}
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Welcome to PadhAI 👋
@@ -172,7 +170,6 @@ export function StudentDashboard() {
             {profile?.full_name || user?.email || "Student"}
           </p>
 
-          {/* Student Profile Information */}
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/40">
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -205,7 +202,6 @@ export function StudentDashboard() {
             </div>
           </div>
 
-          {/* Dashboard Features */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
               <div className="text-3xl">📚</div>
@@ -244,7 +240,6 @@ export function StudentDashboard() {
             </div>
           </div>
 
-          {/* Profile Button */}
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
             <button
               onClick={() => navigate("/student/profile")}
