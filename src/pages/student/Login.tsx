@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from "react";import { supabase } from "../../lib/supabase";
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
 export function StudentLogin() {
   const [isSignup, setIsSignup] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -60,9 +62,11 @@ export function StudentLogin() {
           throw error;
         }
 
-        setMessage("Login successful! 🎉");
+       setMessage("Login successful! 🎉");
 
-        // Dashboard ko next step mein connect karenge.
+setTimeout(() => {
+  navigate("/student/dashboard");
+}, 500);
       }
     } catch (err) {
       const message =
