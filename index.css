@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (user-toggled + persisted), not just OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  PadhAI design tokens.
+
+  Palette: an ink-indigo ground (not flat black) with a turmeric accent —
+  turmeric is a real, specific pigment rather than the generic AI-cliche
+  terracotta, and it doubles as the "streak flame" / highlight color.
+  Peacock teal is used sparingly for links, AI/tech touches, and charts.
+  Verified-green is reserved for the "Official Syllabus" badge so that
+  color alone signals officially-published vs. AI-generated content.
+
+  Type: "Hind" is a Devanagari+Latin harmonized family (built for exactly
+  this English/Hindi pairing), used for both display and body text so
+  headings don't visually fracture when the UI switches language.
+  "IBM Plex Mono" is reserved for numerals that read like a mark-sheet —
+  scores, streak counts, timers — tying the type choice to the subject.
+*/
+@theme {
+  --font-sans: "Hind", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-ink: #1b1b2f;
+  --color-ink-soft: #3a3a55;
+  --color-paper: #faf7f0;
+  --color-paper-dim: #f0ece1;
+
+  --color-turmeric: #e8a33d;
+  --color-turmeric-dark: #c97a2b;
+  --color-peacock: #1f6f78;
+  --color-peacock-dark: #164f56;
+  --color-verified: #3f7d53;
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  .dark body {
+    @apply bg-ink text-paper;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-turmeric);
+    outline-offset: 2px;
+  }
+}
