@@ -4,9 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // GitHub Pages serves this app from https://<user>.github.io/padhAi/
+  // GitHub Pages serves this app from https://<user>.github.io/PadhAI/
   // so every asset URL must be built relative to that subpath.
   // Update this if the repository is renamed.
-  base: '/padhai/',
+base: '/PadhAI/',
   plugins: [react(), tailwindcss()],
 })
