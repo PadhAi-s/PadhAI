@@ -55,33 +55,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshProfile() {
-    if (!user) {
+    const currentUser = user;
+
+    if (!currentUser) {
       setProfile(null);
       return;
     }
 
-    await loadProfile(user.id);
+    await loadProfile(currentUser.id);
   }
 
   useEffect(() => {
     let mounted = true;
 
     async function initializeAuth() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      setSession(session);
-      setUser(session?.user ?? null);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
 
-      if (session?.user) {
-        await loadProfile(session.user.id);
-      }
+        if (currentSession?.user) {
+          await loadProfile(currentSession.user.id);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
 
-      if (mounted) {
-        setLoading(false);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
@@ -89,14 +103,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (!mounted) return;
 
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
 
-      if (session?.user) {
-        await loadProfile(session.user.id);
+      if (currentSession?.user) {
+        await loadProfile(currentSession.user.id);
       } else {
         setProfile(null);
       }
@@ -111,16 +125,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signOut() {
-    const { error } = await supabase.auth.signOut();
+    setLoading(true);
 
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    } catch (error) {
       console.error("Sign out error:", error);
       throw error;
+    } finally {
+      setLoading(false);
     }
-
-    setSession(null);
-    setUser(null);
-    setProfile(null);
   }
 
   const value = useMemo<AuthContextValue>(
