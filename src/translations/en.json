@@ -1,0 +1,48 @@
+{
+  "app": {
+    "name": "PadhAI",
+    "tagline": "Your AI study companion, in your language"
+  },
+  "nav": {
+    "home": "Home",
+    "studentLogin": "Student Login",
+    "adminLogin": "Admin Login",
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "common": {
+    "loading": "Loading...",
+    "comingSoon": "Coming soon",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "forgotPassword": "Forgot password?",
+    "backToHome": "Back to home"
+  },
+  "home": {
+    "heroTitle": "Class + Board + Exam. One syllabus. Every answer.",
+    "heroSubtitle": "PadhAI matches your syllabus, explains every topic in Hindi or English, and finds the right video the moment you're stuck.",
+    "ctaStudent": "I'm a student",
+    "ctaAdmin": "I'm an admin",
+    "pillars": {
+      "syllabus": "Official syllabus, chapter by chapter",
+      "ai": "Ask PadhAI AI, get a step-by-step answer",
+      "video": "Watch the right lesson, not a random one",
+      "progress": "See your progress, keep your streak"
+    }
+  },
+  "student": {
+    "loginTitle": "Student login",
+    "loginSubtitle": "Pick up right where you left off."
+  },
+  "admin": {
+    "loginTitle": "Admin login",
+    "loginSubtitle": "Manage syllabus, students, and AI settings."
+  },
+  "notFound": {
+    "title": "This page hasn't been assigned yet",
+    "body": "The page you're looking for doesn't exist.",
+    "cta": "Back to home"
+  }
+}
