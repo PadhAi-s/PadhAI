@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+
 export function StudentLogin() {
   const [isSignup, setIsSignup] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -51,6 +54,7 @@ export function StudentLogin() {
           );
         } else {
           setMessage("Account created successfully!");
+          navigate("/student/dashboard");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -62,13 +66,13 @@ export function StudentLogin() {
           throw error;
         }
 
-       navigate("/student/dashboard");
+        navigate("/student/dashboard");
       }
     } catch (err) {
-      const message =
+      const errorMessage =
         err instanceof Error ? err.message : "Something went wrong.";
 
-      setError(message);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
