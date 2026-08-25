@@ -4,6 +4,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { RootLayout } from "./layouts/RootLayout";
 import { Home } from "./pages/Home";
 import { StudentLogin } from "./pages/student/Login";
+import { StudentDashboard } from "./pages/student/Dashboard";
 import { AdminLogin } from "./pages/admin/Login";
 import { NotFound } from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ export default function App() {
             <Route element={<RootLayout />}>
               <Route index element={<Home />} />
               <Route path="student/login" element={<StudentLogin />} />
+              <Route path="student/dashboard" element={<StudentDashboard />} />
               <Route path="admin/login" element={<AdminLogin />} />
               <Route path="*" element={<NotFound />} />
             </Route>
