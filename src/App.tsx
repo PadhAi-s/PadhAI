@@ -7,6 +7,7 @@ import { Home } from "./pages/Home";
 import { StudentLogin } from "./pages/student/Login";
 import { StudentDashboard } from "./pages/student/Dashboard";
 import { AdminLogin } from "./pages/admin/Login";
+import { AdminDashboard } from "./pages/admin/Dashboard";
 import { NotFound } from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,12 @@ export default function App() {
                 path="admin/login"
                 element={<AdminLogin />}
               />
+              <Route element={<ProtectedRoute allowedRole="admin" />}>
+  <Route
+    path="admin/dashboard"
+    element={<AdminDashboard />}
+  />
+</Route>
 
               {/* 404 */}
               <Route
