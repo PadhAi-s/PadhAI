@@ -62,11 +62,7 @@ export function StudentLogin() {
           throw error;
         }
 
-       setMessage("Login successful! 🎉");
-
-setTimeout(() => {
-  navigate("/student/dashboard");
-}, 500);
+       navigate("/student/dashboard");
       }
     } catch (err) {
       const message =
