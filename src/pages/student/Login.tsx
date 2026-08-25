@@ -14,13 +14,37 @@ export function StudentLogin() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  async function redirectStudent(userId: string) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("full_name, class_name, board, exam")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    const profileComplete =
+      Boolean(profile?.full_name?.trim()) &&
+      Boolean(profile?.class_name) &&
+      Boolean(profile?.board) &&
+      Boolean(profile?.exam);
+
+    if (profileComplete) {
+      navigate("/student/dashboard");
+    } else {
+      navigate("/student/profile");
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
     setMessage("");
 
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setError("Please enter your email and password.");
       return;
     }
@@ -30,47 +54,76 @@ export function StudentLogin() {
       return;
     }
 
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isSignup) {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            data: {
-              full_name: fullName.trim(),
+        const { data, error: signupError } =
+          await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: {
+              data: {
+                full_name: fullName.trim(),
+              },
             },
-          },
-        });
+          });
 
-        if (error) {
-          throw error;
+        if (signupError) {
+          throw signupError;
+        }
+
+        if (!data.user) {
+          throw new Error("Account could not be created.");
         }
 
         if (!data.session) {
           setMessage(
             "Account created! Please check your email to confirm your account."
           );
-        } else {
-          setMessage("Account created successfully!");
-          navigate("/student/dashboard");
+          return;
         }
+
+        // Save the signup name to the student's profile.
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: fullName.trim(),
+          })
+          .eq("id", data.user.id);
+
+        if (profileError) {
+          console.error("Profile name update error:", profileError);
+        }
+
+        await redirectStudent(data.user.id);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
+        const { data, error: loginError } =
+          await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
 
-        if (error) {
-          throw error;
+        if (loginError) {
+          throw loginError;
         }
 
-        navigate("/student/dashboard");
+        if (!data.user) {
+          throw new Error("Unable to login. Please try again.");
+        }
+
+        await redirectStudent(data.user.id);
       }
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Something went wrong.";
+        err instanceof Error
+          ? err.message
+          : "Something went wrong.";
 
       setError(errorMessage);
     } finally {
@@ -87,7 +140,9 @@ export function StudentLogin() {
           </div>
 
           <h1 className="text-2xl font-bold text-slate-900">
-            {isSignup ? "Create Student Account" : "Student Login"}
+            {isSignup
+              ? "Create Student Account"
+              : "Student Login"}
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
@@ -107,7 +162,9 @@ export function StudentLogin() {
               <input
                 type="text"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(event) =>
+                  setFullName(event.target.value)
+                }
                 placeholder="Enter your full name"
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 autoComplete="name"
@@ -123,7 +180,9 @@ export function StudentLogin() {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
               placeholder="student@example.com"
               className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               autoComplete="email"
@@ -138,10 +197,16 @@ export function StudentLogin() {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
               placeholder="Enter your password"
               className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              autoComplete={isSignup ? "new-password" : "current-password"}
+              autoComplete={
+                isSignup
+                  ? "new-password"
+                  : "current-password"
+              }
             />
           </div>
 
@@ -171,7 +236,9 @@ export function StudentLogin() {
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-600">
-          {isSignup ? "Already have an account?" : "Don't have an account?"}
+          {isSignup
+            ? "Already have an account?"
+            : "Don't have an account?"}
 
           <button
             type="button"
