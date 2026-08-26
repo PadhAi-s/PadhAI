@@ -6,10 +6,10 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
 
 import { Home } from "./pages/Home";
-
 import { StudentLogin } from "./pages/student/Login";
 import { StudentDashboard } from "./pages/student/Dashboard";
 import { StudentProfile } from "./pages/student/Profile";
+import { StudentSyllabus } from "./pages/student/Syllabus";
 
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
@@ -26,16 +26,11 @@ export default function App() {
           <Routes>
             <Route element={<RootLayout />}>
 
-              {/* ==================== HOME ==================== */}
-
-              <Route
-                index
-                element={<Home />}
-              />
+              {/* Home */}
+              <Route index element={<Home />} />
 
               {/* ==================== STUDENT ==================== */}
 
-              {/* Student Login */}
               <Route
                 path="student/login"
                 element={<StudentLogin />}
@@ -44,37 +39,35 @@ export default function App() {
               {/* Protected Student Routes */}
               <Route element={<ProtectedRoute allowedRole="student" />}>
 
-                {/* Dashboard */}
                 <Route
                   path="student/dashboard"
                   element={<StudentDashboard />}
                 />
 
-                {/* Profile */}
                 <Route
                   path="student/profile"
                   element={<StudentProfile />}
+                />
+
+                <Route
+                  path="student/syllabus"
+                  element={<StudentSyllabus />}
                 />
 
               </Route>
 
               {/* ==================== ADMIN ==================== */}
 
-              {/* Admin Login */}
               <Route
                 path="admin/login"
                 element={<AdminLogin />}
               />
 
-              {/* Protected Admin Routes */}
               <Route element={<ProtectedRoute allowedRole="admin" />}>
-
-                {/* Admin Dashboard */}
                 <Route
                   path="admin/dashboard"
                   element={<AdminDashboard />}
                 />
-
               </Route>
 
               {/* ==================== 404 ==================== */}
