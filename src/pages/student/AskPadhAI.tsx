@@ -1,16 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
 interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
 }
 
 export function AskPadhAI() {
   const navigate = useNavigate();
-
   const { user, profile } = useAuth();
 
   const [question, setQuestion] = useState("");
@@ -18,23 +18,10 @@ export function AskPadhAI() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [subject, setSubject] = useState("");
-  const [chapterName, setChapterName] = useState("");
-  const [topicName, setTopicName] = useState("");
+  async function askAI() {
+    const text = question.trim();
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    setError("");
-
-    const trimmedQuestion = question.trim();
-
-    if (!trimmedQuestion) {
-      setError("Please enter your question.");
-      return;
-    }
+    if (!text) return;
 
     if (!user) {
       setError("Please login first.");
@@ -42,59 +29,40 @@ export function AskPadhAI() {
     }
 
     setLoading(true);
+    setError("");
 
     const userMessage: Message = {
+      id: crypto.randomUUID(),
       role: "user",
-      content: trimmedQuestion,
+      content: text,
     };
 
-    setMessages((previous) => [
-      ...previous,
-      userMessage,
-    ]);
-
+    setMessages((previous) => [...previous, userMessage]);
     setQuestion("");
 
     try {
       const { data, error: functionError } =
-        await supabase.functions.invoke(
-          "ask-padhai",
-          {
-            body: {
-              question: trimmedQuestion,
-
-              class_name:
-                profile?.class_name ?? null,
-
-              board:
-                profile?.board ?? null,
-
-              exam:
-                profile?.exam ?? null,
-
-              subject:
-                subject || null,
-
-              chapter_name:
-                chapterName || null,
-
-              topic_name:
-                topicName || null,
+        await supabase.functions.invoke("ask-padhai", {
+          body: {
+            question: text,
+            student: {
+              class_name: profile?.class_name,
+              board: profile?.board,
+              exam: profile?.exam,
             },
           },
-        );
+        });
 
       if (functionError) {
         throw functionError;
       }
 
       if (!data?.answer) {
-        throw new Error(
-          "AI did not return an answer.",
-        );
+        throw new Error("AI did not return an answer.");
       }
 
       const assistantMessage: Message = {
+        id: crypto.randomUUID(),
         role: "assistant",
         content: data.answer,
       };
@@ -104,129 +72,109 @@ export function AskPadhAI() {
         assistantMessage,
       ]);
     } catch (err) {
-      const message =
+      console.error("Ask PadhAI error:", err);
+
+      setError(
         err instanceof Error
           ? err.message
-          : "Unable to get AI response.";
-
-      setError(message);
+          : "Unable to get AI response.",
+      );
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleKeyDown(
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      askAI();
     }
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       {/* Header */}
-
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI
             </h1>
 
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              AI Study Assistant
+              Ask PadhAI
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() =>
-              navigate("/student/dashboard")
-            }
-            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            onClick={() => navigate("/student/dashboard")}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             ← Dashboard
           </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        {/* Context */}
+      {/* Main */}
+      <main className="mx-auto max-w-5xl px-4 py-8">
+        <div className="rounded-3xl bg-white shadow-sm dark:bg-slate-900">
+          {/* Intro */}
+          <div className="border-b border-slate-200 p-6 dark:border-slate-800">
+            <h2 className="text-2xl font-bold">
+              🤖 Ask PadhAI
+            </h2>
 
-        <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
-          <h2 className="text-xl font-bold">
-            🤖 Ask PadhAI
-          </h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Ask anything about your studies and get an
+              AI-powered explanation.
+            </p>
 
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Ask questions based on your class,
-            board and syllabus.
-          </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              {profile?.class_name && (
+                <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                  Class {profile.class_name}
+                </span>
+              )}
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <input
-              value={subject}
-              onChange={(event) =>
-                setSubject(event.target.value)
-              }
-              placeholder="Subject e.g. Mathematics"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800"
-            />
+              {profile?.board && (
+                <span className="rounded-full bg-green-50 px-3 py-1 font-medium text-green-700 dark:bg-green-950/40 dark:text-green-300">
+                  {profile.board}
+                </span>
+              )}
 
-            <input
-              value={chapterName}
-              onChange={(event) =>
-                setChapterName(event.target.value)
-              }
-              placeholder="Chapter"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800"
-            />
-
-            <input
-              value={topicName}
-              onChange={(event) =>
-                setTopicName(event.target.value)
-              }
-              placeholder="Topic (optional)"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800"
-            />
+              {profile?.exam && (
+                <span className="rounded-full bg-purple-50 px-3 py-1 font-medium text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                  {profile.exam}
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-              Class: {profile?.class_name || "Not set"}
-            </span>
-
-            <span className="rounded-full bg-green-50 px-3 py-1 text-green-700 dark:bg-green-950/40 dark:text-green-300">
-              Board: {profile?.board || "Not set"}
-            </span>
-
-            <span className="rounded-full bg-purple-50 px-3 py-1 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
-              Exam: {profile?.exam || "Not set"}
-            </span>
-          </div>
-        </div>
-
-        {/* Chat */}
-
-        <div className="rounded-2xl bg-white shadow-sm dark:bg-slate-900">
-          <div className="min-h-[420px] space-y-5 p-6">
+          {/* Chat */}
+          <div className="min-h-[420px] space-y-4 p-6">
             {messages.length === 0 && (
               <div className="flex min-h-[350px] items-center justify-center text-center">
                 <div>
-                  <div className="text-5xl">
-                    🤖
-                  </div>
+                  <div className="text-6xl">🤖</div>
 
                   <h3 className="mt-4 text-xl font-bold">
-                    How can I help you?
+                    What do you want to learn?
                   </h3>
 
                   <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-                    Ask me to explain a concept,
-                    solve a problem, create notes,
-                    or help you prepare for an exam.
+                    Example: Explain Newton's third law in
+                    simple language.
                   </p>
                 </div>
               </div>
             )}
 
-            {messages.map((message, index) => (
+            {messages.map((message) => (
               <div
-                key={`${message.role}-${index}`}
+                key={message.id}
                 className={
                   message.role === "user"
                     ? "flex justify-end"
@@ -236,11 +184,11 @@ export function AskPadhAI() {
                 <div
                   className={
                     message.role === "user"
-                      ? "max-w-[85%] rounded-2xl rounded-br-md bg-blue-600 px-5 py-3 text-white"
-                      : "max-w-[85%] rounded-2xl rounded-bl-md bg-slate-100 px-5 py-3 text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                      ? "max-w-[85%] rounded-2xl rounded-br-md bg-blue-600 px-4 py-3 text-sm text-white"
+                      : "max-w-[85%] rounded-2xl rounded-bl-md bg-slate-100 px-4 py-3 text-sm text-slate-800 dark:bg-slate-800 dark:text-slate-100"
                   }
                 >
-                  <p className="whitespace-pre-wrap text-sm leading-6">
+                  <p className="whitespace-pre-wrap">
                     {message.content}
                   </p>
                 </div>
@@ -249,7 +197,7 @@ export function AskPadhAI() {
 
             {loading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-slate-100 px-5 py-3 text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                   PadhAI is thinking...
                 </div>
               </div>
@@ -257,45 +205,41 @@ export function AskPadhAI() {
           </div>
 
           {/* Error */}
-
           {error && (
-            <div className="mx-6 mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+            <div className="mx-6 mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
               ❌ {error}
             </div>
           )}
 
           {/* Input */}
-
-          <form
-            onSubmit={handleSubmit}
-            className="border-t border-slate-200 p-4 dark:border-slate-800"
-          >
+          <div className="border-t border-slate-200 p-4 dark:border-slate-800">
             <div className="flex gap-3">
               <textarea
                 value={question}
                 onChange={(event) =>
                   setQuestion(event.target.value)
                 }
+                onKeyDown={handleKeyDown}
                 disabled={loading}
                 rows={2}
-                placeholder="Ask PadhAI anything..."
-                className="min-w-0 flex-1 resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-blue-950"
+                placeholder="Ask your question..."
+                className="min-h-[56px] flex-1 resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
               />
 
               <button
-                type="submit"
-                disabled={
-                  loading ||
-                  !question.trim()
-                }
-                className="self-end rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                onClick={askAI}
+                disabled={loading || !question.trim()}
+                className="self-end rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading
-                  ? "..."
-                  : "Ask"}
+                {loading ? "..." : "Ask"}
               </button>
             </div>
-          </form>
+
+            <p className="mt-2 text-xs text-slate-400">
+              Enter to ask • Shift + Enter for new line
+            </p>
+          </div>
         </div>
       </main>
     </div>
