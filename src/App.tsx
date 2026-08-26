@@ -6,11 +6,13 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
 
 import { Home } from "./pages/Home";
+
 import { StudentLogin } from "./pages/student/Login";
 import { StudentDashboard } from "./pages/student/Dashboard";
 import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
+
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 
@@ -26,39 +28,32 @@ export default function App() {
           <Routes>
             <Route element={<RootLayout />}>
 
-              {/* Home */}
-              <Route index element={<Home />} />
+              {/* ==================== HOME ==================== */}
+
+              <Route
+                index
+                element={<Home />}
+              />
 
               {/* ==================== STUDENT ==================== */}
 
+              {/* Student Login */}
               <Route
                 path="student/login"
                 element={<StudentLogin />}
               />
 
               {/* Protected Student Routes */}
-              <Route element={<ProtectedRoute allowedRole="student" />}>
-
+              <Route
+                element={
+                  <ProtectedRoute allowedRole="student" />
+                }
+              >
                 <Route
                   path="student/dashboard"
                   element={<StudentDashboard />}
                 />
-<Route element={<ProtectedRoute allowedRole="student" />}>
-  <Route
-    path="student/dashboard"
-    element={<StudentDashboard />}
-  />
 
-  <Route
-    path="student/profile"
-    element={<StudentProfile />}
-  />
-
-  <Route
-    path="student/ask"
-    element={<AskPadhAI />}
-  />
-</Route>
                 <Route
                   path="student/profile"
                   element={<StudentProfile />}
@@ -69,16 +64,26 @@ export default function App() {
                   element={<StudentSyllabus />}
                 />
 
+                <Route
+                  path="student/ask-ai"
+                  element={<AskPadhAI />}
+                />
               </Route>
 
               {/* ==================== ADMIN ==================== */}
 
+              {/* Admin Login */}
               <Route
                 path="admin/login"
                 element={<AdminLogin />}
               />
 
-              <Route element={<ProtectedRoute allowedRole="admin" />}>
+              {/* Protected Admin Routes */}
+              <Route
+                element={
+                  <ProtectedRoute allowedRole="admin" />
+                }
+              >
                 <Route
                   path="admin/dashboard"
                   element={<AdminDashboard />}
