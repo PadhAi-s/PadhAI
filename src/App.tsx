@@ -65,7 +65,7 @@ export default function App() {
                 />
 
                 <Route
-                  path="student/ask-ai"
+                  path="student/ask"
                   element={<AskPadhAI />}
                 />
               </Route>
