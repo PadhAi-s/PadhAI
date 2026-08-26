@@ -10,7 +10,7 @@ import { StudentLogin } from "./pages/student/Login";
 import { StudentDashboard } from "./pages/student/Dashboard";
 import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
-
+import { AskPadhAI } from "./pages/student/AskPadhAI";
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 
@@ -43,7 +43,22 @@ export default function App() {
                   path="student/dashboard"
                   element={<StudentDashboard />}
                 />
+<Route element={<ProtectedRoute allowedRole="student" />}>
+  <Route
+    path="student/dashboard"
+    element={<StudentDashboard />}
+  />
 
+  <Route
+    path="student/profile"
+    element={<StudentProfile />}
+  />
+
+  <Route
+    path="student/ask"
+    element={<AskPadhAI />}
+  />
+</Route>
                 <Route
                   path="student/profile"
                   element={<StudentProfile />}
