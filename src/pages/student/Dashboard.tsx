@@ -39,13 +39,24 @@ export function StudentDashboard() {
     navigate("/student/profile");
   }
 
+  function handleSyllabus() {
+    navigate("/student/syllabus");
+  }
+
+  function handleAskPadhAI() {
+    navigate("/student/ask-ai");
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       {/* Header */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
-            <h1 className="text-2xl font-bold text-blue-600">PadhAI</h1>
+            <h1 className="text-2xl font-bold text-blue-600">
+              PadhAI
+            </h1>
+
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Student Dashboard
             </p>
@@ -62,7 +73,7 @@ export function StudentDashboard() {
               </p>
             </div>
 
-            {/* 3 Dot Menu */}
+            {/* Account Menu */}
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -76,6 +87,7 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                  {/* Profile */}
                   <button
                     type="button"
                     onClick={handleProfile}
@@ -84,13 +96,17 @@ export function StudentDashboard() {
                     <span className="text-lg">👤</span>
 
                     <span>
-                      <span className="block">My Profile</span>
+                      <span className="block">
+                        My Profile
+                      </span>
+
                       <span className="text-xs font-normal text-slate-400">
                         Edit your profile
                       </span>
                     </span>
                   </button>
 
+                  {/* Theme */}
                   <button
                     type="button"
                     onClick={toggleTheme}
@@ -102,7 +118,9 @@ export function StudentDashboard() {
 
                     <span>
                       <span className="block">
-                        {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                        {theme === "dark"
+                          ? "Light Mode"
+                          : "Dark Mode"}
                       </span>
 
                       <span className="text-xs font-normal text-slate-400">
@@ -111,6 +129,7 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
+                  {/* Settings */}
                   <button
                     type="button"
                     onClick={() => setMenuOpen(false)}
@@ -119,7 +138,10 @@ export function StudentDashboard() {
                     <span className="text-lg">⚙️</span>
 
                     <span>
-                      <span className="block">Settings</span>
+                      <span className="block">
+                        Settings
+                      </span>
+
                       <span className="text-xs font-normal text-slate-400">
                         Coming soon
                       </span>
@@ -128,6 +150,7 @@ export function StudentDashboard() {
 
                   <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
 
+                  {/* Logout */}
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -152,11 +175,14 @@ export function StudentDashboard() {
           </h2>
 
           <p className="mt-2 text-slate-600 dark:text-slate-400">
-            {profile?.full_name || user?.email || "Student"}
+            {profile?.full_name ||
+              user?.email ||
+              "Student"}
           </p>
 
           {/* Profile Info */}
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            {/* Class */}
             <div className="rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/40">
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Class
@@ -167,6 +193,7 @@ export function StudentDashboard() {
               </p>
             </div>
 
+            {/* Board */}
             <div className="rounded-2xl bg-green-50 p-5 dark:bg-green-950/40">
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Board
@@ -177,6 +204,7 @@ export function StudentDashboard() {
               </p>
             </div>
 
+            {/* Exam */}
             <div className="rounded-2xl bg-purple-50 p-5 dark:bg-purple-950/40">
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Exam
@@ -190,10 +218,10 @@ export function StudentDashboard() {
 
           {/* Features */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Syllabus */}
+            {/* ==================== SYLLABUS ==================== */}
             <button
               type="button"
-              onClick={() => navigate("/student/syllabus")}
+              onClick={handleSyllabus}
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="text-3xl">📚</div>
@@ -211,9 +239,10 @@ export function StudentDashboard() {
               </span>
             </button>
 
-            {/* AI */}
+            {/* ==================== ASK PADHAI ==================== */}
             <button
               type="button"
+              onClick={handleAskPadhAI}
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="text-3xl">🤖</div>
@@ -227,11 +256,11 @@ export function StudentDashboard() {
               </p>
 
               <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
-                Coming soon
+                Ask Now →
               </span>
             </button>
 
-            {/* Videos */}
+            {/* ==================== VIDEOS ==================== */}
             <button
               type="button"
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
