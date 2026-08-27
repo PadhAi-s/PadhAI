@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
-
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Home } from "./pages/Home";
 
 import { StudentLogin } from "./pages/student/Login";
