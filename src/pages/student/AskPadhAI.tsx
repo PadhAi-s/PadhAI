@@ -33,6 +33,26 @@ export function AskPadhAI() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // -------------------------------------------------------
+  // Handwritten notes image state
+  // -------------------------------------------------------
+
+  const [imageLoadingId, setImageLoadingId] = useState<string | null>(
+    null,
+  );
+
+  const [generatedImages, setGeneratedImages] = useState<
+    Record<string, string>
+  >({});
+
+  const [imageError, setImageError] = useState<
+    Record<string, string>
+  >({});
+
+  // -------------------------------------------------------
+  // Load conversations
+  // -------------------------------------------------------
+
   async function loadConversations() {
     if (!user) {
       setHistoryLoading(false);
@@ -47,7 +67,9 @@ export function AskPadhAI() {
         .from("ai_conversations")
         .select("id, title, created_at, updated_at")
         .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
+        .order("updated_at", {
+          ascending: false,
+        });
 
       if (conversationError) {
         throw conversationError;
@@ -67,6 +89,10 @@ export function AskPadhAI() {
     }
   }
 
+  // -------------------------------------------------------
+  // Load messages
+  // -------------------------------------------------------
+
   async function loadMessages(conversationId: string) {
     setError("");
     setSelectedConversationId(conversationId);
@@ -78,13 +104,19 @@ export function AskPadhAI() {
           "id, conversation_id, role, content, created_at",
         )
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", {
+          ascending: true,
+        });
 
       if (messagesError) {
         throw messagesError;
       }
 
       setMessages((data ?? []) as Message[]);
+
+      // Clear old generated images when opening another chat.
+      setGeneratedImages({});
+      setImageError({});
     } catch (err) {
       console.error("Messages error:", err);
 
@@ -96,12 +128,22 @@ export function AskPadhAI() {
     }
   }
 
+  // -------------------------------------------------------
+  // New chat
+  // -------------------------------------------------------
+
   function startNewChat() {
     setSelectedConversationId(null);
     setMessages([]);
     setQuestion("");
     setError("");
+    setGeneratedImages({});
+    setImageError({});
   }
+
+  // -------------------------------------------------------
+  // Initial history
+  // -------------------------------------------------------
 
   useEffect(() => {
     if (!user) {
@@ -111,6 +153,10 @@ export function AskPadhAI() {
 
     loadConversations();
   }, [user]);
+
+  // -------------------------------------------------------
+  // Ask PadhAI
+  // -------------------------------------------------------
 
   async function handleAsk(
     event: FormEvent<HTMLFormElement>,
@@ -139,7 +185,8 @@ export function AskPadhAI() {
             question: trimmedQuestion,
             conversation_id: selectedConversationId,
             student: {
-              class_name: profile?.class_name ?? null,
+              class_name:
+                profile?.class_name ?? null,
               board: profile?.board ?? null,
               exam: profile?.exam ?? null,
             },
@@ -155,16 +202,22 @@ export function AskPadhAI() {
       }
 
       if (!data?.answer) {
-        throw new Error("AI did not return an answer.");
+        throw new Error(
+          "AI did not return an answer.",
+        );
       }
 
-      const conversationId = data.conversation_id;
+      const conversationId =
+        data.conversation_id;
 
       if (conversationId) {
-        setSelectedConversationId(conversationId);
+        setSelectedConversationId(
+          conversationId,
+        );
       }
 
-      const now = new Date().toISOString();
+      const now =
+        new Date().toISOString();
 
       const userMessage: Message = {
         id: `temp-user-${Date.now()}`,
@@ -198,7 +251,10 @@ export function AskPadhAI() {
 
       await loadConversations();
     } catch (err) {
-      console.error("Ask PadhAI error:", err);
+      console.error(
+        "Ask PadhAI error:",
+        err,
+      );
 
       setError(
         err instanceof Error
@@ -210,19 +266,146 @@ export function AskPadhAI() {
     }
   }
 
-  function formatDate(date: string) {
-    return new Date(date).toLocaleString("en-IN", {
-      day: "numeric",
-      month: "short",
-      hour: "numeric",
-      minute: "2-digit",
+  // -------------------------------------------------------
+  // Generate handwritten notes image
+  // -------------------------------------------------------
+
+  async function generateNotesImage(
+    assistantMessage: Message,
+    questionForAnswer: string,
+  ) {
+    if (!user) {
+      setError("Please login first.");
+      return;
+    }
+
+    if (!questionForAnswer.trim()) {
+      setError(
+        "Unable to find the question for this answer.",
+      );
+      return;
+    }
+
+    setImageLoadingId(assistantMessage.id);
+
+    setImageError((previous) => {
+      const next = { ...previous };
+      delete next[assistantMessage.id];
+      return next;
     });
+
+    try {
+      const { data, error: functionError } =
+        await supabase.functions.invoke(
+          "generate-notes-image",
+          {
+            body: {
+              question:
+                questionForAnswer.trim(),
+
+              answer:
+                assistantMessage.content,
+
+              student: {
+                class_name:
+                  profile?.class_name ?? null,
+
+                board:
+                  profile?.board ?? null,
+
+                exam:
+                  profile?.exam ?? null,
+              },
+
+              conversation_id:
+                assistantMessage.conversation_id,
+            },
+          },
+        );
+
+      if (functionError) {
+        throw functionError;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data?.image) {
+        throw new Error(
+          "AI did not return a notes image.",
+        );
+      }
+
+      setGeneratedImages((previous) => ({
+        ...previous,
+        [assistantMessage.id]:
+          data.image,
+      }));
+    } catch (err) {
+      console.error(
+        "PadhAI Image error:",
+        err,
+      );
+
+      setImageError((previous) => ({
+        ...previous,
+        [assistantMessage.id]:
+          err instanceof Error
+            ? err.message
+            : "Unable to generate notes image.",
+      }));
+    } finally {
+      setImageLoadingId(null);
+    }
   }
+
+  // -------------------------------------------------------
+  // Format date
+  // -------------------------------------------------------
+
+  function formatDate(date: string) {
+    return new Date(date).toLocaleString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+      },
+    );
+  }
+
+  // -------------------------------------------------------
+  // Find question belonging to assistant answer
+  // -------------------------------------------------------
+
+  function getQuestionForMessage(
+    messageIndex: number,
+  ) {
+    for (
+      let index = messageIndex - 1;
+      index >= 0;
+      index--
+    ) {
+      if (
+        messages[index].role === "user"
+      ) {
+        return messages[index].content;
+      }
+    }
+
+    return "";
+  }
+
+  // -------------------------------------------------------
+  // UI
+  // -------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-
       {/* Header */}
+
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div>
@@ -237,7 +420,11 @@ export function AskPadhAI() {
 
           <button
             type="button"
-            onClick={() => navigate("/student/dashboard")}
+            onClick={() =>
+              navigate(
+                "/student/dashboard",
+              )
+            }
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             ← Dashboard
@@ -246,10 +433,11 @@ export function AskPadhAI() {
       </header>
 
       {/* Main */}
+
       <main className="mx-auto max-w-7xl px-4 py-6">
         <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
-
           {/* Chat History */}
+
           <aside className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <h2 className="font-bold">
@@ -285,38 +473,44 @@ export function AskPadhAI() {
                   </div>
                 )}
 
-              {conversations.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  type="button"
-                  onClick={() =>
-                    loadMessages(conversation.id)
-                  }
-                  className={`w-full rounded-xl p-3 text-left transition ${
-                    selectedConversationId ===
-                    conversation.id
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <p className="line-clamp-2 text-sm font-semibold">
-                    {conversation.title || "New Chat"}
-                  </p>
+              {conversations.map(
+                (conversation) => (
+                  <button
+                    key={conversation.id}
+                    type="button"
+                    onClick={() =>
+                      loadMessages(
+                        conversation.id,
+                      )
+                    }
+                    className={`w-full rounded-xl p-3 text-left transition ${
+                      selectedConversationId ===
+                      conversation.id
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <p className="line-clamp-2 text-sm font-semibold">
+                      {conversation.title ||
+                        "New Chat"}
+                    </p>
 
-                  <p className="mt-1 text-xs text-slate-400">
-                    {formatDate(
-                      conversation.updated_at,
-                    )}
-                  </p>
-                </button>
-              ))}
+                    <p className="mt-1 text-xs text-slate-400">
+                      {formatDate(
+                        conversation.updated_at,
+                      )}
+                    </p>
+                  </button>
+                ),
+              )}
             </div>
           </aside>
 
           {/* Chat Area */}
-          <section className="flex min-h-[650px] flex-col rounded-2xl bg-white shadow-sm dark:bg-slate-900">
 
+          <section className="flex min-h-[650px] flex-col rounded-2xl bg-white shadow-sm dark:bg-slate-900">
             {/* Student Context */}
+
             <div className="border-b border-slate-200 p-5 dark:border-slate-800">
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Asking as
@@ -331,7 +525,8 @@ export function AskPadhAI() {
               <div className="mt-3 flex flex-wrap gap-2">
                 {profile?.class_name && (
                   <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                    Class {profile.class_name}
+                    Class{" "}
+                    {profile.class_name}
                   </span>
                 )}
 
@@ -350,6 +545,7 @@ export function AskPadhAI() {
             </div>
 
             {/* Messages */}
+
             <div className="flex-1 space-y-5 overflow-y-auto p-5">
               {messages.length === 0 && (
                 <div className="flex min-h-[420px] items-center justify-center text-center">
@@ -363,44 +559,155 @@ export function AskPadhAI() {
                     </h2>
 
                     <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-                      Ask a question about your studies
-                      and PadhAI will explain it step by step.
+                      Ask a question about
+                      your studies and
+                      PadhAI will explain it
+                      step by step.
                     </p>
                   </div>
                 </div>
               )}
 
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.role === "user"
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                      message.role === "user"
-                        ? "bg-blue-600 text-white"
-                        : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
-                    }`}
-                  >
-                    <p className="mb-1 text-xs font-semibold opacity-70">
-                      {message.role === "user"
-                        ? "You"
-                        : "🤖 PadhAI"}
-                    </p>
+              {messages.map(
+                (message, messageIndex) => {
+                  const isAssistant =
+                    message.role ===
+                    "assistant";
 
-                    <div className="whitespace-pre-wrap text-sm leading-7">
-                      {message.content}
+                  const questionForAnswer =
+                    isAssistant
+                      ? getQuestionForMessage(
+                          messageIndex,
+                        )
+                      : "";
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex ${
+                        message.role ===
+                        "user"
+                          ? "justify-end"
+                          : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[90%] rounded-2xl px-4 py-3 ${
+                          message.role ===
+                          "user"
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        <p className="mb-1 text-xs font-semibold opacity-70">
+                          {message.role ===
+                          "user"
+                            ? "You"
+                            : "🤖 PadhAI"}
+                        </p>
+
+                        <div className="whitespace-pre-wrap text-sm leading-7">
+                          {message.content}
+                        </div>
+
+                        {/* PadhAI Image */}
+
+                        {isAssistant && (
+                          <div className="mt-4">
+                            {!generatedImages[
+                              message.id
+                            ] && (
+                              <button
+                                type="button"
+                                disabled={
+                                  imageLoadingId ===
+                                  message.id
+                                }
+                                onClick={() =>
+                                  generateNotesImage(
+                                    message,
+                                    questionForAnswer,
+                                  )
+                                }
+                                className="rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-700 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-slate-800"
+                              >
+                                {imageLoadingId ===
+                                message.id
+                                  ? "✍️ Creating notes..."
+                                  : "📒 PadhAI Image"}
+                              </button>
+                            )}
+
+                            {/* Image error */}
+
+                            {imageError[
+                              message.id
+                            ] && (
+                              <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
+                                ❌{" "}
+                                {
+                                  imageError[
+                                    message.id
+                                  ]
+                                }
+                              </div>
+                            )}
+
+                            {/* Generated image */}
+
+                            {generatedImages[
+                              message.id
+                            ] && (
+                              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-950">
+                                <div className="mb-2 flex items-center justify-between px-2">
+                                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                    📒 PadhAI
+                                    Notes
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      generateNotesImage(
+                                        message,
+                                        questionForAnswer,
+                                      )
+                                    }
+                                    disabled={
+                                      imageLoadingId ===
+                                      message.id
+                                    }
+                                    className="text-xs font-semibold text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+                                  >
+                                    {imageLoadingId ===
+                                    message.id
+                                      ? "Creating..."
+                                      : "Regenerate"}
+                                  </button>
+                                </div>
+
+                                <img
+                                  src={
+                                    generatedImages[
+                                      message.id
+                                    ]
+                                  }
+                                  alt="PadhAI handwritten study notes"
+                                  className="h-auto w-full rounded-xl"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                },
+              )}
             </div>
 
             {/* Error */}
+
             {error && (
               <div className="mx-5 mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
                 ❌ {error}
@@ -408,6 +715,7 @@ export function AskPadhAI() {
             )}
 
             {/* Ask Form */}
+
             <form
               onSubmit={handleAsk}
               className="border-t border-slate-200 p-4 dark:border-slate-800"
@@ -415,7 +723,9 @@ export function AskPadhAI() {
               <textarea
                 value={question}
                 onChange={(event) =>
-                  setQuestion(event.target.value)
+                  setQuestion(
+                    event.target.value,
+                  )
                 }
                 placeholder="Ask PadhAI anything..."
                 rows={3}
@@ -427,7 +737,8 @@ export function AskPadhAI() {
                 <button
                   type="submit"
                   disabled={
-                    loading || !question.trim()
+                    loading ||
+                    !question.trim()
                   }
                   className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -437,7 +748,6 @@ export function AskPadhAI() {
                 </button>
               </div>
             </form>
-
           </section>
         </div>
       </main>
