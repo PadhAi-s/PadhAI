@@ -22,67 +22,102 @@ export function AskPadhAI() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
-  const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
 
+  const [selectedConversationId, setSelectedConversationId] =
+    useState<string | null>(null);
+
+  const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // --------------------------------------------------
-  // Load conversations
-  // --------------------------------------------------
+  // ============================================
+  // LOAD CHAT HISTORY
+  // ============================================
 
   async function loadConversations() {
-    if (!user) return;
-
-    setHistoryLoading(true);
-
-    const { data, error } = await supabase
-      .from("ai_conversations")
-      .select("id, title, created_at, updated_at")
-      .eq("user_id", user.id)
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      console.error("Conversation loading error:", error);
-      setError("Unable to load chat history.");
-    } else {
-      setConversations(data ?? []);
-    }
-
-    setHistoryLoading(false);
-  }
-
-  // --------------------------------------------------
-  // Load messages
-  // --------------------------------------------------
-
-  async function loadMessages(id: string) {
-    setError("");
-
-    const { data, error } = await supabase
-      .from("ai_messages")
-      .select("id, conversation_id, role, content, created_at")
-      .eq("conversation_id", id)
-      .eq("user_id", user?.id)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Message loading error:", error);
-      setError("Unable to load conversation.");
+    if (!user) {
+      setHistoryLoading(false);
       return;
     }
 
-    setConversationId(id);
-    setMessages((data as Message[]) ?? []);
+    setHistoryLoading(true);
+    setError("");
+
+    try {
+      const { data, error: conversationError } = await supabase
+        .from("ai_conversations")
+        .select("id, title, created_at, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+
+      if (conversationError) {
+        throw conversationError;
+      }
+
+      setConversations(data ?? []);
+    } catch (err) {
+      console.error("History error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load chat history.",
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
   }
 
-  // --------------------------------------------------
-  // Initial load
-  // --------------------------------------------------
+  // ============================================
+  // LOAD MESSAGES
+  // ============================================
+
+  async function loadMessages(conversationId: string) {
+    setError("");
+    setSelectedConversationId(conversationId);
+
+    try {
+      const { data, error: messagesError } = await supabase
+        .from("ai_messages")
+        .select(
+          "id, conversation_id, role, content, created_at",
+        )
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (messagesError) {
+        throw messagesError;
+      }
+
+      setMessages((data ?? []) as Message[]);
+    } catch (err) {
+      console.error("Messages error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load messages.",
+      );
+    }
+  }
+
+  // ============================================
+  // NEW CHAT
+  // ============================================
+
+  function startNewChat() {
+    setSelectedConversationId(null);
+    setMessages([]);
+    setQuestion("");
+    setError("");
+  }
+
+  // ============================================
+  // INITIAL LOAD
+  // ============================================
 
   useEffect(() => {
     if (!user) {
@@ -93,22 +128,13 @@ export function AskPadhAI() {
     loadConversations();
   }, [user]);
 
-  // --------------------------------------------------
-  // New chat
-  // --------------------------------------------------
+  // ============================================
+  // ASK PADHAI
+  // ============================================
 
-  function handleNewChat() {
-    setConversationId(null);
-    setMessages([]);
-    setQuestion("");
-    setError("");
-  }
-
-  // --------------------------------------------------
-  // Ask PadhAI
-  // --------------------------------------------------
-
-  async function handleAsk(event: FormEvent<HTMLFormElement>) {
+  async function handleAsk(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     const trimmedQuestion = question.trim();
@@ -131,11 +157,19 @@ export function AskPadhAI() {
         await supabase.functions.invoke("ask-padhai", {
           body: {
             question: trimmedQuestion,
-            conversation_id: conversationId,
+
+            conversation_id:
+              selectedConversationId,
+
             student: {
-              class_name: profile?.class_name ?? null,
-              board: profile?.board ?? null,
-              exam: profile?.exam ?? null,
+              class_name:
+                profile?.class_name ?? null,
+
+              board:
+                profile?.board ?? null,
+
+              exam:
+                profile?.exam ?? null,
             },
           },
         });
@@ -149,40 +183,55 @@ export function AskPadhAI() {
       }
 
       if (!data?.answer) {
-        throw new Error("AI did not return an answer.");
+        throw new Error(
+          "AI did not return an answer.",
+        );
       }
 
-      const newConversationId =
-        data.conversation_id ?? conversationId;
+      const conversationId =
+        data.conversation_id;
 
-      setConversationId(newConversationId);
+      // Update selected conversation
+      if (conversationId) {
+        setSelectedConversationId(
+          conversationId,
+        );
+      }
 
-      // Immediately show user question
-      const temporaryUserMessage: Message = {
+      // Immediately show new messages
+      const now = new Date().toISOString();
+
+      const userMessage: Message = {
         id: `temp-user-${Date.now()}`,
-        conversation_id: newConversationId,
+        conversation_id:
+          conversationId ||
+          selectedConversationId ||
+          "",
         role: "user",
         content: trimmedQuestion,
-        created_at: new Date().toISOString(),
+        created_at: now,
       };
 
-      const temporaryAIMessage: Message = {
+      const aiMessage: Message = {
         id: `temp-ai-${Date.now()}`,
-        conversation_id: newConversationId,
+        conversation_id:
+          conversationId ||
+          selectedConversationId ||
+          "",
         role: "assistant",
         content: data.answer,
-        created_at: new Date().toISOString(),
+        created_at: now,
       };
 
-      setMessages((current) => [
-        ...current,
-        temporaryUserMessage,
-        temporaryAIMessage,
+      setMessages((previous) => [
+        ...previous,
+        userMessage,
+        aiMessage,
       ]);
 
       setQuestion("");
 
-      // Refresh sidebar history
+      // Reload history from Supabase
       await loadConversations();
     } catch (err) {
       console.error("Ask PadhAI error:", err);
@@ -197,15 +246,34 @@ export function AskPadhAI() {
     }
   }
 
-  // --------------------------------------------------
-  // Render
-  // --------------------------------------------------
+  // ============================================
+  // FORMAT DATE
+  // ============================================
+
+  function formatDate(date: string) {
+    return new Date(date).toLocaleString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+      },
+    );
+  }
+
+  // ============================================
+  // UI
+  // ============================================
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* Header */}
+
+      {/* HEADER */}
+
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI 🤖
@@ -218,81 +286,111 @@ export function AskPadhAI() {
 
           <button
             type="button"
-            onClick={() => navigate("/student/dashboard")}
+            onClick={() =>
+              navigate("/student/dashboard")
+            }
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             ← Dashboard
           </button>
+
         </div>
       </header>
 
-      {/* Main */}
-      <main className="mx-auto max-w-7xl px-4 py-6">
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+      {/* MAIN */}
 
-          {/* ================================
+      <main className="mx-auto max-w-7xl px-4 py-6">
+
+        <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
+
+          {/* =====================================
               CHAT HISTORY
-              ================================= */}
+          ===================================== */}
+
           <aside className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
+
             <div className="flex items-center justify-between">
+
               <h2 className="font-bold">
                 Chat History
               </h2>
 
               <button
                 type="button"
-                onClick={handleNewChat}
+                onClick={startNewChat}
                 className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
               >
                 + New Chat
               </button>
+
             </div>
 
             <div className="mt-4 space-y-2">
-              {historyLoading ? (
-                <p className="px-2 py-3 text-sm text-slate-400">
-                  Loading chats...
+
+              {historyLoading && (
+                <p className="px-3 py-4 text-sm text-slate-500">
+                  Loading history...
                 </p>
-              ) : conversations.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-slate-400">
-                  No previous chats.
-                </p>
-              ) : (
-                conversations.map((conversation) => (
+              )}
+
+              {!historyLoading &&
+                conversations.length === 0 && (
+                  <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      No previous chats.
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Start a new question.
+                    </p>
+                  </div>
+                )}
+
+              {conversations.map(
+                (conversation) => (
                   <button
                     key={conversation.id}
                     type="button"
                     onClick={() =>
-                      loadMessages(conversation.id)
+                      loadMessages(
+                        conversation.id,
+                      )
                     }
-                    className={`w-full rounded-xl px-3 py-3 text-left text-sm transition ${
-                      conversation.id === conversationId
-                        ? "bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                        : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    className={`w-full rounded-xl p-3 text-left transition ${
+                      selectedConversationId ===
+                      conversation.id
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
-                    <p className="truncate">
-                      {conversation.title || "New Chat"}
+                    <p className="line-clamp-2 text-sm font-semibold">
+                      {conversation.title ||
+                        "New Chat"}
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      {new Date(
+                      {formatDate(
                         conversation.updated_at,
-                      ).toLocaleDateString()}
+                      )}
                     </p>
                   </button>
-                ))
+                ),
               )}
+
             </div>
+
           </aside>
 
-          {/* ================================
+          {/* =====================================
               CHAT AREA
-              ================================= */}
-          <section className="flex min-h-[700px] flex-col rounded-2xl bg-white shadow-sm dark:bg-slate-900">
+          ===================================== */}
+
+          <section className="flex min-h-[650px] flex-col rounded-2xl bg-white shadow-sm dark:bg-slate-900">
 
             {/* Student context */}
+
             <div className="border-b border-slate-200 p-5 dark:border-slate-800">
+
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Asking as
               </p>
@@ -304,6 +402,7 @@ export function AskPadhAI() {
               </h2>
 
               <div className="mt-3 flex flex-wrap gap-2">
+
                 {profile?.class_name && (
                   <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
                     Class {profile.class_name}
@@ -321,105 +420,125 @@ export function AskPadhAI() {
                     {profile.exam}
                   </span>
                 )}
+
               </div>
+
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 space-y-5 overflow-y-auto p-5">
-              {messages.length === 0 ? (
-                <div className="flex min-h-[450px] items-center justify-center">
-                  <div className="max-w-md text-center">
-                    <div className="text-5xl">🤖</div>
+            {/* MESSAGES */}
 
-                    <h2 className="mt-4 text-2xl font-bold">
+            <div className="flex-1 space-y-5 overflow-y-auto p-5">
+
+              {messages.length === 0 && (
+                <div className="flex min-h-[420px] items-center justify-center text-center">
+
+                  <div>
+                    <div className="text-5xl">
+                      🤖
+                    </div>
+
+                    <h2 className="mt-4 text-xl font-bold">
                       Ask PadhAI
                     </h2>
 
-                    <p className="mt-2 text-slate-500 dark:text-slate-400">
-                      Ask any study question and PadhAI
-                      will explain it step by step.
+                    <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
+                      Ask a question about your
+                      studies and PadhAI will
+                      explain it step by step.
                     </p>
                   </div>
+
                 </div>
-              ) : (
-                messages.map((message) => (
+              )}
+
+              {messages.map((message) => (
+
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user"
+                      ? "justify-end"
+                      : "justify-start"
+                  }`}
+                >
+
                   <div
-                    key={message.id}
-                    className={`flex ${
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                       message.role === "user"
-                        ? "justify-end"
-                        : "justify-start"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
                     }`}
                   >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                        message.role === "user"
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
-                      }`}
-                    >
-                      <p className="mb-1 text-xs font-semibold opacity-70">
-                        {message.role === "user"
-                          ? "You"
-                          : "🤖 PadhAI"}
-                      </p>
 
-                      <div className="whitespace-pre-wrap leading-7">
-                        {message.content}
-                      </div>
+                    <p className="mb-1 text-xs font-semibold opacity-70">
+                      {message.role === "user"
+                        ? "You"
+                        : "🤖 PadhAI"}
+                    </p>
+
+                    <div className="whitespace-pre-wrap text-sm leading-7">
+                      {message.content}
                     </div>
-                  </div>
-                ))
-              )}
 
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                    🤖 PadhAI is thinking...
                   </div>
+
                 </div>
-              )}
+
+              ))}
+
             </div>
 
-            {/* Error */}
+            {/* ERROR */}
+
             {error && (
               <div className="mx-5 mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
                 ❌ {error}
               </div>
             )}
 
-            {/* Ask form */}
+            {/* ASK FORM */}
+
             <form
               onSubmit={handleAsk}
-              className="border-t border-slate-200 p-5 dark:border-slate-800"
+              className="border-t border-slate-200 p-4 dark:border-slate-800"
             >
+
               <textarea
                 value={question}
                 onChange={(event) =>
-                  setQuestion(event.target.value)
+                  setQuestion(
+                    event.target.value,
+                  )
                 }
                 placeholder="Ask PadhAI anything..."
-                rows={4}
+                rows={3}
                 disabled={loading}
                 className="w-full resize-none rounded-2xl border border-slate-300 bg-white p-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950"
               />
 
               <div className="mt-3 flex justify-end">
+
                 <button
                   type="submit"
                   disabled={
-                    loading || !question.trim()
+                    loading ||
+                    !question.trim()
                   }
                   className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading
-                    ? "Thinking..."
+                    ? "PadhAI is thinking..."
                     : "Ask PadhAI 🤖"}
                 </button>
+
               </div>
+
             </form>
+
           </section>
+
         </div>
+
       </main>
     </div>
   );
