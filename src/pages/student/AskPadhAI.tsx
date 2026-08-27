@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -32,10 +34,6 @@ export function AskPadhAI() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // -------------------------------------------------------
-  // Load conversations
-  // -------------------------------------------------------
 
   async function loadConversations() {
     if (!user) {
@@ -73,15 +71,7 @@ export function AskPadhAI() {
     }
   }
 
-  // -------------------------------------------------------
-  // Load messages
-  // -------------------------------------------------------
-
   async function loadMessages(conversationId: string) {
-    if (!user) {
-      return;
-    }
-
     setError("");
     setSelectedConversationId(conversationId);
 
@@ -112,20 +102,12 @@ export function AskPadhAI() {
     }
   }
 
-  // -------------------------------------------------------
-  // New chat
-  // -------------------------------------------------------
-
   function startNewChat() {
     setSelectedConversationId(null);
     setMessages([]);
     setQuestion("");
     setError("");
   }
-
-  // -------------------------------------------------------
-  // Initial history
-  // -------------------------------------------------------
 
   useEffect(() => {
     if (!user) {
@@ -135,10 +117,6 @@ export function AskPadhAI() {
 
     loadConversations();
   }, [user]);
-
-  // -------------------------------------------------------
-  // Ask PadhAI
-  // -------------------------------------------------------
 
   async function handleAsk(
     event: FormEvent<HTMLFormElement>,
@@ -167,9 +145,12 @@ export function AskPadhAI() {
             question: trimmedQuestion,
             conversation_id: selectedConversationId,
             student: {
-              class_name: profile?.class_name ?? null,
-              board: profile?.board ?? null,
-              exam: profile?.exam ?? null,
+              class_name:
+                profile?.class_name ?? null,
+              board:
+                profile?.board ?? null,
+              exam:
+                profile?.exam ?? null,
             },
           },
         });
@@ -183,21 +164,32 @@ export function AskPadhAI() {
       }
 
       if (!data?.answer) {
-        throw new Error("AI did not return an answer.");
+        throw new Error(
+          "AI did not return an answer.",
+        );
       }
 
       const conversationId =
-        data.conversation_id || selectedConversationId;
+        data.conversation_id;
 
       if (conversationId) {
-        setSelectedConversationId(conversationId);
+        setSelectedConversationId(
+          conversationId,
+        );
       }
 
-      const now = new Date().toISOString();
+      const now =
+        new Date().toISOString();
+
+      const currentConversationId =
+        conversationId ||
+        selectedConversationId ||
+        "";
 
       const userMessage: Message = {
         id: `temp-user-${Date.now()}`,
-        conversation_id: conversationId || "",
+        conversation_id:
+          currentConversationId,
         role: "user",
         content: trimmedQuestion,
         created_at: now,
@@ -205,7 +197,8 @@ export function AskPadhAI() {
 
       const aiMessage: Message = {
         id: `temp-ai-${Date.now()}`,
-        conversation_id: conversationId || "",
+        conversation_id:
+          currentConversationId,
         role: "assistant",
         content: data.answer,
         created_at: now,
@@ -221,7 +214,10 @@ export function AskPadhAI() {
 
       await loadConversations();
     } catch (err) {
-      console.error("Ask PadhAI error:", err);
+      console.error(
+        "Ask PadhAI error:",
+        err,
+      );
 
       setError(
         err instanceof Error
@@ -233,29 +229,26 @@ export function AskPadhAI() {
     }
   }
 
-  // -------------------------------------------------------
-  // Format date
-  // -------------------------------------------------------
-
   function formatDate(date: string) {
-    return new Date(date).toLocaleString("en-IN", {
-      day: "numeric",
-      month: "short",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    return new Date(date).toLocaleString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+      },
+    );
   }
-
-  // -------------------------------------------------------
-  // UI
-  // -------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+
       {/* Header */}
 
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI 🤖
@@ -268,22 +261,29 @@ export function AskPadhAI() {
 
           <button
             type="button"
-            onClick={() => navigate("/student/dashboard")}
+            onClick={() =>
+              navigate("/student/dashboard")
+            }
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             ← Dashboard
           </button>
+
         </div>
       </header>
 
       {/* Main */}
 
       <main className="mx-auto max-w-7xl px-4 py-6">
+
         <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
+
           {/* Chat History */}
 
           <aside className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
+
             <div className="flex items-center justify-between">
+
               <h2 className="font-bold">
                 Chat History
               </h2>
@@ -295,9 +295,11 @@ export function AskPadhAI() {
               >
                 + New Chat
               </button>
+
             </div>
 
             <div className="mt-4 space-y-2">
+
               {historyLoading && (
                 <p className="px-3 py-4 text-sm text-slate-500">
                   Loading history...
@@ -307,6 +309,7 @@ export function AskPadhAI() {
               {!historyLoading &&
                 conversations.length === 0 && (
                   <div className="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-800">
+
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       No previous chats.
                     </p>
@@ -314,43 +317,54 @@ export function AskPadhAI() {
                     <p className="mt-1 text-xs text-slate-400">
                       Start a new question.
                     </p>
+
                   </div>
                 )}
 
-              {conversations.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  type="button"
-                  onClick={() =>
-                    loadMessages(conversation.id)
-                  }
-                  className={`w-full rounded-xl p-3 text-left transition ${
-                    selectedConversationId ===
-                    conversation.id
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <p className="line-clamp-2 text-sm font-semibold">
-                    {conversation.title || "New Chat"}
-                  </p>
+              {conversations.map(
+                (conversation) => (
+                  <button
+                    key={conversation.id}
+                    type="button"
+                    onClick={() =>
+                      loadMessages(
+                        conversation.id,
+                      )
+                    }
+                    className={`w-full rounded-xl p-3 text-left transition ${
+                      selectedConversationId ===
+                      conversation.id
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
 
-                  <p className="mt-1 text-xs text-slate-400">
-                    {formatDate(
-                      conversation.updated_at,
-                    )}
-                  </p>
-                </button>
-              ))}
+                    <p className="line-clamp-2 text-sm font-semibold">
+                      {conversation.title ||
+                        "New Chat"}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      {formatDate(
+                        conversation.updated_at,
+                      )}
+                    </p>
+
+                  </button>
+                ),
+              )}
+
             </div>
           </aside>
 
           {/* Chat Area */}
 
           <section className="flex min-h-[650px] flex-col rounded-2xl bg-white shadow-sm dark:bg-slate-900">
+
             {/* Student Context */}
 
             <div className="border-b border-slate-200 p-5 dark:border-slate-800">
+
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Asking as
               </p>
@@ -362,9 +376,11 @@ export function AskPadhAI() {
               </h2>
 
               <div className="mt-3 flex flex-wrap gap-2">
+
                 {profile?.class_name && (
                   <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                    Class {profile.class_name}
+                    Class{" "}
+                    {profile.class_name}
                   </span>
                 )}
 
@@ -379,15 +395,19 @@ export function AskPadhAI() {
                     {profile.exam}
                   </span>
                 )}
+
               </div>
             </div>
 
             {/* Messages */}
 
             <div className="flex-1 space-y-5 overflow-y-auto p-5">
+
               {messages.length === 0 && (
                 <div className="flex min-h-[420px] items-center justify-center text-center">
+
                   <div>
+
                     <div className="text-5xl">
                       🤖
                     </div>
@@ -397,47 +417,227 @@ export function AskPadhAI() {
                     </h2>
 
                     <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-                      Ask a question about your
-                      studies and PadhAI will
-                      explain it step by step.
+                      Ask a question about
+                      your studies and
+                      PadhAI will explain it
+                      step by step.
                     </p>
+
                   </div>
+
                 </div>
               )}
 
-              {messages.map((message) => {
-                const isUser =
-                  message.role === "user";
+              {messages.map(
+                (message) => {
+                  const isAssistant =
+                    message.role ===
+                    "assistant";
 
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      isUser
-                        ? "justify-end"
-                        : "justify-start"
-                    }`}
-                  >
+                  return (
                     <div
-                      className={`max-w-[90%] rounded-2xl px-4 py-3 ${
-                        isUser
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                      key={message.id}
+                      className={`flex ${
+                        message.role ===
+                        "user"
+                          ? "justify-end"
+                          : "justify-start"
                       }`}
                     >
-                      <p className="mb-1 text-xs font-semibold opacity-70">
-                        {isUser
-                          ? "You"
-                          : "🤖 PadhAI"}
-                      </p>
 
-                      <div className="whitespace-pre-wrap text-sm leading-7">
-                        {message.content}
+                      <div
+                        className={`max-w-[92%] rounded-2xl px-4 py-3 ${
+                          message.role ===
+                          "user"
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+
+                        {/* Sender */}
+
+                        <p className="mb-2 text-xs font-semibold opacity-70">
+                          {message.role ===
+                          "user"
+                            ? "You"
+                            : "🤖 PadhAI"}
+                        </p>
+
+                        {/* Proper AI Markdown */}
+
+                        {isAssistant ? (
+                          <div className="padhai-markdown text-sm leading-7">
+
+                            <ReactMarkdown
+                              remarkPlugins={[
+                                remarkGfm,
+                              ]}
+                              components={{
+                                h1: ({
+                                  children,
+                                }) => (
+                                  <h1 className="mb-4 mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                                    {children}
+                                  </h1>
+                                ),
+
+                                h2: ({
+                                  children,
+                                }) => (
+                                  <h2 className="mb-3 mt-5 text-lg font-bold text-slate-900 dark:text-white">
+                                    {children}
+                                  </h2>
+                                ),
+
+                                h3: ({
+                                  children,
+                                }) => (
+                                  <h3 className="mb-2 mt-4 text-base font-bold text-slate-900 dark:text-white">
+                                    {children}
+                                  </h3>
+                                ),
+
+                                p: ({
+                                  children,
+                                }) => (
+                                  <p className="mb-3 last:mb-0">
+                                    {children}
+                                  </p>
+                                ),
+
+                                strong: ({
+                                  children,
+                                }) => (
+                                  <strong className="font-bold text-slate-900 dark:text-white">
+                                    {children}
+                                  </strong>
+                                ),
+
+                                em: ({
+                                  children,
+                                }) => (
+                                  <em className="italic">
+                                    {children}
+                                  </em>
+                                ),
+
+                                ul: ({
+                                  children,
+                                }) => (
+                                  <ul className="mb-4 ml-5 list-disc space-y-1">
+                                    {children}
+                                  </ul>
+                                ),
+
+                                ol: ({
+                                  children,
+                                }) => (
+                                  <ol className="mb-4 ml-5 list-decimal space-y-1">
+                                    {children}
+                                  </ol>
+                                ),
+
+                                li: ({
+                                  children,
+                                }) => (
+                                  <li className="pl-1">
+                                    {children}
+                                  </li>
+                                ),
+
+                                blockquote: ({
+                                  children,
+                                }) => (
+                                  <blockquote className="my-4 border-l-4 border-blue-400 pl-4 italic text-slate-600 dark:text-slate-300">
+                                    {children}
+                                  </blockquote>
+                                ),
+
+                                code: ({
+                                  children,
+                                }) => (
+                                  <code className="rounded bg-slate-200 px-1.5 py-0.5 text-xs font-mono text-slate-800 dark:bg-slate-700 dark:text-slate-100">
+                                    {children}
+                                  </code>
+                                ),
+
+                                pre: ({
+                                  children,
+                                }) => (
+                                  <pre className="my-4 overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100">
+                                    {children}
+                                  </pre>
+                                ),
+
+                                table: ({
+                                  children,
+                                }) => (
+                                  <div className="my-4 overflow-x-auto rounded-xl border border-slate-300 dark:border-slate-700">
+                                    <table className="min-w-full border-collapse text-sm">
+                                      {children}
+                                    </table>
+                                  </div>
+                                ),
+
+                                thead: ({
+                                  children,
+                                }) => (
+                                  <thead className="bg-slate-200 dark:bg-slate-700">
+                                    {children}
+                                  </thead>
+                                ),
+
+                                th: ({
+                                  children,
+                                }) => (
+                                  <th className="border-b border-slate-300 px-3 py-2 text-left font-bold dark:border-slate-600">
+                                    {children}
+                                  </th>
+                                ),
+
+                                td: ({
+                                  children,
+                                }) => (
+                                  <td className="border-b border-slate-200 px-3 py-2 dark:border-slate-700">
+                                    {children}
+                                  </td>
+                                ),
+
+                                hr: () => (
+                                  <hr className="my-5 border-slate-300 dark:border-slate-700" />
+                                ),
+
+                                a: ({
+                                  children,
+                                  href,
+                                }) => (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-semibold text-blue-600 underline dark:text-blue-400"
+                                  >
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-sm leading-7">
+                            {message.content}
+                          </div>
+                        )}
+
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                },
+              )}
+
             </div>
 
             {/* Error */}
@@ -454,10 +654,13 @@ export function AskPadhAI() {
               onSubmit={handleAsk}
               className="border-t border-slate-200 p-4 dark:border-slate-800"
             >
+
               <textarea
                 value={question}
                 onChange={(event) =>
-                  setQuestion(event.target.value)
+                  setQuestion(
+                    event.target.value,
+                  )
                 }
                 placeholder="Ask PadhAI anything..."
                 rows={3}
@@ -466,6 +669,7 @@ export function AskPadhAI() {
               />
 
               <div className="mt-3 flex justify-end">
+
                 <button
                   type="submit"
                   disabled={
@@ -478,8 +682,11 @@ export function AskPadhAI() {
                     ? "PadhAI is thinking..."
                     : "Ask PadhAI 🤖"}
                 </button>
+
               </div>
+
             </form>
+
           </section>
         </div>
       </main>
