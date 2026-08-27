@@ -66,9 +66,12 @@ export function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* Header */}
+
+      {/* ==================== HEADER ==================== */}
+
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI
@@ -80,6 +83,9 @@ export function StudentDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+
+            {/* User Info */}
+
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-slate-800 dark:text-white">
                 {profile?.full_name || "Student"}
@@ -90,8 +96,10 @@ export function StudentDashboard() {
               </p>
             </div>
 
-            {/* 3 Dot Menu */}
+            {/* ==================== 3 DOT MENU ==================== */}
+
             <div className="relative" ref={menuRef}>
+
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
@@ -104,7 +112,9 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+
                   {/* My Syllabus */}
+
                   <button
                     type="button"
                     onClick={handleSyllabus}
@@ -122,27 +132,9 @@ export function StudentDashboard() {
                       </span>
                     </span>
                   </button>
-{/* Weekly Current Affairs */}
-<button
-  type="button"
-  onClick={() => navigate("/student/current-affairs")}
-  className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
->
-  <div className="text-3xl">📰</div>
 
-  <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-    Weekly Current Affairs
-  </h3>
+                  {/* My Profile */}
 
-  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-    Important news and current affairs for this week.
-  </p>
-
-  <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
-    Read Free →
-  </span>
-</button>
-                  {/* Profile */}
                   <button
                     type="button"
                     onClick={handleProfile}
@@ -162,6 +154,7 @@ export function StudentDashboard() {
                   </button>
 
                   {/* Theme */}
+
                   <button
                     type="button"
                     onClick={toggleTheme}
@@ -185,6 +178,7 @@ export function StudentDashboard() {
                   </button>
 
                   {/* Settings */}
+
                   <button
                     type="button"
                     onClick={() => setMenuOpen(false)}
@@ -206,14 +200,17 @@ export function StudentDashboard() {
                   <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
 
                   {/* Logout */}
+
                   <button
                     type="button"
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     <span className="text-lg">🚪</span>
+
                     <span>Logout</span>
                   </button>
+
                 </div>
               )}
             </div>
@@ -221,10 +218,14 @@ export function StudentDashboard() {
         </div>
       </header>
 
-      {/* Main */}
+      {/* ==================== MAIN ==================== */}
+
       <main className="mx-auto max-w-6xl px-4 py-8">
+
         {/* Welcome */}
+
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
+
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Welcome to PadhAI 👋
           </h2>
@@ -233,8 +234,10 @@ export function StudentDashboard() {
             {profile?.full_name || user?.email || "Student"}
           </p>
 
-          {/* Profile Info */}
+          {/* ==================== PROFILE INFO ==================== */}
+
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
+
             <div className="rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/40">
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Class
@@ -264,22 +267,28 @@ export function StudentDashboard() {
                 {profile?.exam || "Not set"}
               </p>
             </div>
+
           </div>
 
-          {/* Features */}
+          {/* ==================== FEATURES ==================== */}
+
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-            {/* Daily Newspaper */}
+            {/* ==================== DAILY NEWSPAPER ==================== */}
+
             <button
               type="button"
               onClick={handleDailyNewspaper}
               className="group relative rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20"
             >
+
               <div className="absolute right-4 top-4 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white">
                 PREMIUM
               </div>
 
-              <div className="text-3xl">📰</div>
+              <div className="text-3xl">
+                📰
+              </div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
                 Daily Newspaper
@@ -292,20 +301,27 @@ export function StudentDashboard() {
               <span className="mt-4 inline-block text-sm font-semibold text-amber-600 dark:text-amber-400">
                 Read Today's Paper 🔒 →
               </span>
+
             </button>
 
-            {/* Weekly Current Affairs */}
+            {/* ==================== WEEKLY CURRENT AFFAIRS ==================== */}
+
             <button
               type="button"
               onClick={handleCurrentAffairs}
               className="rounded-2xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
             >
+
               <div className="flex items-center justify-between">
-                <div className="text-3xl">🗞️</div>
+
+                <div className="text-3xl">
+                  🗞️
+                </div>
 
                 <span className="rounded-full bg-green-600 px-2.5 py-1 text-[10px] font-bold text-white">
                   FREE
                 </span>
+
               </div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
@@ -319,15 +335,20 @@ export function StudentDashboard() {
               <span className="mt-4 inline-block text-sm font-semibold text-green-600 dark:text-green-400">
                 Read Current Affairs →
               </span>
+
             </button>
 
-            {/* Quick Revision */}
+            {/* ==================== QUICK REVISION ==================== */}
+
             <button
               type="button"
               onClick={handleQuickRevision}
               className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-purple-900/50 dark:from-purple-950/30 dark:to-violet-950/20"
             >
-              <div className="text-3xl">⚡</div>
+
+              <div className="text-3xl">
+                ⚡
+              </div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
                 Quick Revision
@@ -340,15 +361,20 @@ export function StudentDashboard() {
               <span className="mt-4 inline-block text-sm font-semibold text-purple-600 dark:text-purple-400">
                 Revise Now →
               </span>
+
             </button>
 
-            {/* Ask PadhAI */}
+            {/* ==================== ASK PADHAI ==================== */}
+
             <button
               type="button"
               onClick={handleAskPadhAI}
-              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+              className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-blue-900/50 dark:from-blue-950/30 dark:to-cyan-950/20"
             >
-              <div className="text-3xl">🤖</div>
+
+              <div className="text-3xl">
+                🤖
+              </div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
                 Ask PadhAI
@@ -358,23 +384,30 @@ export function StudentDashboard() {
                 Ask questions and get step-by-step AI explanations.
               </p>
 
-              <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
+              <span className="mt-4 inline-block text-sm font-semibold text-blue-600 dark:text-blue-400">
                 Ask Now →
               </span>
+
             </button>
 
-            {/* Vocab Bhaiya */}
+            {/* ==================== VOCAB BHAIYA ==================== */}
+
             <button
               type="button"
               onClick={handleVocabBhaiya}
               className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-indigo-900/50 dark:from-indigo-950/30 dark:to-blue-950/20"
             >
+
               <div className="flex items-center justify-between">
-                <div className="text-3xl">🔤</div>
+
+                <div className="text-3xl">
+                  🔤
+                </div>
 
                 <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                   External ↗
                 </span>
+
               </div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
@@ -388,14 +421,19 @@ export function StudentDashboard() {
               <span className="mt-4 inline-block text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                 Open Vocab Bhaiya →
               </span>
+
             </button>
 
-            {/* Videos */}
+            {/* ==================== STUDY VIDEOS ==================== */}
+
             <button
               type="button"
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
             >
-              <div className="text-3xl">🎥</div>
+
+              <div className="text-3xl">
+                🎥
+              </div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
                 Study Videos
@@ -408,11 +446,15 @@ export function StudentDashboard() {
               <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
                 Coming soon
               </span>
+
             </button>
+
           </div>
 
-          {/* Footer Profile */}
+          {/* ==================== PROFILE BUTTON ==================== */}
+
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+
             <button
               type="button"
               onClick={() => navigate("/student/profile")}
@@ -420,7 +462,9 @@ export function StudentDashboard() {
             >
               Edit My Profile
             </button>
+
           </div>
+
         </div>
       </main>
     </div>
