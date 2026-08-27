@@ -220,7 +220,7 @@ export function StudentDashboard() {
             {/* Ask PadhAI */}
             <button
               type="button"
-              onClick={() => navigate("/student/ask")}
+              onClick={() => navigate("/student/ask")}    
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="text-3xl">🤖</div>
