@@ -21,18 +21,17 @@ export function DailyNewspaper() {
           <button
             type="button"
             onClick={() => navigate("/student/dashboard")}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
           >
             ← Dashboard
           </button>
         </div>
       </header>
 
-      {/* Main */}
+      {/* Content */}
       <main className="mx-auto max-w-4xl px-4 py-8">
         <div className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm dark:border-amber-900/50 dark:bg-slate-900 sm:p-8">
-          {/* Premium header */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-4xl">📰</div>
 
@@ -40,70 +39,56 @@ export function DailyNewspaper() {
                 Daily Newspaper
               </h2>
 
-              <p className="mt-2 text-slate-500 dark:text-slate-400">
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 Today's important news selected specially for students.
               </p>
             </div>
 
-            <span className="w-fit rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-white">
-              PREMIUM 🔒
+            <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
+              PREMIUM
             </span>
           </div>
 
-          {/* Locked content */}
-          <div className="mt-8 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-6 text-center dark:border-amber-800 dark:bg-amber-950/20">
-            <div className="text-5xl">🔐</div>
-
-            <h3 className="mt-4 text-xl font-bold">
-              Premium Newspaper
+          <div className="mt-8 rounded-2xl bg-amber-50 p-5 dark:bg-amber-950/30">
+            <h3 className="font-semibold">
+              🔒 Premium Content
             </h3>
 
-            <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600 dark:text-slate-400">
-              Daily Newspaper is available for premium members.
-              Subscribe to access today's newspaper and daily student-focused news.
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              Daily Newspaper is available for paid members.
+              Subscribe to access today's newspaper and daily
+              exam-focused news.
             </p>
 
             <button
               type="button"
-              className="mt-6 rounded-xl bg-amber-500 px-6 py-3 font-semibold text-white transition hover:bg-amber-600"
-              onClick={() => {
-                alert("Premium subscription will be available soon.");
-              }}
+              className="mt-5 rounded-xl bg-amber-500 px-5 py-3 font-semibold text-white transition hover:bg-amber-600"
             >
               Unlock Daily Newspaper →
             </button>
           </div>
 
-          {/* Features */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl bg-slate-50 p-5 dark:bg-slate-800">
-              <div className="text-2xl">🗞️</div>
-              <h4 className="mt-3 font-semibold">
-                Daily News
-              </h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Important national and international news.
-              </p>
-            </div>
+          <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <h3 className="font-semibold">
+              What you'll get
+            </h3>
 
-            <div className="rounded-2xl bg-slate-50 p-5 dark:bg-slate-800">
-              <div className="text-2xl">🎯</div>
-              <h4 className="mt-3 font-semibold">
-                Exam Focused
-              </h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Useful points for competitive exams.
-              </p>
-            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+                📰 Daily important news
+              </div>
 
-            <div className="rounded-2xl bg-slate-50 p-5 dark:bg-slate-800">
-              <div className="text-2xl">🔒</div>
-              <h4 className="mt-3 font-semibold">
-                Premium Content
-              </h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Protected content for subscribers.
-              </p>
+              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+                🎯 Exam-focused updates
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+                📚 Easy student-friendly explanations
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+                🔐 Non-shareable premium content
+              </div>
             </div>
           </div>
         </div>
