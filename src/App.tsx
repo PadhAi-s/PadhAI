@@ -12,7 +12,6 @@ import { StudentDashboard } from "./pages/student/Dashboard";
 import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
-
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 
@@ -65,9 +64,9 @@ export default function App() {
                 />
 
                 <Route
-                  path="student/ask"
-                  element={<AskPadhAI />}
-                />
+  path="student/ask"
+  element={<AskPadhAI />}
+/>
               </Route>
 
               {/* ==================== ADMIN ==================== */}
