@@ -3,9 +3,6 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../lib/supabase";
 
 interface Conversation {
   id: string;
@@ -28,7 +25,6 @@ export function AskPadhAI() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-
   const [selectedConversationId, setSelectedConversationId] =
     useState<string | null>(null);
 
@@ -36,10 +32,6 @@ export function AskPadhAI() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // ============================================
-  // LOAD CHAT HISTORY
-  // ============================================
 
   async function loadConversations() {
     if (!user) {
@@ -75,10 +67,6 @@ export function AskPadhAI() {
     }
   }
 
-  // ============================================
-  // LOAD MESSAGES
-  // ============================================
-
   async function loadMessages(conversationId: string) {
     setError("");
     setSelectedConversationId(conversationId);
@@ -108,20 +96,12 @@ export function AskPadhAI() {
     }
   }
 
-  // ============================================
-  // NEW CHAT
-  // ============================================
-
   function startNewChat() {
     setSelectedConversationId(null);
     setMessages([]);
     setQuestion("");
     setError("");
   }
-
-  // ============================================
-  // INITIAL LOAD
-  // ============================================
 
   useEffect(() => {
     if (!user) {
@@ -131,10 +111,6 @@ export function AskPadhAI() {
 
     loadConversations();
   }, [user]);
-
-  // ============================================
-  // ASK PADHAI
-  // ============================================
 
   async function handleAsk(
     event: FormEvent<HTMLFormElement>,
@@ -161,19 +137,11 @@ export function AskPadhAI() {
         await supabase.functions.invoke("ask-padhai", {
           body: {
             question: trimmedQuestion,
-
-            conversation_id:
-              selectedConversationId,
-
+            conversation_id: selectedConversationId,
             student: {
-              class_name:
-                profile?.class_name ?? null,
-
-              board:
-                profile?.board ?? null,
-
-              exam:
-                profile?.exam ?? null,
+              class_name: profile?.class_name ?? null,
+              board: profile?.board ?? null,
+              exam: profile?.exam ?? null,
             },
           },
         });
@@ -187,22 +155,15 @@ export function AskPadhAI() {
       }
 
       if (!data?.answer) {
-        throw new Error(
-          "AI did not return an answer.",
-        );
+        throw new Error("AI did not return an answer.");
       }
 
-      const conversationId =
-        data.conversation_id;
+      const conversationId = data.conversation_id;
 
-      // Update selected conversation
       if (conversationId) {
-        setSelectedConversationId(
-          conversationId,
-        );
+        setSelectedConversationId(conversationId);
       }
 
-      // Immediately show new messages
       const now = new Date().toISOString();
 
       const userMessage: Message = {
@@ -235,7 +196,6 @@ export function AskPadhAI() {
 
       setQuestion("");
 
-      // Reload history from Supabase
       await loadConversations();
     } catch (err) {
       console.error("Ask PadhAI error:", err);
@@ -250,34 +210,21 @@ export function AskPadhAI() {
     }
   }
 
-  // ============================================
-  // FORMAT DATE
-  // ============================================
-
   function formatDate(date: string) {
-    return new Date(date).toLocaleString(
-      "en-IN",
-      {
-        day: "numeric",
-        month: "short",
-        hour: "numeric",
-        minute: "2-digit",
-      },
-    );
+    return new Date(date).toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
-
-  // ============================================
-  // UI
-  // ============================================
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
 
-      {/* HEADER */}
-
+      {/* Header */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI 🤖
@@ -290,31 +237,21 @@ export function AskPadhAI() {
 
           <button
             type="button"
-            onClick={() =>
-              navigate("/student/dashboard")
-            }
+            onClick={() => navigate("/student/dashboard")}
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             ← Dashboard
           </button>
-
         </div>
       </header>
 
-      {/* MAIN */}
-
+      {/* Main */}
       <main className="mx-auto max-w-7xl px-4 py-6">
-
         <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
 
-          {/* =====================================
-              CHAT HISTORY
-          ===================================== */}
-
+          {/* Chat History */}
           <aside className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
-
             <div className="flex items-center justify-between">
-
               <h2 className="font-bold">
                 Chat History
               </h2>
@@ -326,11 +263,9 @@ export function AskPadhAI() {
               >
                 + New Chat
               </button>
-
             </div>
 
             <div className="mt-4 space-y-2">
-
               {historyLoading && (
                 <p className="px-3 py-4 text-sm text-slate-500">
                   Loading history...
@@ -350,51 +285,39 @@ export function AskPadhAI() {
                   </div>
                 )}
 
-              {conversations.map(
-                (conversation) => (
-                  <button
-                    key={conversation.id}
-                    type="button"
-                    onClick={() =>
-                      loadMessages(
-                        conversation.id,
-                      )
-                    }
-                    className={`w-full rounded-xl p-3 text-left transition ${
-                      selectedConversationId ===
-                      conversation.id
-                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <p className="line-clamp-2 text-sm font-semibold">
-                      {conversation.title ||
-                        "New Chat"}
-                    </p>
+              {conversations.map((conversation) => (
+                <button
+                  key={conversation.id}
+                  type="button"
+                  onClick={() =>
+                    loadMessages(conversation.id)
+                  }
+                  className={`w-full rounded-xl p-3 text-left transition ${
+                    selectedConversationId ===
+                    conversation.id
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <p className="line-clamp-2 text-sm font-semibold">
+                    {conversation.title || "New Chat"}
+                  </p>
 
-                    <p className="mt-1 text-xs text-slate-400">
-                      {formatDate(
-                        conversation.updated_at,
-                      )}
-                    </p>
-                  </button>
-                ),
-              )}
-
+                  <p className="mt-1 text-xs text-slate-400">
+                    {formatDate(
+                      conversation.updated_at,
+                    )}
+                  </p>
+                </button>
+              ))}
             </div>
-
           </aside>
 
-          {/* =====================================
-              CHAT AREA
-          ===================================== */}
-
+          {/* Chat Area */}
           <section className="flex min-h-[650px] flex-col rounded-2xl bg-white shadow-sm dark:bg-slate-900">
 
-            {/* Student context */}
-
+            {/* Student Context */}
             <div className="border-b border-slate-200 p-5 dark:border-slate-800">
-
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Asking as
               </p>
@@ -406,7 +329,6 @@ export function AskPadhAI() {
               </h2>
 
               <div className="mt-3 flex flex-wrap gap-2">
-
                 {profile?.class_name && (
                   <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
                     Class {profile.class_name}
@@ -424,18 +346,13 @@ export function AskPadhAI() {
                     {profile.exam}
                   </span>
                 )}
-
               </div>
-
             </div>
 
-            {/* MESSAGES */}
-
+            {/* Messages */}
             <div className="flex-1 space-y-5 overflow-y-auto p-5">
-
               {messages.length === 0 && (
                 <div className="flex min-h-[420px] items-center justify-center text-center">
-
                   <div>
                     <div className="text-5xl">
                       🤖
@@ -446,17 +363,14 @@ export function AskPadhAI() {
                     </h2>
 
                     <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-                      Ask a question about your
-                      studies and PadhAI will
-                      explain it step by step.
+                      Ask a question about your studies
+                      and PadhAI will explain it step by step.
                     </p>
                   </div>
-
                 </div>
               )}
 
               {messages.map((message) => (
-
                 <div
                   key={message.id}
                   className={`flex ${
@@ -465,7 +379,6 @@ export function AskPadhAI() {
                       : "justify-start"
                   }`}
                 >
-
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                       message.role === "user"
@@ -473,7 +386,6 @@ export function AskPadhAI() {
                         : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
                     }`}
                   >
-
                     <p className="mb-1 text-xs font-semibold opacity-70">
                       {message.role === "user"
                         ? "You"
@@ -483,36 +395,27 @@ export function AskPadhAI() {
                     <div className="whitespace-pre-wrap text-sm leading-7">
                       {message.content}
                     </div>
-
                   </div>
-
                 </div>
-
               ))}
-
             </div>
 
-            {/* ERROR */}
-
+            {/* Error */}
             {error && (
               <div className="mx-5 mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
                 ❌ {error}
               </div>
             )}
 
-            {/* ASK FORM */}
-
+            {/* Ask Form */}
             <form
               onSubmit={handleAsk}
               className="border-t border-slate-200 p-4 dark:border-slate-800"
             >
-
               <textarea
                 value={question}
                 onChange={(event) =>
-                  setQuestion(
-                    event.target.value,
-                  )
+                  setQuestion(event.target.value)
                 }
                 placeholder="Ask PadhAI anything..."
                 rows={3}
@@ -521,12 +424,10 @@ export function AskPadhAI() {
               />
 
               <div className="mt-3 flex justify-end">
-
                 <button
                   type="submit"
                   disabled={
-                    loading ||
-                    !question.trim()
+                    loading || !question.trim()
                   }
                   className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -534,15 +435,11 @@ export function AskPadhAI() {
                     ? "PadhAI is thinking..."
                     : "Ask PadhAI 🤖"}
                 </button>
-
               </div>
-
             </form>
 
           </section>
-
         </div>
-
       </main>
     </div>
   );
