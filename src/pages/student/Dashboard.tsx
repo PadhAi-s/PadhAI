@@ -39,6 +39,15 @@ export function StudentDashboard() {
     navigate("/student/profile");
   }
 
+  function handleSyllabus() {
+    setMenuOpen(false);
+    navigate("/student/syllabus");
+  }
+
+  function openVocabBhaiya() {
+    window.location.href = "https://vocabbhaiya.netlify.app/";
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       {/* Header */}
@@ -79,6 +88,26 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                  {/* My Syllabus */}
+                  <button
+                    type="button"
+                    onClick={handleSyllabus}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <span className="text-lg">📚</span>
+
+                    <span>
+                      <span className="block">
+                        My Syllabus
+                      </span>
+
+                      <span className="text-xs font-normal text-slate-400">
+                        Subjects and chapters
+                      </span>
+                    </span>
+                  </button>
+
+                  {/* My Profile */}
                   <button
                     type="button"
                     onClick={handleProfile}
@@ -87,13 +116,17 @@ export function StudentDashboard() {
                     <span className="text-lg">👤</span>
 
                     <span>
-                      <span className="block">My Profile</span>
+                      <span className="block">
+                        My Profile
+                      </span>
+
                       <span className="text-xs font-normal text-slate-400">
                         Edit your profile
                       </span>
                     </span>
                   </button>
 
+                  {/* Theme */}
                   <button
                     type="button"
                     onClick={toggleTheme}
@@ -116,6 +149,7 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
+                  {/* Settings */}
                   <button
                     type="button"
                     onClick={() => setMenuOpen(false)}
@@ -124,7 +158,9 @@ export function StudentDashboard() {
                     <span className="text-lg">⚙️</span>
 
                     <span>
-                      <span className="block">Settings</span>
+                      <span className="block">
+                        Settings
+                      </span>
 
                       <span className="text-xs font-normal text-slate-400">
                         Coming soon
@@ -134,6 +170,7 @@ export function StudentDashboard() {
 
                   <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
 
+                  {/* Logout */}
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -196,31 +233,31 @@ export function StudentDashboard() {
 
           {/* Features */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Syllabus */}
+            {/* Quick Revision */}
             <button
               type="button"
-              onClick={() => navigate("/student/syllabus")}
+              onClick={() => navigate("/student/quick-revision")}
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
             >
-              <div className="text-3xl">📚</div>
+              <div className="text-3xl">⚡</div>
 
               <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-                My Syllabus
+                Quick Revision
               </h3>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                View your class-wise subjects and chapters.
+                Revise important concepts, formulas and key points quickly.
               </p>
 
               <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
-                Open Syllabus →
+                Start Revision →
               </span>
             </button>
 
             {/* Ask PadhAI */}
             <button
               type="button"
-              onClick={() => navigate("/student/ask")}    
+              onClick={() => navigate("/student/ask")}
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="text-3xl">🤖</div>
@@ -230,7 +267,7 @@ export function StudentDashboard() {
               </h3>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Ask questions and get Gemini-powered AI solutions.
+                Ask questions and get personalized AI explanations.
               </p>
 
               <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
@@ -238,7 +275,82 @@ export function StudentDashboard() {
               </span>
             </button>
 
-            {/* Videos */}
+            {/* Daily Newspaper */}
+            <button
+              type="button"
+              onClick={() => navigate("/student/newspaper")}
+              className="rounded-2xl border border-amber-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-amber-900/60 dark:bg-slate-900"
+            >
+              <div className="flex items-start justify-between">
+                <div className="text-3xl">📰</div>
+
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                  PREMIUM
+                </span>
+              </div>
+
+              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
+                Daily Newspaper
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Daily important news explained simply for students.
+              </p>
+
+              <span className="mt-4 inline-block text-sm font-semibold text-amber-600 dark:text-amber-400">
+                Read Today's News →
+              </span>
+            </button>
+
+            {/* Weekly Current Affairs */}
+            <button
+              type="button"
+              onClick={() => navigate("/student/current-affairs")}
+              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
+              <div className="flex items-start justify-between">
+                <div className="text-3xl">🗞️</div>
+
+                <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-bold text-green-700 dark:bg-green-950/60 dark:text-green-300">
+                  FREE
+                </span>
+              </div>
+
+              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
+                Weekly Current Affairs
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Important events of the week for exams and general awareness.
+              </p>
+
+              <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
+                Read Current Affairs →
+              </span>
+            </button>
+
+            {/* Vocab Bhaiya */}
+            <button
+              type="button"
+              onClick={openVocabBhaiya}
+              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
+              <div className="text-3xl">📘</div>
+
+              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
+                Vocab Bhaiya
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Improve your English vocabulary with practice and quizzes.
+              </p>
+
+              <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
+                Open Vocab Bhaiya →
+              </span>
+            </button>
+
+            {/* Study Videos */}
             <button
               type="button"
               className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
