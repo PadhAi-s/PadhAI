@@ -13,7 +13,7 @@ import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
 import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
-
+import { DailyNewspaper } from "./pages/student/DailyNewspaper";
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 
@@ -70,9 +70,14 @@ export default function App() {
                 />
 
                 <Route
-                  path="student/current-affairs"
-                  element={<WeeklyCurrentAffairs />}
-                />
+  path="student/current-affairs"
+  element={<WeeklyCurrentAffairs />}
+/>
+
+<Route
+  path="student/daily-newspaper"
+  element={<DailyNewspaper />}
+/>
               </Route>
 
               {/* ==================== ADMIN ==================== */}
