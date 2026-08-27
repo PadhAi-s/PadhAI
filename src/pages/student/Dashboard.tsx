@@ -122,7 +122,26 @@ export function StudentDashboard() {
                       </span>
                     </span>
                   </button>
+{/* Weekly Current Affairs */}
+<button
+  type="button"
+  onClick={() => navigate("/student/current-affairs")}
+  className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+>
+  <div className="text-3xl">📰</div>
 
+  <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
+    Weekly Current Affairs
+  </h3>
+
+  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+    Important news and current affairs for this week.
+  </p>
+
+  <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
+    Read Free →
+  </span>
+</button>
                   {/* Profile */}
                   <button
                     type="button"
