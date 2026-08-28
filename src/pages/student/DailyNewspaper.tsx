@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 
@@ -31,6 +31,82 @@ export function DailyNewspaper() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  /*
+   * Subscription / newspaper status
+   */
+  const [checkingStatus, setCheckingStatus] =
+    useState(true);
+  const [newspaperUrl, setNewspaperUrl] =
+    useState<string | null>(null);
+  const [notUploadedYet, setNotUploadedYet] =
+    useState(false);
+
+  /*
+   * On page load, check whether this user already
+   * has an active subscription and fetch today's
+   * newspaper if so.
+   */
+  useEffect(() => {
+    checkTodaysNewspaper();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const checkTodaysNewspaper = async () => {
+    try {
+      setCheckingStatus(true);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        // Not logged in — just show the normal
+        // paywall; login happens on payment click.
+        setNewspaperUrl(null);
+        setNotUploadedYet(false);
+        return;
+      }
+
+      const res = await fetch(
+        `${
+          import.meta.env.VITE_SUPABASE_URL
+        }/functions/v1/get-todays-newspaper`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        },
+      );
+
+      const data = await res.json();
+
+      if (res.ok && data?.url) {
+        setNewspaperUrl(data.url);
+        setNotUploadedYet(false);
+      } else if (data?.code === "NOT_UPLOADED") {
+        // Subscribed, but today's file isn't up yet
+        setNewspaperUrl(null);
+        setNotUploadedYet(true);
+      } else {
+        // NOT_SUBSCRIBED or any other case —
+        // fall back to the paywall
+        setNewspaperUrl(null);
+        setNotUploadedYet(false);
+      }
+    } catch (error) {
+      console.error(
+        "Newspaper status check failed:",
+        error,
+      );
+
+      setNewspaperUrl(null);
+      setNotUploadedYet(false);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
 
   const handlePayment = async () => {
     try {
@@ -286,42 +362,103 @@ export function DailyNewspaper() {
               </p>
             </div>
 
-            <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
-              PREMIUM
-            </span>
-          </div>
+            {!checkingStatus && !newspaperUrl && (
+              <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
+                PREMIUM
+              </span>
+            )}
 
-          {/* Premium Box */}
-          <div className="mt-8 rounded-2xl bg-amber-50 p-5 dark:bg-amber-950/30">
-            <h3 className="font-semibold">
-              🔒 Premium Content
-            </h3>
-
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-              Daily Newspaper is available for
-              paid members. Subscribe for ₹49 and
-              get access for 30 days.
-            </p>
-
-            {/* Payment Button */}
-            <button
-              type="button"
-              onClick={handlePayment}
-              disabled={loading}
-              className="mt-5 rounded-xl bg-amber-500 px-5 py-3 font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading
-                ? "Processing..."
-                : "Unlock Daily Newspaper ₹49 →"}
-            </button>
-
-            {/* Status */}
-            {message && (
-              <p className="mt-4 text-sm font-medium text-slate-700 dark:text-slate-300">
-                {message}
-              </p>
+            {newspaperUrl && (
+              <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
+                ACTIVE
+              </span>
             )}
           </div>
+
+          {/* Loading status */}
+          {checkingStatus && (
+            <div className="mt-8 rounded-2xl bg-slate-50 p-5 text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+              Checking your subscription status…
+            </div>
+          )}
+
+          {/* Subscribed + today's PDF ready */}
+          {!checkingStatus && newspaperUrl && (
+            <div className="mt-8 rounded-2xl bg-emerald-50 p-5 dark:bg-emerald-950/30">
+              <h3 className="font-semibold">
+                ✅ Aaj ka Newspaper taiyaar hai
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                Aapka subscription active hai.
+                Neeche click karke aaj ka
+                newspaper padhein.
+              </p>
+
+              <a
+                href={newspaperUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-block rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+              >
+                Aaj ka Newspaper Kholein →
+              </a>
+            </div>
+          )}
+
+          {/* Subscribed, but today's file not uploaded yet */}
+          {!checkingStatus &&
+            !newspaperUrl &&
+            notUploadedYet && (
+              <div className="mt-8 rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/30">
+                <h3 className="font-semibold">
+                  ⏳ Aaj ka Newspaper jald hi aayega
+                </h3>
+
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                  Aapka subscription active hai.
+                  Aaj ka newspaper abhi upload
+                  nahi hua hai — thodi der baad
+                  is page ko dobara check karein.
+                </p>
+              </div>
+            )}
+
+          {/* Not subscribed — original paywall */}
+          {!checkingStatus &&
+            !newspaperUrl &&
+            !notUploadedYet && (
+              <div className="mt-8 rounded-2xl bg-amber-50 p-5 dark:bg-amber-950/30">
+                <h3 className="font-semibold">
+                  🔒 Premium Content
+                </h3>
+
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                  Daily Newspaper is available for
+                  paid members. Subscribe for ₹49 and
+                  get access for 30 days.
+                </p>
+
+                {/* Payment Button */}
+                <button
+                  type="button"
+                  onClick={handlePayment}
+                  disabled={loading}
+                  className="mt-5 rounded-xl bg-amber-500 px-5 py-3 font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading
+                    ? "Processing..."
+                    : "Unlock Daily Newspaper ₹49 →"}
+                </button>
+
+                {/* Status */}
+                {message && (
+                  <p className="mt-4 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {message}
+                  </p>
+                )}
+              </div>
+            )}
 
           {/* Features */}
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
