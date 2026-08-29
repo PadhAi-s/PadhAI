@@ -37,44 +37,45 @@ export function DailyNewspaper() {
       }
 
       const {
-  data,
-  error: functionError,
-} = await supabase.functions.invoke(
-  "get-published-newspapers",
-  {
-    method: "GET",
-  },
-);
+        data,
+        error: functionError,
+      } = await supabase.functions.invoke(
+        "get-published-newspapers",
+        {
+          method: "GET",
+        },
+      );
 
-if (functionError) {
-  console.error(
-    "get-published-newspapers error:",
-    functionError,
-  );
+      console.log(
+        "get-published-newspapers response:",
+        data,
+        functionError,
+      );
 
-  throw new Error(
-    functionError.message ||
-      "Newspaper load nahi ho paya.",
-  );
-}
+      if (functionError) {
+        console.error(
+          "get-published-newspapers error:",
+          functionError,
+        );
 
-if (!data?.success) {
-  throw new Error(
-    data?.error ||
-      "Newspaper load nahi ho paya.",
-  );
-}
+        throw new Error(
+          functionError.message ||
+            "Newspaper load nahi ho paya.",
+        );
+      }
 
-setPapers(data.papers || []);
-
-      if (!res.ok) {
+      if (!data?.success) {
         throw new Error(
           data?.error ||
             "Newspaper load nahi ho paya.",
         );
       }
 
-      setPapers(data?.papers || []);
+      setPapers(
+        Array.isArray(data?.papers)
+          ? data.papers
+          : [],
+      );
     } catch (err) {
       console.error(
         "Newspaper loading error:",
@@ -108,12 +109,20 @@ setPapers(data.papers || []);
         };
       }
 
-      groups[paper.newspaper_date][
-        paper.language
-      ].push(paper);
+      if (
+        paper.language === "hindi" ||
+        paper.language === "english"
+      ) {
+        groups[paper.newspaper_date][
+          paper.language
+        ].push(paper);
+      }
     }
 
-    return Object.entries(groups);
+    return Object.entries(groups).sort(
+      ([dateA], [dateB]) =>
+        dateB.localeCompare(dateA),
+    );
   }, [papers]);
 
   const formatDate = (date: string) => {
@@ -162,7 +171,7 @@ setPapers(data.papers || []);
         <div className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm dark:border-amber-900/50 dark:bg-slate-900 sm:p-8">
 
           {/* TITLE */}
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-4">
 
             <div>
               <div className="text-4xl">
@@ -197,6 +206,7 @@ setPapers(data.papers || []);
           {/* ERROR */}
           {!loading && error && (
             <div className="mt-8 rounded-2xl bg-red-50 p-5 text-red-700 dark:bg-red-950/30 dark:text-red-300">
+
               <p className="font-semibold">
                 Newspaper load nahi hua
               </p>
@@ -206,11 +216,13 @@ setPapers(data.papers || []);
               </p>
 
               <button
+                type="button"
                 onClick={loadNewspapers}
-                className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+                className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
               >
                 Retry
               </button>
+
             </div>
           )}
 
@@ -229,8 +241,8 @@ setPapers(data.papers || []);
                 </h3>
 
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  Published newspaper yahan
-                  automatically dikhega.
+                  Admin jab newspaper publish karega,
+                  tab yahan automatically dikhega.
                 </p>
 
               </div>
@@ -251,15 +263,18 @@ setPapers(data.papers || []);
 
                       {/* DATE */}
                       <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-700 dark:bg-slate-800">
+
                         <h3 className="text-lg font-bold">
                           📅 {formatDate(date)}
                         </h3>
+
                       </div>
 
                       <div className="grid gap-6 p-5 md:grid-cols-2">
 
                         {/* HINDI */}
                         <div>
+
                           <h4 className="mb-3 text-lg font-bold">
                             🇮🇳 Hindi
                           </h4>
@@ -273,6 +288,7 @@ setPapers(data.papers || []);
                           )}
 
                           <div className="space-y-3">
+
                             {languages.hindi.map(
                               (paper) => (
                                 <a
@@ -282,6 +298,7 @@ setPapers(data.papers || []);
                                   rel="noopener noreferrer"
                                   className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                                 >
+
                                   <div>
                                     <p className="font-semibold">
                                       📄 Paper{" "}
@@ -298,14 +315,18 @@ setPapers(data.papers || []);
                                   <span className="text-sm font-semibold text-blue-600">
                                     Open →
                                   </span>
+
                                 </a>
                               ),
                             )}
+
                           </div>
+
                         </div>
 
                         {/* ENGLISH */}
                         <div>
+
                           <h4 className="mb-3 text-lg font-bold">
                             🇬🇧 English
                           </h4>
@@ -319,6 +340,7 @@ setPapers(data.papers || []);
                           )}
 
                           <div className="space-y-3">
+
                             {languages.english.map(
                               (paper) => (
                                 <a
@@ -328,6 +350,7 @@ setPapers(data.papers || []);
                                   rel="noopener noreferrer"
                                   className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                                 >
+
                                   <div>
                                     <p className="font-semibold">
                                       📄 Paper{" "}
@@ -344,13 +367,17 @@ setPapers(data.papers || []);
                                   <span className="text-sm font-semibold text-blue-600">
                                     Open →
                                   </span>
+
                                 </a>
                               ),
                             )}
+
                           </div>
+
                         </div>
 
                       </div>
+
                     </div>
                   ),
                 )}
