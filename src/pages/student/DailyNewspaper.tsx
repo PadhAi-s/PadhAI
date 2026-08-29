@@ -20,8 +20,10 @@ function loadRazorpay(): Promise<boolean> {
 
     const script = document.createElement("script");
     script.src = RAZORPAY_SCRIPT;
+
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
+
     document.body.appendChild(script);
   });
 }
@@ -32,23 +34,18 @@ export function DailyNewspaper() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  /*
-   * Subscription / newspaper status
-   */
   const [checkingStatus, setCheckingStatus] =
     useState(true);
+
   const [newspaperUrl, setNewspaperUrl] =
     useState<string | null>(null);
+
   const [notUploadedYet, setNotUploadedYet] =
     useState(false);
 
-  /*
-   * On page load, check whether this user already
-   * has an active subscription and fetch today's
-   * newspaper if so.
-   */
   useEffect(() => {
     checkTodaysNewspaper();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -61,8 +58,6 @@ export function DailyNewspaper() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        // Not logged in — just show the normal
-        // paywall; login happens on payment click.
         setNewspaperUrl(null);
         setNotUploadedYet(false);
         return;
@@ -86,12 +81,9 @@ export function DailyNewspaper() {
         setNewspaperUrl(data.url);
         setNotUploadedYet(false);
       } else if (data?.code === "NOT_UPLOADED") {
-        // Subscribed, but today's file isn't up yet
         setNewspaperUrl(null);
         setNotUploadedYet(true);
       } else {
-        // NOT_SUBSCRIBED or any other case —
-        // fall back to the paywall
         setNewspaperUrl(null);
         setNotUploadedYet(false);
       }
@@ -113,9 +105,6 @@ export function DailyNewspaper() {
       setLoading(true);
       setMessage("");
 
-      /*
-       * Check login
-       */
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -126,9 +115,6 @@ export function DailyNewspaper() {
         return;
       }
 
-      /*
-       * Load Razorpay Checkout
-       */
       const razorpayLoaded = await loadRazorpay();
 
       if (!razorpayLoaded) {
@@ -137,9 +123,6 @@ export function DailyNewspaper() {
         );
       }
 
-      /*
-       * Create Razorpay order
-       */
       const { data, error } =
         await supabase.functions.invoke(
           "create-daily-newspaper-order",
@@ -168,9 +151,6 @@ export function DailyNewspaper() {
         );
       }
 
-      /*
-       * Open Razorpay Checkout
-       */
       const options = {
         key: data.key_id,
         amount: data.amount,
@@ -192,29 +172,29 @@ export function DailyNewspaper() {
         handler: async function (response: any) {
           try {
             setLoading(true);
+
             setMessage(
               "Payment received. Verifying payment...",
             );
 
-            /*
-             * Verify payment on Supabase Edge Function
-             */
-            const { data: verifyData, error: verifyError } =
-              await supabase.functions.invoke(
-                "verify-razorpay-payment",
-                {
-                  body: {
-                    razorpay_order_id:
-                      response.razorpay_order_id,
+            const {
+              data: verifyData,
+              error: verifyError,
+            } = await supabase.functions.invoke(
+              "verify-razorpay-payment",
+              {
+                body: {
+                  razorpay_order_id:
+                    response.razorpay_order_id,
 
-                    razorpay_payment_id:
-                      response.razorpay_payment_id,
+                  razorpay_payment_id:
+                    response.razorpay_payment_id,
 
-                    razorpay_signature:
-                      response.razorpay_signature,
-                  },
+                  razorpay_signature:
+                    response.razorpay_signature,
                 },
-              );
+              },
+            );
 
             if (verifyError) {
               console.error(
@@ -241,21 +221,20 @@ export function DailyNewspaper() {
             }
 
             /*
-             * Payment successful
+             * PAYMENT SUCCESS
+             *
+             * No page reload.
+             * Re-check subscription and newspaper status.
              */
+            setMessage(
+              "🎉 Payment successful! Checking your Daily Newspaper...",
+            );
+
+            await checkTodaysNewspaper();
+
             setMessage(
               "🎉 Payment successful! Daily Newspaper unlocked.",
             );
-
-            alert(
-              "🎉 Payment successful!\n\nDaily Newspaper is now unlocked for 30 days.",
-            );
-
-            /*
-             * Reload current page so subscription
-             * status can be checked again.
-             */
-            window.location.reload();
           } catch (error) {
             console.error(
               "Payment verification failed:",
@@ -280,7 +259,8 @@ export function DailyNewspaper() {
         },
       };
 
-      const razorpay = new window.Razorpay(options);
+      const razorpay =
+        new window.Razorpay(options);
 
       razorpay.on(
         "payment.failed",
@@ -318,9 +298,11 @@ export function DailyNewspaper() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+
       {/* Header */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI
@@ -340,14 +322,19 @@ export function DailyNewspaper() {
           >
             ← Dashboard
           </button>
+
         </div>
       </header>
 
       {/* Content */}
       <main className="mx-auto max-w-4xl px-4 py-8">
+
         <div className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm dark:border-amber-900/50 dark:bg-slate-900 sm:p-8">
+
           <div className="flex items-start justify-between gap-4">
+
             <div>
+
               <div className="text-4xl">
                 📰
               </div>
@@ -360,19 +347,22 @@ export function DailyNewspaper() {
                 Today's important news selected
                 specially for students.
               </p>
+
             </div>
 
-            {!checkingStatus && !newspaperUrl && (
-              <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
-                PREMIUM
-              </span>
-            )}
+            {!checkingStatus &&
+              !newspaperUrl && (
+                <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
+                  PREMIUM
+                </span>
+              )}
 
             {newspaperUrl && (
               <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
                 ACTIVE
               </span>
             )}
+
           </div>
 
           {/* Loading status */}
@@ -382,35 +372,39 @@ export function DailyNewspaper() {
             </div>
           )}
 
-          {/* Subscribed + today's PDF ready */}
-          {!checkingStatus && newspaperUrl && (
-            <div className="mt-8 rounded-2xl bg-emerald-50 p-5 dark:bg-emerald-950/30">
-              <h3 className="font-semibold">
-                ✅ Aaj ka Newspaper taiyaar hai
-              </h3>
+          {/* Subscribed + newspaper ready */}
+          {!checkingStatus &&
+            newspaperUrl && (
+              <div className="mt-8 rounded-2xl bg-emerald-50 p-5 dark:bg-emerald-950/30">
 
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                Aapka subscription active hai.
-                Neeche click karke aaj ka
-                newspaper padhein.
-              </p>
+                <h3 className="font-semibold">
+                  ✅ Aaj ka Newspaper taiyaar hai
+                </h3>
 
-              <a
-                href={newspaperUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 inline-block rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
-              >
-                Aaj ka Newspaper Kholein →
-              </a>
-            </div>
-          )}
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                  Aapka subscription active hai.
+                  Neeche click karke aaj ka
+                  newspaper padhein.
+                </p>
 
-          {/* Subscribed, but today's file not uploaded yet */}
+                <a
+                  href={newspaperUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 inline-block rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  Aaj ka Newspaper Kholein →
+                </a>
+
+              </div>
+            )}
+
+          {/* Subscribed but newspaper not uploaded */}
           {!checkingStatus &&
             !newspaperUrl &&
             notUploadedYet && (
               <div className="mt-8 rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/30">
+
                 <h3 className="font-semibold">
                   ⏳ Aaj ka Newspaper jald hi aayega
                 </h3>
@@ -421,14 +415,16 @@ export function DailyNewspaper() {
                   nahi hua hai — thodi der baad
                   is page ko dobara check karein.
                 </p>
+
               </div>
             )}
 
-          {/* Not subscribed — original paywall */}
+          {/* Paywall */}
           {!checkingStatus &&
             !newspaperUrl &&
             !notUploadedYet && (
               <div className="mt-8 rounded-2xl bg-amber-50 p-5 dark:bg-amber-950/30">
+
                 <h3 className="font-semibold">
                   🔒 Premium Content
                 </h3>
@@ -439,7 +435,6 @@ export function DailyNewspaper() {
                   get access for 30 days.
                 </p>
 
-                {/* Payment Button */}
                 <button
                   type="button"
                   onClick={handlePayment}
@@ -451,22 +446,24 @@ export function DailyNewspaper() {
                     : "Unlock Daily Newspaper ₹49 →"}
                 </button>
 
-                {/* Status */}
                 {message && (
                   <p className="mt-4 text-sm font-medium text-slate-700 dark:text-slate-300">
                     {message}
                   </p>
                 )}
+
               </div>
             )}
 
           {/* Features */}
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+
             <h3 className="font-semibold">
               What you'll get
             </h3>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
                 📰 Daily important news
               </div>
@@ -482,8 +479,10 @@ export function DailyNewspaper() {
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
                 🔐 Non-shareable premium content
               </div>
+
             </div>
           </div>
+
         </div>
       </main>
     </div>
