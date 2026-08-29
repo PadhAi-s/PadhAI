@@ -1,64 +1,140 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 type Language = "hindi" | "english";
 
-type Newspaper = {
+type NewspaperPaper = {
   id: string;
   newspaper_date: string;
   language: Language;
   paper_number: number;
-  file_path: string;
-  file_name: string;
+  title: string | null;
+  storage_path: string;
   published: boolean;
   created_at: string;
-  updated_at: string;
 };
 
-const BUCKET = "newspapers";
-
-function todayLocal() {
-  const d = new Date();
-  const offset = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 10);
-}
+const BUCKET_NAME = "newspapers";
 
 export function AdminNewspaper() {
-  const navigate = useNavigate();
+  const [papers, setPapers] = useState<NewspaperPaper[]>([]);
 
-  const [date, setDate] = useState(todayLocal());
-  const [language, setLanguage] =
+  const [selectedDate, setSelectedDate] = useState(
+    getTodayDate(),
+  );
+
+  const [selectedLanguage, setSelectedLanguage] =
     useState<Language>("hindi");
 
-  const [paperNumber, setPaperNumber] = useState(1);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>(
+    [],
+  );
 
-  const [file, setFile] =
-    useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [publishingId, setPublishingId] =
+    useState<string | null>(null);
 
-  const [newspapers, setNewspapers] =
-    useState<Newspaper[]>([]);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [loadingList, setLoadingList] =
-    useState(true);
-
-  const [message, setMessage] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    loadNewspapers();
+    loadPapers();
   }, []);
 
-  const loadNewspapers = async () => {
+  function getTodayDate() {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(
+      now.getMonth() + 1,
+    ).padStart(2, "0");
+    const day = String(
+      now.getDate(),
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
+
+  function formatDate(date: string) {
+    return new Date(
+      `${date}T00:00:00`,
+    ).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  function isFutureDate(date: string) {
+    return date > getTodayDate();
+  }
+
+  function getLanguageFolder(language: Language) {
+    return language === "hindi"
+      ? "HINDI"
+      : "ENGLISH";
+  }
+
+  /*
+   * PAPER - 1.pdf
+   * PAPER - 2.pdf
+   * paper-3.pdf
+   *
+   * Filename se paper number automatically nikalta hai.
+   */
+  function getPaperNumber(
+    fileName: string,
+    fallbackNumber: number,
+  ) {
+    const nameWithoutExtension =
+      fileName.replace(/\.[^/.]+$/, "");
+
+    const match =
+      nameWithoutExtension.match(
+        /paper\s*[-_ ]*\s*(\d+)/i,
+      );
+
+    if (match?.[1]) {
+      const number = Number(match[1]);
+
+      if (
+        Number.isInteger(number) &&
+        number > 0
+      ) {
+        return number;
+      }
+    }
+
+    return fallbackNumber;
+  }
+
+  function getTitle(
+    fileName: string,
+    paperNumber: number,
+  ) {
+    const nameWithoutExtension =
+      fileName.replace(/\.[^/.]+$/, "");
+
+    const cleaned =
+      nameWithoutExtension
+        .replace(
+          /paper\s*[-_ ]*\s*\d+/i,
+          "",
+        )
+        .replace(/[-_]+/g, " ")
+        .trim();
+
+    if (cleaned) {
+      return cleaned;
+    }
+
+    return `Paper ${paperNumber}`;
+  }
+
+  async function loadPapers() {
     try {
-      setLoadingList(true);
+      setLoading(true);
       setError("");
 
       const {
@@ -66,13 +142,28 @@ export function AdminNewspaper() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        navigate("/admin/login");
-        return;
+        throw new Error(
+          "Admin login session nahi mila.",
+        );
       }
 
-      const { data, error } = await supabase
-        .from("newspapers")
-        .select("*")
+      const {
+        data,
+        error: queryError,
+      } = await supabase
+        .from("newspaper_papers")
+        .select(
+          `
+          id,
+          newspaper_date,
+          language,
+          paper_number,
+          title,
+          storage_path,
+          published,
+          created_at
+          `,
+        )
         .order("newspaper_date", {
           ascending: false,
         })
@@ -83,222 +174,375 @@ export function AdminNewspaper() {
           ascending: true,
         });
 
-      if (error) {
-        throw error;
+      if (queryError) {
+        throw new Error(
+          queryError.message,
+        );
       }
 
-      setNewspapers(
-        (data || []) as Newspaper[],
+      setPapers(
+        (data || []) as NewspaperPaper[],
       );
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Load newspaper papers error:",
+        err,
+      );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Newspapers load nahi ho paye.",
+          : "Papers load nahi ho paye.",
       );
     } finally {
-      setLoadingList(false);
+      setLoading(false);
     }
-  };
+  }
 
-  const handleUpload = async () => {
-    try {
-      setLoading(true);
-      setMessage("");
+  function handleFileChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(
+      event.target.files || [],
+    );
+
+    const pdfFiles = files.filter(
+      (file) =>
+        file.type === "application/pdf" ||
+        file.name
+          .toLowerCase()
+          .endsWith(".pdf"),
+    );
+
+    if (pdfFiles.length !== files.length) {
+      setError(
+        "Sirf PDF files upload kar sakte hain.",
+      );
+    } else {
       setError("");
+    }
 
-      if (!date) {
-        setError("Newspaper date select karein.");
-        return;
-      }
+    setSelectedFiles(pdfFiles);
+  }
 
-      if (!file) {
-        setError("PDF file select karein.");
-        return;
-      }
+  function clearSelectedFiles() {
+    setSelectedFiles([]);
 
-      if (file.type !== "application/pdf") {
-        setError("Sirf PDF file upload karein.");
-        return;
-      }
+    const input =
+      document.getElementById(
+        "newspaper-files",
+      ) as HTMLInputElement | null;
+
+    if (input) {
+      input.value = "";
+    }
+  }
+
+  async function uploadPapers() {
+    if (!selectedDate) {
+      setError("Newspaper date select karein.");
+      return;
+    }
+
+    if (selectedFiles.length === 0) {
+      setError(
+        "Kam se kam ek PDF select karein.",
+      );
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError("");
+      setMessage("");
 
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (!session) {
-        navigate("/admin/login");
-        return;
-      }
-
-      /*
-       * File path:
-       *
-       * 2026-08-29/hindi/paper-1.pdf
-       * 2026-08-29/hindi/paper-2.pdf
-       * 2026-08-29/english/paper-1.pdf
-       */
-      const extension = "pdf";
-
-      const filePath =
-        `${date}/${language}/paper-${paperNumber}.${extension}`;
-
-      /*
-       * Upload / replace PDF
-       */
-      const { error: uploadError } =
-        await supabase.storage
-          .from(BUCKET)
-          .upload(filePath, file, {
-            contentType: "application/pdf",
-            upsert: true,
-          });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      /*
-       * Check whether this paper already exists
-       */
-      const { data: existing } =
-        await supabase
-          .from("newspapers")
-          .select("id")
-          .eq("newspaper_date", date)
-          .eq("language", language)
-          .eq("paper_number", paperNumber)
-          .maybeSingle();
-
-      if (existing?.id) {
-        /*
-         * Existing paper:
-         * Update file but keep current publish status.
-         */
-        const {
-          error: updateError,
-        } = await supabase
-          .from("newspapers")
-          .update({
-            file_path: filePath,
-            file_name: file.name,
-            updated_at:
-              new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-
-        if (updateError) {
-          throw updateError;
-        }
-
-        setMessage(
-          `✅ ${language === "hindi" ? "Hindi" : "English"} Paper ${paperNumber} updated successfully.`,
+        throw new Error(
+          "Admin login session nahi mila.",
         );
-      } else {
+      }
+
+      const languageFolder =
+        getLanguageFolder(
+          selectedLanguage,
+        );
+
+      let successCount = 0;
+      const failedFiles: string[] = [];
+
+      /*
+       * Files ko paper number ke according
+       * sort kar rahe hain.
+       */
+      const sortedFiles = [...selectedFiles].sort(
+        (a, b) =>
+          getPaperNumber(a.name, 9999) -
+          getPaperNumber(b.name, 9999),
+      );
+
+      for (
+        let index = 0;
+        index < sortedFiles.length;
+        index++
+      ) {
+        const file = sortedFiles[index];
+
+        const paperNumber =
+          getPaperNumber(
+            file.name,
+            index + 1,
+          );
+
+        const title = getTitle(
+          file.name,
+          paperNumber,
+        );
+
         /*
-         * New paper starts UNPUBLISHED.
+         * Exact storage structure:
          *
-         * This is important:
-         * Future / newly uploaded papers are hidden
-         * from students until admin clicks Publish.
+         * 2026-08-30/HINDI/PAPER - 1.pdf
+         * 2026-08-30/HINDI/PAPER - 2.pdf
+         *
+         * 2026-08-30/ENGLISH/PAPER - 1.pdf
          */
-        const {
-          error: insertError,
-        } = await supabase
-          .from("newspapers")
-          .insert({
-            newspaper_date: date,
-            language,
-            paper_number: paperNumber,
-            file_path: filePath,
-            file_name: file.name,
-            published: false,
-          });
+        const storagePath =
+          `${selectedDate}/${languageFolder}/${file.name}`;
 
-        if (insertError) {
-          throw insertError;
+        try {
+          /*
+           * Same file already exists to
+           * overwrite karne ke liye upsert true.
+           */
+          const {
+            error: uploadError,
+          } = await supabase.storage
+            .from(BUCKET_NAME)
+            .upload(
+              storagePath,
+              file,
+              {
+                upsert: true,
+                contentType:
+                  "application/pdf",
+              },
+            );
+
+          if (uploadError) {
+            throw new Error(
+              uploadError.message,
+            );
+          }
+
+          /*
+           * Check if database row already exists.
+           */
+          const {
+            data: existingPaper,
+            error: existingError,
+          } = await supabase
+            .from("newspaper_papers")
+            .select("id")
+            .eq(
+              "newspaper_date",
+              selectedDate,
+            )
+            .eq(
+              "language",
+              selectedLanguage,
+            )
+            .eq(
+              "paper_number",
+              paperNumber,
+            )
+            .maybeSingle();
+
+          if (existingError) {
+            throw new Error(
+              existingError.message,
+            );
+          }
+
+          if (existingPaper?.id) {
+            /*
+             * Existing paper:
+             * storage update ho gaya,
+             * DB row bhi update.
+             *
+             * IMPORTANT:
+             * Existing published paper ko
+             * automatically unpublished nahi karenge.
+             */
+            const {
+              error: updateError,
+            } = await supabase
+              .from("newspaper_papers")
+              .update({
+                title,
+                storage_path:
+                  storagePath,
+                updated_at:
+                  new Date().toISOString(),
+              })
+              .eq(
+                "id",
+                existingPaper.id,
+              );
+
+            if (updateError) {
+              throw new Error(
+                updateError.message,
+              );
+            }
+          } else {
+            /*
+             * New paper:
+             * Upload ke baad PUBLISHED = FALSE
+             *
+             * Admin ko manually Publish karna hoga.
+             */
+            const {
+              error: insertError,
+            } = await supabase
+              .from("newspaper_papers")
+              .insert({
+                newspaper_date:
+                  selectedDate,
+
+                language:
+                  selectedLanguage,
+
+                paper_number:
+                  paperNumber,
+
+                title,
+
+                storage_path:
+                  storagePath,
+
+                published: false,
+              });
+
+            if (insertError) {
+              throw new Error(
+                insertError.message,
+              );
+            }
+          }
+
+          successCount++;
+        } catch (fileError) {
+          console.error(
+            "File upload failed:",
+            file.name,
+            fileError,
+          );
+
+          failedFiles.push(
+            file.name,
+          );
         }
+      }
 
+      if (successCount > 0) {
         setMessage(
-          `✅ ${language === "hindi" ? "Hindi" : "English"} Paper ${paperNumber} uploaded. Abhi unpublished hai.`,
+          `${successCount} paper upload ho gaye. Ab Publish button se student ke liye live karein.`,
         );
       }
 
-      setFile(null);
-
-      const input =
-        document.getElementById(
-          "newspaper-file",
-        ) as HTMLInputElement | null;
-
-      if (input) {
-        input.value = "";
+      if (failedFiles.length > 0) {
+        setError(
+          `Ye files upload nahi hui: ${failedFiles.join(
+            ", ",
+          )}`,
+        );
       }
 
-      await loadNewspapers();
+      clearSelectedFiles();
+
+      await loadPapers();
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Upload papers error:",
+        err,
+      );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Newspaper upload failed.",
+          : "Papers upload nahi ho paye.",
       );
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
-  };
+  }
 
-  const togglePublish = async (
-    newspaper: Newspaper,
-  ) => {
+  async function publishPaper(
+    paper: NewspaperPaper,
+  ) {
     try {
+      setPublishingId(paper.id);
       setError("");
       setMessage("");
 
-      const nextPublished =
-        !newspaper.published;
-
-      const { error } = await supabase
-        .from("newspapers")
+      /*
+       * Future date ko publish kar sakte ho.
+       * Student Edge Function future date
+       * ko automatically hide karega.
+       *
+       * Isliye admin ko scheduling ka option
+       * milta hai.
+       */
+      const {
+        error: updateError,
+      } = await supabase
+        .from("newspaper_papers")
         .update({
-          published: nextPublished,
+          published: !paper.published,
           updated_at:
             new Date().toISOString(),
         })
-        .eq("id", newspaper.id);
+        .eq("id", paper.id);
 
-      if (error) {
-        throw error;
+      if (updateError) {
+        throw new Error(
+          updateError.message,
+        );
       }
 
       setMessage(
-        nextPublished
-          ? "✅ Newspaper published."
-          : "🔒 Newspaper unpublished.",
+        paper.published
+          ? "Paper unpublished ho gaya."
+          : "Paper publish ho gaya.",
       );
 
-      await loadNewspapers();
+      await loadPapers();
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Publish paper error:",
+        err,
+      );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Publish status change nahi ho paya.",
+          : "Publish status update nahi ho paya.",
       );
+    } finally {
+      setPublishingId(null);
     }
-  };
+  }
 
-  const deleteNewspaper = async (
-    newspaper: Newspaper,
-  ) => {
-    const confirmed =
-      window.confirm(
-        `Paper ${newspaper.paper_number} delete karna hai?`,
-      );
+  async function deletePaper(
+    paper: NewspaperPaper,
+  ) {
+    const confirmed = window.confirm(
+      `Kya aap "${paper.title || `Paper ${paper.paper_number}`}" ko delete karna chahte hain?`,
+    );
 
     if (!confirmed) {
       return;
@@ -309,209 +553,176 @@ export function AdminNewspaper() {
       setMessage("");
 
       /*
-       * Delete storage file
+       * Database row delete.
        */
-      const { error: storageError } =
-        await supabase.storage
-          .from(BUCKET)
-          .remove([newspaper.file_path]);
+      const {
+        error: deleteDbError,
+      } = await supabase
+        .from("newspaper_papers")
+        .delete()
+        .eq("id", paper.id);
 
-      if (storageError) {
-        console.error(
-          "Storage delete error:",
-          storageError,
+      if (deleteDbError) {
+        throw new Error(
+          deleteDbError.message,
         );
       }
 
       /*
-       * Delete database record
+       * Storage file delete.
        */
-      const { error: dbError } =
-        await supabase
-          .from("newspapers")
-          .delete()
-          .eq("id", newspaper.id);
+      if (paper.storage_path) {
+        const {
+          error: deleteStorageError,
+        } = await supabase.storage
+          .from(BUCKET_NAME)
+          .remove([
+            paper.storage_path,
+          ]);
 
-      if (dbError) {
-        throw dbError;
-      }
-
-      setMessage("🗑️ Newspaper deleted.");
-
-      await loadNewspapers();
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Newspaper delete nahi ho paya.",
-      );
-    }
-  };
-
-  const openNewspaper = async (
-    newspaper: Newspaper,
-  ) => {
-    try {
-      setError("");
-
-      const { data, error } =
-        await supabase.storage
-          .from(BUCKET)
-          .createSignedUrl(
-            newspaper.file_path,
-            60 * 10,
+        if (deleteStorageError) {
+          console.error(
+            "Storage delete error:",
+            deleteStorageError,
           );
-
-      if (error) {
-        throw error;
+        }
       }
 
-      if (!data?.signedUrl) {
-        throw new Error(
-          "PDF URL generate nahi hua.",
-        );
-      }
-
-      window.open(
-        data.signedUrl,
-        "_blank",
-        "noopener,noreferrer",
+      setMessage(
+        "Paper delete ho gaya.",
       );
+
+      await loadPapers();
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Delete paper error:",
+        err,
+      );
 
       setError(
         err instanceof Error
           ? err.message
-          : "PDF open nahi ho paya.",
+          : "Paper delete nahi ho paya.",
       );
     }
-  };
+  }
 
-  const formatDate = (
-    value: string,
-  ) => {
-    const d = new Date(
-      `${value}T00:00:00`,
-    );
+  const groupedDates = useMemo(() => {
+    const groups: Record<
+      string,
+      NewspaperPaper[]
+    > = {};
 
-    return d.toLocaleDateString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      },
-    );
-  };
+    for (const paper of papers) {
+      if (!groups[paper.newspaper_date]) {
+        groups[paper.newspaper_date] = [];
+      }
 
-  const hindiPapers =
-    newspapers.filter(
-      (n) => n.language === "hindi",
-    );
+      groups[paper.newspaper_date].push(
+        paper,
+      );
+    }
 
-  const englishPapers =
-    newspapers.filter(
-      (n) => n.language === "english",
+    return Object.entries(groups).sort(
+      ([dateA], [dateB]) =>
+        dateB.localeCompare(dateA),
     );
+  }, [papers]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        {/* HEADER */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">
+            📰 Newspaper Management
+          </h1>
 
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-
-          <div>
-            <h1 className="text-2xl font-bold text-blue-600">
-              PadhAI Admin
-            </h1>
-
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Daily Newspaper Management
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              navigate("/admin/dashboard")
-            }
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            ← Dashboard
-          </button>
-
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Upload, manage and publish Hindi &
+            English newspapers.
+          </p>
         </div>
-      </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8">
-
-        {/* Upload Card */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-          <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-bold">
-              📰 Upload Newspaper
-            </h2>
-
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Date, language aur paper number select karke PDF upload karein.
-              Upload ke baad paper automatically publish nahi hoga.
-            </p>
+        {/* MESSAGES */}
+        {message && (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+            ✅ {message}
           </div>
+        )}
 
-          {/* Messages */}
-          {message && (
-            <div className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-              {message}
-            </div>
-          )}
+        {error && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+            ❌ {error}
+          </div>
+        )}
 
-          {error && (
-            <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300">
-              ❌ {error}
-            </div>
-          )}
+        {/* UPLOAD CARD */}
+        <div className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm dark:border-amber-900/50 dark:bg-slate-900 sm:p-8">
+          <h2 className="text-xl font-bold">
+            Upload Newspaper
+          </h2>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Date aur language select karke
+            multiple PDF papers upload karein.
+          </p>
 
-            {/* Date */}
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            {/* DATE */}
             <div>
-              <label className="mb-2 block text-sm font-semibold">
+              <label
+                htmlFor="newspaper-date"
+                className="mb-2 block text-sm font-semibold"
+              >
                 Newspaper Date
               </label>
 
               <input
+                id="newspaper-date"
                 type="date"
-                value={date}
-                onChange={(e) =>
-                  setDate(e.target.value)
+                value={selectedDate}
+                onChange={(event) =>
+                  setSelectedDate(
+                    event.target.value,
+                  )
                 }
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
               />
 
-              <p className="mt-1 text-xs text-slate-500">
-                Future date bhi upload kar sakte ho.
-              </p>
+              {selectedDate &&
+                isFutureDate(
+                  selectedDate,
+                ) && (
+                  <p className="mt-2 text-xs font-medium text-amber-600">
+                    ⚠️ Future date hai. Admin
+                    me publish kar sakte hain,
+                    lekin student page par date
+                    automatically hide rahegi jab
+                    tak date nahi aa jaati.
+                  </p>
+                )}
             </div>
 
-            {/* Language */}
+            {/* LANGUAGE */}
             <div>
-              <label className="mb-2 block text-sm font-semibold">
+              <label
+                htmlFor="newspaper-language"
+                className="mb-2 block text-sm font-semibold"
+              >
                 Language
               </label>
 
               <select
-                value={language}
-                onChange={(e) =>
-                  setLanguage(
-                    e.target.value as Language,
+                id="newspaper-language"
+                value={selectedLanguage}
+                onChange={(event) =>
+                  setSelectedLanguage(
+                    event.target
+                      .value as Language,
                   )
                 }
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
               >
                 <option value="hindi">
                   🇮🇳 Hindi
@@ -522,304 +733,405 @@ export function AdminNewspaper() {
                 </option>
               </select>
             </div>
-
-            {/* Paper Number */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold">
-                Paper Number
-              </label>
-
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={paperNumber}
-                onChange={(e) =>
-                  setPaperNumber(
-                    Math.max(
-                      1,
-                      Number(e.target.value) || 1,
-                    ),
-                  )
-                }
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800"
-              />
-
-              <p className="mt-1 text-xs text-slate-500">
-                Paper 1, Paper 2, Paper 3...
-              </p>
-            </div>
-
-            {/* File */}
-            <div>
-              <label
-                htmlFor="newspaper-file"
-                className="mb-2 block text-sm font-semibold"
-              >
-                PDF File
-              </label>
-
-              <input
-                id="newspaper-file"
-                type="file"
-                accept="application/pdf,.pdf"
-                onChange={(e) =>
-                  setFile(
-                    e.target.files?.[0] ||
-                      null,
-                  )
-                }
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
-              />
-            </div>
-
           </div>
 
-          {/* Upload button */}
+          {/* FILE INPUT */}
+          <div className="mt-5">
+            <label
+              htmlFor="newspaper-files"
+              className="mb-2 block text-sm font-semibold"
+            >
+              PDF Papers
+            </label>
+
+            <input
+              id="newspaper-files"
+              type="file"
+              accept="application/pdf,.pdf"
+              multiple
+              onChange={handleFileChange}
+              className="block w-full cursor-pointer rounded-xl border border-slate-300 bg-white p-3 text-sm dark:border-slate-700 dark:bg-slate-950"
+            />
+
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Recommended names:
+              <br />
+              PAPER - 1.pdf
+              <br />
+              PAPER - 2.pdf
+              <br />
+              PAPER - 3.pdf
+            </p>
+          </div>
+
+          {/* SELECTED FILES */}
+          {selectedFiles.length > 0 && (
+            <div className="mt-5 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">
+                  Selected Files (
+                  {selectedFiles.length})
+                </h3>
+
+                <button
+                  type="button"
+                  onClick={
+                    clearSelectedFiles
+                  }
+                  className="text-xs font-semibold text-red-600 hover:underline"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {selectedFiles.map(
+                  (file, index) => (
+                    <div
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm dark:bg-slate-900"
+                    >
+                      <span>
+                        📄 {file.name}
+                      </span>
+
+                      <span className="text-xs text-slate-500">
+                        Paper{" "}
+                        {getPaperNumber(
+                          file.name,
+                          index + 1,
+                        )}
+                      </span>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* UPLOAD BUTTON */}
           <button
             type="button"
-            onClick={handleUpload}
-            disabled={loading}
-            className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={uploadPapers}
+            disabled={
+              uploading ||
+              selectedFiles.length === 0
+            }
+            className="mt-6 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading
+            {uploading
               ? "Uploading..."
-              : "📤 Upload Newspaper"}
+              : `Upload ${
+                  selectedFiles.length || ""
+                } Paper${
+                  selectedFiles.length === 1
+                    ? ""
+                    : "s"
+                } →`}
           </button>
 
-        </section>
+          <div className="mt-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+            <strong>Important:</strong>{" "}
+            Upload ke baad paper automatically
+            <strong> unpublished</strong> rahega.
+            Student ko dikhane ke liye neeche
+            <strong> Publish</strong> button dabana
+            hoga.
+          </div>
+        </div>
 
-        {/* Hindi */}
-        <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
+        {/* EXISTING PAPERS */}
+        <div className="mt-8">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">
-                🇮🇳 Hindi Newspapers
+                Uploaded Newspapers
               </h2>
 
-              <p className="text-sm text-slate-500">
-                Published aur unpublished Hindi papers
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Future, current aur previous dates
+                yahan manage kar sakte hain.
               </p>
             </div>
 
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold dark:bg-slate-800">
-              {hindiPapers.length} papers
-            </span>
+            <button
+              type="button"
+              onClick={loadPapers}
+              disabled={loading}
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              {loading
+                ? "Loading..."
+                : "↻ Refresh"}
+            </button>
           </div>
 
-          <NewspaperTable
-            newspapers={hindiPapers}
-            loading={loadingList}
-            onPublish={togglePublish}
-            onOpen={openNewspaper}
-            onDelete={deleteNewspaper}
-            formatDate={formatDate}
-          />
-
-        </section>
-
-        {/* English */}
-        <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">
-                🇬🇧 English Newspapers
-              </h2>
-
-              <p className="text-sm text-slate-500">
-                Published aur unpublished English papers
-              </p>
+          {loading && (
+            <div className="mt-6 rounded-2xl bg-white p-6 text-center dark:bg-slate-900">
+              Newspapers loading...
             </div>
+          )}
 
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold dark:bg-slate-800">
-              {englishPapers.length} papers
-            </span>
-          </div>
+          {!loading &&
+            groupedDates.length === 0 && (
+              <div className="mt-6 rounded-2xl bg-white p-8 text-center dark:bg-slate-900">
+                <div className="text-4xl">
+                  📰
+                </div>
 
-          <NewspaperTable
-            newspapers={englishPapers}
-            loading={loadingList}
-            onPublish={togglePublish}
-            onOpen={openNewspaper}
-            onDelete={deleteNewspaper}
-            formatDate={formatDate}
-          />
+                <p className="mt-3 font-semibold">
+                  Abhi koi newspaper upload nahi
+                  hua.
+                </p>
+              </div>
+            )}
 
-        </section>
+          {!loading &&
+            groupedDates.length > 0 && (
+              <div className="mt-6 space-y-6">
+                {groupedDates.map(
+                  ([date, datePapers]) => {
+                    const hindiPapers =
+                      datePapers
+                        .filter(
+                          (paper) =>
+                            paper.language ===
+                            "hindi",
+                        )
+                        .sort(
+                          (a, b) =>
+                            a.paper_number -
+                            b.paper_number,
+                        );
 
+                    const englishPapers =
+                      datePapers
+                        .filter(
+                          (paper) =>
+                            paper.language ===
+                            "english",
+                        )
+                        .sort(
+                          (a, b) =>
+                            a.paper_number -
+                            b.paper_number,
+                        );
+
+                    return (
+                      <div
+                        key={date}
+                        className="overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+                      >
+                        {/* DATE HEADER */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-700 dark:bg-slate-800">
+                          <div>
+                            <h3 className="text-lg font-bold">
+                              📅{" "}
+                              {formatDate(
+                                date,
+                              )}
+                            </h3>
+
+                            {isFutureDate(
+                              date,
+                            ) && (
+                              <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                                UPCOMING
+                              </span>
+                            )}
+
+                            {!isFutureDate(
+                              date,
+                            ) && (
+                              <span className="mt-1 inline-block rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                PAST / TODAY
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-slate-500">
+                            {
+                              datePapers.length
+                            }{" "}
+                            paper
+                            {datePapers.length !==
+                            1
+                              ? "s"
+                              : ""}
+                          </div>
+                        </div>
+
+                        <div className="grid gap-6 p-5 md:grid-cols-2">
+                          {/* HINDI */}
+                          <PaperSection
+                            language="hindi"
+                            papers={
+                              hindiPapers
+                            }
+                            publishingId={
+                              publishingId
+                            }
+                            onPublish={
+                              publishPaper
+                            }
+                            onDelete={
+                              deletePaper
+                            }
+                          />
+
+                          {/* ENGLISH */}
+                          <PaperSection
+                            language="english"
+                            papers={
+                              englishPapers
+                            }
+                            publishingId={
+                              publishingId
+                            }
+                            onPublish={
+                              publishPaper
+                            }
+                            onDelete={
+                              deletePaper
+                            }
+                          />
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            )}
+        </div>
       </main>
     </div>
   );
 }
 
-type NewspaperTableProps = {
-  newspapers: Newspaper[];
-  loading: boolean;
+/* =====================================================
+   PAPER SECTION
+===================================================== */
+
+type PaperSectionProps = {
+  language: Language;
+  papers: NewspaperPaper[];
+  publishingId: string | null;
   onPublish: (
-    newspaper: Newspaper,
-  ) => void;
-  onOpen: (
-    newspaper: Newspaper,
+    paper: NewspaperPaper,
   ) => void;
   onDelete: (
-    newspaper: Newspaper,
+    paper: NewspaperPaper,
   ) => void;
-  formatDate: (
-    value: string,
-  ) => string;
 };
 
-function NewspaperTable({
-  newspapers,
-  loading,
+function PaperSection({
+  language,
+  papers,
+  publishingId,
   onPublish,
-  onOpen,
   onDelete,
-  formatDate,
-}: NewspaperTableProps) {
-  if (loading) {
-    return (
-      <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-center text-sm text-slate-500 dark:bg-slate-800">
-        Loading newspapers...
-      </div>
-    );
-  }
-
-  if (newspapers.length === 0) {
-    return (
-      <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-center text-sm text-slate-500 dark:bg-slate-800">
-        Abhi koi newspaper upload nahi hua.
-      </div>
-    );
-  }
+}: PaperSectionProps) {
+  const isHindi =
+    language === "hindi";
 
   return (
-    <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h4 className="text-lg font-bold">
+          {isHindi
+            ? "🇮🇳 Hindi"
+            : "🇬🇧 English"}
+        </h4>
 
-      <table className="w-full min-w-[850px] text-sm">
+        <span className="text-xs text-slate-500">
+          {papers.length} paper
+          {papers.length !== 1
+            ? "s"
+            : ""}
+        </span>
+      </div>
 
-        <thead className="bg-slate-50 dark:bg-slate-800">
-          <tr>
-            <th className="px-4 py-3 text-left font-semibold">
-              Date
-            </th>
+      {papers.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 p-5 text-center text-sm text-slate-400 dark:border-slate-700">
+          {isHindi
+            ? "Hindi paper nahi hai."
+            : "English paper nahi hai."}
+        </div>
+      )}
 
-            <th className="px-4 py-3 text-left font-semibold">
-              Paper
-            </th>
+      <div className="space-y-3">
+        {papers.map((paper) => (
+          <div
+            key={paper.id}
+            className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold">
+                  📄 Paper{" "}
+                  {paper.paper_number}
+                </p>
 
-            <th className="px-4 py-3 text-left font-semibold">
-              File
-            </th>
+                <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                  {paper.title ||
+                    `Paper ${paper.paper_number}`}
+                </p>
 
-            <th className="px-4 py-3 text-left font-semibold">
-              Status
-            </th>
+                <p className="mt-1 break-all text-[11px] text-slate-400">
+                  {paper.storage_path}
+                </p>
+              </div>
 
-            <th className="px-4 py-3 text-right font-semibold">
-              Actions
-            </th>
-          </tr>
-        </thead>
-
-        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-
-          {newspapers.map(
-            (newspaper) => (
-              <tr
-                key={newspaper.id}
-                className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              <span
+                className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${
+                  paper.published
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                }`}
               >
+                {paper.published
+                  ? "PUBLISHED"
+                  : "DRAFT"}
+              </span>
+            </div>
 
-                <td className="px-4 py-4 font-medium">
-                  {formatDate(
-                    newspaper.newspaper_date,
-                  )}
-                </td>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onPublish(paper)
+                }
+                disabled={
+                  publishingId ===
+                  paper.id
+                }
+                className={`rounded-lg px-3 py-2 text-xs font-semibold text-white ${
+                  paper.published
+                    ? "bg-slate-600 hover:bg-slate-700"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                } disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                {publishingId ===
+                paper.id
+                  ? "Updating..."
+                  : paper.published
+                    ? "Unpublish"
+                    : "Publish"}
+              </button>
 
-                <td className="px-4 py-4">
-                  <span className="rounded-lg bg-slate-100 px-3 py-1 font-semibold dark:bg-slate-800">
-                    Paper{" "}
-                    {newspaper.paper_number}
-                  </span>
-                </td>
-
-                <td className="max-w-[250px] truncate px-4 py-4 text-slate-600 dark:text-slate-400">
-                  {newspaper.file_name}
-                </td>
-
-                <td className="px-4 py-4">
-
-                  {newspaper.published ? (
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                      ● PUBLISHED
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                      ● UNPUBLISHED
-                    </span>
-                  )}
-
-                </td>
-
-                <td className="px-4 py-4">
-
-                  <div className="flex justify-end gap-2">
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onOpen(newspaper)
-                      }
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-                    >
-                      👁️ Open
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onPublish(
-                          newspaper,
-                        )
-                      }
-                      className={
-                        newspaper.published
-                          ? "rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600"
-                          : "rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-                      }
-                    >
-                      {newspaper.published
-                        ? "Unpublish"
-                        : "Publish"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onDelete(
-                          newspaper,
-                        )
-                      }
-                      className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
-                    >
-                      Delete
-                    </button>
-
-                  </div>
-
-                </td>
-
-              </tr>
-            ),
-          )}
-
-        </tbody>
-
-      </table>
-
+              <button
+                type="button"
+                onClick={() =>
+                  onDelete(paper)
+                }
+                className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
