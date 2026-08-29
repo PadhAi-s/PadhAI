@@ -1,69 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
-const RAZORPAY_SCRIPT =
-  "https://checkout.razorpay.com/v1/checkout.js";
-
 type Paper = {
-  name: string;
-  paper: number;
+  id: string;
+  newspaper_date: string;
+  language: "hindi" | "english";
+  paper_number: number;
+  title: string;
   url: string;
 };
-
-type NewspaperDay = {
-  date: string;
-  hindi: Paper[];
-  english: Paper[];
-};
-
-function loadRazorpay(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = RAZORPAY_SCRIPT;
-
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-
-    document.body.appendChild(script);
-  });
-}
-
-function formatDate(date: string) {
-  const d = new Date(`${date}T00:00:00`);
-
-  return d.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 export function DailyNewspaper() {
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(false);
-  const [checkingStatus, setCheckingStatus] =
-    useState(true);
-
-  const [message, setMessage] = useState("");
-
-  const [newspapers, setNewspapers] =
-    useState<NewspaperDay[]>([]);
-
-  const [subscribed, setSubscribed] =
-    useState(false);
+  const [papers, setPapers] = useState<Paper[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadNewspapers();
@@ -71,8 +24,8 @@ export function DailyNewspaper() {
 
   const loadNewspapers = async () => {
     try {
-      setCheckingStatus(true);
-      setMessage("");
+      setLoading(true);
+      setError("");
 
       const {
         data: { session },
@@ -83,247 +36,87 @@ export function DailyNewspaper() {
         return;
       }
 
-      const { data, error } =
-        await supabase.functions.invoke(
-          "get-newspapers",
-        );
-
-      if (error) {
-        console.error(
-          "Get newspapers error:",
-          error,
-        );
-
-        setSubscribed(false);
-        setNewspapers([]);
-
-        return;
-      }
-
-      if (data?.code === "NOT_SUBSCRIBED") {
-        setSubscribed(false);
-        setNewspapers([]);
-        return;
-      }
-
-      if (
-        data?.code ===
-        "SUBSCRIPTION_EXPIRED"
-      ) {
-        setSubscribed(false);
-        setNewspapers([]);
-        return;
-      }
-
-      if (
-        data?.success &&
-        Array.isArray(data.newspapers)
-      ) {
-        setSubscribed(true);
-        setNewspapers(data.newspapers);
-      } else {
-        setSubscribed(false);
-        setNewspapers([]);
-      }
-    } catch (error) {
-      console.error(
-        "Newspaper loading failed:",
-        error,
+      const res = await fetch(
+        `${
+          import.meta.env.VITE_SUPABASE_URL
+        }/functions/v1/get-published-newspapers`,
+        {
+          method: "GET",
+          headers: {
+            Authorization:
+              `Bearer ${session.access_token}`,
+            apikey:
+              import.meta.env
+                .VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        },
       );
 
-      setSubscribed(false);
-      setNewspapers([]);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data?.error ||
+            "Newspaper load nahi ho paya.",
+        );
+      }
+
+      setPapers(data?.papers || []);
+    } catch (err) {
+      console.error(
+        "Newspaper loading error:",
+        err,
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Newspaper load nahi ho paya.",
+      );
     } finally {
-      setCheckingStatus(false);
+      setLoading(false);
     }
   };
 
-  const handlePayment = async () => {
-    try {
-      setLoading(true);
-      setMessage("");
+  const groupedDates = useMemo(() => {
+    const groups: Record<
+      string,
+      {
+        hindi: Paper[];
+        english: Paper[];
+      }
+    > = {};
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        navigate("/student/login");
-        return;
+    for (const paper of papers) {
+      if (!groups[paper.newspaper_date]) {
+        groups[paper.newspaper_date] = {
+          hindi: [],
+          english: [],
+        };
       }
 
-      const razorpayLoaded =
-        await loadRazorpay();
-
-      if (!razorpayLoaded) {
-        throw new Error(
-          "Razorpay Checkout load nahi ho paya.",
-        );
-      }
-
-      const { data, error } =
-        await supabase.functions.invoke(
-          "create-daily-newspaper-order",
-        );
-
-      if (error) {
-        throw new Error(
-          error.message ||
-            "Payment order create nahi ho paya.",
-        );
-      }
-
-      if (
-        !data?.order_id ||
-        !data?.key_id
-      ) {
-        throw new Error(
-          "Invalid Razorpay order response.",
-        );
-      }
-
-      const options = {
-        key: data.key_id,
-        amount: data.amount,
-        currency:
-          data.currency || "INR",
-
-        name: "PadhAI",
-        description:
-          "Daily Newspaper - 30 Days",
-
-        order_id: data.order_id,
-
-        prefill: {
-          email:
-            session.user.email || "",
-        },
-
-        theme: {
-          color: "#f59e0b",
-        },
-
-        handler: async (
-          response: any,
-        ) => {
-          try {
-            setLoading(true);
-
-            setMessage(
-              "Payment received. Verifying...",
-            );
-
-            const {
-              data: verifyData,
-              error: verifyError,
-            } =
-              await supabase.functions.invoke(
-                "verify-razorpay-payment",
-                {
-                  body: {
-                    razorpay_order_id:
-                      response.razorpay_order_id,
-
-                    razorpay_payment_id:
-                      response.razorpay_payment_id,
-
-                    razorpay_signature:
-                      response.razorpay_signature,
-                  },
-                },
-              );
-
-            if (verifyError) {
-              throw new Error(
-                verifyError.message ||
-                  "Payment verification failed.",
-              );
-            }
-
-            if (
-              !verifyData?.success
-            ) {
-              throw new Error(
-                verifyData?.error ||
-                  "Payment verification failed.",
-              );
-            }
-
-            setMessage(
-              "🎉 Payment successful! Daily Newspaper unlocked.",
-            );
-
-            /*
-             * Reload newspapers after payment.
-             */
-            await loadNewspapers();
-          } catch (error) {
-            console.error(
-              "Payment verification failed:",
-              error,
-            );
-
-            setMessage(
-              error instanceof Error
-                ? error.message
-                : "Payment verification failed.",
-            );
-          } finally {
-            setLoading(false);
-          }
-        },
-
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-            setMessage(
-              "Payment cancelled.",
-            );
-          },
-        },
-      };
-
-      const razorpay =
-        new window.Razorpay(options);
-
-      razorpay.on(
-        "payment.failed",
-        (response: any) => {
-          console.error(
-            "Payment failed:",
-            response,
-          );
-
-          setLoading(false);
-
-          setMessage(
-            response?.error?.description ||
-              "Payment failed. Please try again.",
-          );
-        },
-      );
-
-      razorpay.open();
-    } catch (error) {
-      console.error(
-        "Payment error:",
-        error,
-      );
-
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Payment start nahi ho paya.",
-      );
-
-      setLoading(false);
+      groups[paper.newspaper_date][
+        paper.language
+      ].push(paper);
     }
+
+    return Object.entries(groups);
+  }, [papers]);
+
+  const formatDate = (date: string) => {
+    return new Date(
+      `${date}T00:00:00`,
+    ).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
 
-      {/* Header */}
+      {/* HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
 
@@ -340,9 +133,7 @@ export function DailyNewspaper() {
           <button
             type="button"
             onClick={() =>
-              navigate(
-                "/student/dashboard",
-              )
+              navigate("/student/dashboard")
             }
             className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
           >
@@ -352,13 +143,13 @@ export function DailyNewspaper() {
         </div>
       </header>
 
-      {/* Content */}
+      {/* CONTENT */}
       <main className="mx-auto max-w-5xl px-4 py-8">
 
         <div className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm dark:border-amber-900/50 dark:bg-slate-900 sm:p-8">
 
-          {/* Title */}
-          <div className="flex items-start justify-between gap-4">
+          {/* TITLE */}
+          <div className="flex items-start justify-between">
 
             <div>
               <div className="text-4xl">
@@ -370,228 +161,180 @@ export function DailyNewspaper() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Hindi & English newspapers,
-                including previous dates.
+                Hindi & English newspapers
+                with previous published dates.
               </p>
             </div>
 
-            {subscribed && (
-              <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
-                ACTIVE
-              </span>
-            )}
-
-            {!checkingStatus &&
-              !subscribed && (
-                <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
-                  PREMIUM
-                </span>
-              )}
+            <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
+              ACTIVE
+            </span>
 
           </div>
 
-          {/* Checking */}
-          {checkingStatus && (
-            <div className="mt-8 rounded-2xl bg-slate-50 p-5 text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-              Checking your subscription...
+          {/* LOADING */}
+          {loading && (
+            <div className="mt-8 rounded-2xl bg-slate-50 p-6 text-center dark:bg-slate-800">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Newspapers loading...
+              </p>
             </div>
           )}
 
-          {/* Premium Paywall */}
-          {!checkingStatus &&
-            !subscribed && (
-              <div className="mt-8 rounded-2xl bg-amber-50 p-5 dark:bg-amber-950/30">
+          {/* ERROR */}
+          {!loading && error && (
+            <div className="mt-8 rounded-2xl bg-red-50 p-5 text-red-700 dark:bg-red-950/30 dark:text-red-300">
+              <p className="font-semibold">
+                Newspaper load nahi hua
+              </p>
 
-                <h3 className="font-semibold">
-                  🔒 Premium Content
+              <p className="mt-2 text-sm">
+                {error}
+              </p>
+
+              <button
+                onClick={loadNewspapers}
+                className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* NO PAPERS */}
+          {!loading &&
+            !error &&
+            papers.length === 0 && (
+              <div className="mt-8 rounded-2xl bg-blue-50 p-6 text-center dark:bg-blue-950/30">
+
+                <div className="text-4xl">
+                  📰
+                </div>
+
+                <h3 className="mt-3 font-semibold">
+                  Newspaper abhi available nahi hai
                 </h3>
 
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  Daily Newspaper is available
-                  for paid members. Subscribe
-                  for ₹49 and get access for
-                  30 days.
+                  Published newspaper yahan
+                  automatically dikhega.
                 </p>
-
-                <button
-                  type="button"
-                  onClick={handlePayment}
-                  disabled={loading}
-                  className="mt-5 rounded-xl bg-amber-500 px-5 py-3 font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading
-                    ? "Processing..."
-                    : "Unlock Daily Newspaper ₹49 →"}
-                </button>
-
-                {message && (
-                  <p className="mt-4 text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {message}
-                  </p>
-                )}
 
               </div>
             )}
 
-          {/* Newspapers */}
-          {!checkingStatus &&
-            subscribed && (
-              <div className="mt-8 space-y-6">
+          {/* NEWSPAPERS */}
+          {!loading &&
+            !error &&
+            groupedDates.length > 0 && (
+              <div className="mt-8 space-y-8">
 
-                {newspapers.length === 0 && (
-                  <div className="rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/30">
-
-                    <h3 className="font-semibold">
-                      ⏳ Newspaper abhi upload nahi hua
-                    </h3>
-
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                      Subscription active hai.
-                      Jaise hi newspaper upload
-                      hoga, yahan automatically
-                      dikh jayega.
-                    </p>
-
-                  </div>
-                )}
-
-                {newspapers.map(
-                  (day) => (
+                {groupedDates.map(
+                  ([date, languages]) => (
                     <div
-                      key={day.date}
+                      key={date}
                       className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"
                     >
 
-                      {/* Date */}
-                      <div className="bg-slate-100 px-5 py-4 dark:bg-slate-800">
-
+                      {/* DATE */}
+                      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-700 dark:bg-slate-800">
                         <h3 className="text-lg font-bold">
-                          📅{" "}
-                          {formatDate(
-                            day.date,
-                          )}
+                          📅 {formatDate(date)}
                         </h3>
-
                       </div>
 
-                      <div className="grid gap-5 p-5 md:grid-cols-2">
+                      <div className="grid gap-6 p-5 md:grid-cols-2">
 
-                        {/* Hindi */}
-                        <div className="rounded-2xl bg-orange-50 p-5 dark:bg-orange-950/20">
-
-                          <h4 className="text-lg font-bold">
-                            🇮🇳 Hindi Newspaper
+                        {/* HINDI */}
+                        <div>
+                          <h4 className="mb-3 text-lg font-bold">
+                            🇮🇳 Hindi
                           </h4>
 
-                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            {day.hindi.length} paper
-                            {day.hindi.length !== 1
-                              ? "s"
-                              : ""}
-                            {" "}available
-                          </p>
+                          {languages.hindi.length ===
+                            0 && (
+                            <p className="text-sm text-slate-400">
+                              Hindi paper available
+                              nahi hai.
+                            </p>
+                          )}
 
-                          <div className="mt-4 space-y-3">
-
-                            {day.hindi.length ===
-                              0 && (
-                              <p className="text-sm text-slate-500">
-                                Hindi paper
-                                uploaded nahi hai.
-                              </p>
-                            )}
-
-                            {day.hindi.map(
-                              (
-                                paper,
-                                index,
-                              ) => (
+                          <div className="space-y-3">
+                            {languages.hindi.map(
+                              (paper) => (
                                 <a
-                                  key={`${day.date}-hi-${paper.name}-${index}`}
-                                  href={
-                                    paper.url
-                                  }
+                                  key={paper.id}
+                                  href={paper.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center justify-between rounded-xl bg-white px-4 py-3 font-semibold shadow-sm transition hover:shadow-md dark:bg-slate-900"
+                                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                                 >
-                                  <span>
-                                    📄 Paper{" "}
-                                    {paper.paper !==
-                                    999
-                                      ? paper.paper
-                                      : index +
-                                        1}
-                                  </span>
+                                  <div>
+                                    <p className="font-semibold">
+                                      📄 Paper{" "}
+                                      {
+                                        paper.paper_number
+                                      }
+                                    </p>
 
-                                  <span className="text-blue-600">
+                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                      {paper.title}
+                                    </p>
+                                  </div>
+
+                                  <span className="text-sm font-semibold text-blue-600">
                                     Open →
                                   </span>
                                 </a>
                               ),
                             )}
-
                           </div>
-
                         </div>
 
-                        {/* English */}
-                        <div className="rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/20">
-
-                          <h4 className="text-lg font-bold">
-                            🇬🇧 English Newspaper
+                        {/* ENGLISH */}
+                        <div>
+                          <h4 className="mb-3 text-lg font-bold">
+                            🇬🇧 English
                           </h4>
 
-                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            {day.english.length} paper
-                            {day.english.length !== 1
-                              ? "s"
-                              : ""}
-                            {" "}available
-                          </p>
+                          {languages.english.length ===
+                            0 && (
+                            <p className="text-sm text-slate-400">
+                              English paper available
+                              nahi hai.
+                            </p>
+                          )}
 
-                          <div className="mt-4 space-y-3">
-
-                            {day.english.length ===
-                              0 && (
-                              <p className="text-sm text-slate-500">
-                                English paper
-                                uploaded nahi hai.
-                              </p>
-                            )}
-
-                            {day.english.map(
-                              (
-                                paper,
-                                index,
-                              ) => (
+                          <div className="space-y-3">
+                            {languages.english.map(
+                              (paper) => (
                                 <a
-                                  key={`${day.date}-en-${paper.name}-${index}`}
-                                  href={
-                                    paper.url
-                                  }
+                                  key={paper.id}
+                                  href={paper.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center justify-between rounded-xl bg-white px-4 py-3 font-semibold shadow-sm transition hover:shadow-md dark:bg-slate-900"
+                                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                                 >
-                                  <span>
-                                    📄 Paper{" "}
-                                    {paper.paper !==
-                                    999
-                                      ? paper.paper
-                                      : index +
-                                        1}
-                                  </span>
+                                  <div>
+                                    <p className="font-semibold">
+                                      📄 Paper{" "}
+                                      {
+                                        paper.paper_number
+                                      }
+                                    </p>
 
-                                  <span className="text-blue-600">
+                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                      {paper.title}
+                                    </p>
+                                  </div>
+
+                                  <span className="text-sm font-semibold text-blue-600">
                                     Open →
                                   </span>
                                 </a>
                               ),
                             )}
-
                           </div>
-
                         </div>
 
                       </div>
@@ -602,7 +345,7 @@ export function DailyNewspaper() {
               </div>
             )}
 
-          {/* Features */}
+          {/* INFO */}
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
 
             <h3 className="font-semibold">
@@ -616,7 +359,7 @@ export function DailyNewspaper() {
               </div>
 
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
-                📅 Previous dates available
+                📅 Previous published dates
               </div>
 
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
@@ -632,6 +375,7 @@ export function DailyNewspaper() {
           </div>
 
         </div>
+
       </main>
     </div>
   );
