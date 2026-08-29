@@ -36,23 +36,36 @@ export function DailyNewspaper() {
         return;
       }
 
-      const res = await fetch(
-        `${
-          import.meta.env.VITE_SUPABASE_URL
-        }/functions/v1/get-published-newspapers`,
-        {
-          method: "GET",
-          headers: {
-            Authorization:
-              `Bearer ${session.access_token}`,
-            apikey:
-              import.meta.env
-                .VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        },
-      );
+      const {
+  data,
+  error: functionError,
+} = await supabase.functions.invoke(
+  "get-published-newspapers",
+  {
+    method: "GET",
+  },
+);
 
-      const data = await res.json();
+if (functionError) {
+  console.error(
+    "get-published-newspapers error:",
+    functionError,
+  );
+
+  throw new Error(
+    functionError.message ||
+      "Newspaper load nahi ho paya.",
+  );
+}
+
+if (!data?.success) {
+  throw new Error(
+    data?.error ||
+      "Newspaper load nahi ho paya.",
+  );
+}
+
+setPapers(data.papers || []);
 
       if (!res.ok) {
         throw new Error(
