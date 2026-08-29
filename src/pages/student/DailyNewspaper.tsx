@@ -36,31 +36,78 @@ export function DailyNewspaper() {
         return;
       }
 
-      const {
-        data,
-        error: functionError,
-      } = await supabase.functions.invoke(
-        "get-published-newspapers",
+      const supabaseUrl =
+        import.meta.env.VITE_SUPABASE_URL;
+
+      const publishableKey =
+        import.meta.env
+          .VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      if (!supabaseUrl) {
+        throw new Error(
+          "VITE_SUPABASE_URL missing hai.",
+        );
+      }
+
+      /*
+       * IMPORTANT:
+       * Edge Function ko direct fetch se call kar rahe hain.
+       */
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/get-published-newspapers`,
         {
           method: "GET",
+          headers: {
+            Authorization:
+              `Bearer ${session.access_token}`,
+
+            ...(publishableKey
+              ? {
+                  apikey: publishableKey,
+                }
+              : {}),
+          },
         },
       );
 
-      console.log(
-        "get-published-newspapers response:",
-        data,
-        functionError,
-      );
+      /*
+       * Response text pehle read karte hain.
+       * Isse agar Edge Function HTML/text/error return kare
+       * to bhi actual error dikhega.
+       */
+      const responseText =
+        await response.text();
 
-      if (functionError) {
+      let data: any = null;
+
+      try {
+        data = responseText
+          ? JSON.parse(responseText)
+          : null;
+      } catch {
         console.error(
-          "get-published-newspapers error:",
-          functionError,
+          "Invalid Edge Function response:",
+          responseText,
         );
 
         throw new Error(
-          functionError.message ||
-            "Newspaper load nahi ho paya.",
+          `Edge Function invalid response de raha hai. HTTP ${response.status}`,
+        );
+      }
+
+      console.log(
+        "get-published-newspapers:",
+        {
+          status: response.status,
+          data,
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            `Newspaper load nahi ho paya. HTTP ${response.status}`,
         );
       }
 
@@ -72,7 +119,7 @@ export function DailyNewspaper() {
       }
 
       setPapers(
-        Array.isArray(data?.papers)
+        Array.isArray(data.papers)
           ? data.papers
           : [],
       );
@@ -81,6 +128,8 @@ export function DailyNewspaper() {
         "Newspaper loading error:",
         err,
       );
+
+      setPapers([]);
 
       setError(
         err instanceof Error
@@ -102,6 +151,13 @@ export function DailyNewspaper() {
     > = {};
 
     for (const paper of papers) {
+      if (
+        paper.language !== "hindi" &&
+        paper.language !== "english"
+      ) {
+        continue;
+      }
+
       if (!groups[paper.newspaper_date]) {
         groups[paper.newspaper_date] = {
           hindi: [],
@@ -109,14 +165,9 @@ export function DailyNewspaper() {
         };
       }
 
-      if (
-        paper.language === "hindi" ||
-        paper.language === "english"
-      ) {
-        groups[paper.newspaper_date][
-          paper.language
-        ].push(paper);
-      }
+      groups[paper.newspaper_date][
+        paper.language
+      ].push(paper);
     }
 
     return Object.entries(groups).sort(
@@ -126,13 +177,33 @@ export function DailyNewspaper() {
   }, [papers]);
 
   const formatDate = (date: string) => {
-    return new Date(
+    const parsedDate = new Date(
       `${date}T00:00:00`,
-    ).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    );
+
+    return parsedDate.toLocaleDateString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      },
+    );
+  };
+
+  const openPaper = (url: string) => {
+    if (!url) {
+      setError(
+        "Is newspaper ki file available nahi hai.",
+      );
+      return;
+    }
+
+    window.open(
+      url,
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   return (
@@ -157,7 +228,7 @@ export function DailyNewspaper() {
             onClick={() =>
               navigate("/student/dashboard")
             }
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
           >
             ← Dashboard
           </button>
@@ -183,8 +254,8 @@ export function DailyNewspaper() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Hindi & English newspapers
-                with previous published dates.
+                Hindi & English newspapers with
+                all previous published dates.
               </p>
             </div>
 
@@ -197,28 +268,34 @@ export function DailyNewspaper() {
           {/* LOADING */}
           {loading && (
             <div className="mt-8 rounded-2xl bg-slate-50 p-6 text-center dark:bg-slate-800">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+
+              <div className="text-3xl">
+                📰
+              </div>
+
+              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
                 Newspapers loading...
               </p>
+
             </div>
           )}
 
           {/* ERROR */}
           {!loading && error && (
-            <div className="mt-8 rounded-2xl bg-red-50 p-5 text-red-700 dark:bg-red-950/30 dark:text-red-300">
+            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
 
               <p className="font-semibold">
                 Newspaper load nahi hua
               </p>
 
-              <p className="mt-2 text-sm">
+              <p className="mt-2 break-words text-sm">
                 {error}
               </p>
 
               <button
                 type="button"
                 onClick={loadNewspapers}
-                className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
               >
                 Retry
               </button>
@@ -241,8 +318,9 @@ export function DailyNewspaper() {
                 </h3>
 
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  Admin jab newspaper publish karega,
-                  tab yahan automatically dikhega.
+                  Admin jab newspaper publish
+                  karega, tab yahan automatically
+                  dikhega.
                 </p>
 
               </div>
@@ -256,12 +334,12 @@ export function DailyNewspaper() {
 
                 {groupedDates.map(
                   ([date, languages]) => (
-                    <div
+                    <section
                       key={date}
                       className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"
                     >
 
-                      {/* DATE */}
+                      {/* DATE HEADER */}
                       <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-700 dark:bg-slate-800">
 
                         <h3 className="text-lg font-bold">
@@ -275,31 +353,56 @@ export function DailyNewspaper() {
                         {/* HINDI */}
                         <div>
 
-                          <h4 className="mb-3 text-lg font-bold">
-                            🇮🇳 Hindi
-                          </h4>
+                          <div className="mb-4 flex items-center justify-between">
+
+                            <h4 className="text-lg font-bold">
+                              🇮🇳 Hindi
+                            </h4>
+
+                            {languages.hindi.length >
+                              0 && (
+                              <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950/40 dark:text-orange-300">
+                                {
+                                  languages.hindi
+                                    .length
+                                }{" "}
+                                Paper
+                                {languages.hindi
+                                  .length > 1
+                                  ? "s"
+                                  : ""}
+                              </span>
+                            )}
+
+                          </div>
 
                           {languages.hindi.length ===
                             0 && (
-                            <p className="text-sm text-slate-400">
-                              Hindi paper available
-                              nahi hai.
-                            </p>
+                            <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+                              <p className="text-sm text-slate-400">
+                                Hindi paper available
+                                nahi hai.
+                              </p>
+                            </div>
                           )}
 
                           <div className="space-y-3">
 
                             {languages.hindi.map(
                               (paper) => (
-                                <a
+                                <button
                                   key={paper.id}
-                                  href={paper.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                                  type="button"
+                                  onClick={() =>
+                                    openPaper(
+                                      paper.url,
+                                    )
+                                  }
+                                  className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                                 >
 
-                                  <div>
+                                  <div className="min-w-0">
+
                                     <p className="font-semibold">
                                       📄 Paper{" "}
                                       {
@@ -307,16 +410,17 @@ export function DailyNewspaper() {
                                       }
                                     </p>
 
-                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
                                       {paper.title}
                                     </p>
+
                                   </div>
 
-                                  <span className="text-sm font-semibold text-blue-600">
+                                  <span className="ml-4 shrink-0 text-sm font-semibold text-blue-600">
                                     Open →
                                   </span>
 
-                                </a>
+                                </button>
                               ),
                             )}
 
@@ -327,31 +431,56 @@ export function DailyNewspaper() {
                         {/* ENGLISH */}
                         <div>
 
-                          <h4 className="mb-3 text-lg font-bold">
-                            🇬🇧 English
-                          </h4>
+                          <div className="mb-4 flex items-center justify-between">
+
+                            <h4 className="text-lg font-bold">
+                              🇬🇧 English
+                            </h4>
+
+                            {languages.english.length >
+                              0 && (
+                              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                                {
+                                  languages.english
+                                    .length
+                                }{" "}
+                                Paper
+                                {languages.english
+                                  .length > 1
+                                  ? "s"
+                                  : ""}
+                              </span>
+                            )}
+
+                          </div>
 
                           {languages.english.length ===
                             0 && (
-                            <p className="text-sm text-slate-400">
-                              English paper available
-                              nahi hai.
-                            </p>
+                            <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+                              <p className="text-sm text-slate-400">
+                                English paper available
+                                nahi hai.
+                              </p>
+                            </div>
                           )}
 
                           <div className="space-y-3">
 
                             {languages.english.map(
                               (paper) => (
-                                <a
+                                <button
                                   key={paper.id}
-                                  href={paper.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                                  type="button"
+                                  onClick={() =>
+                                    openPaper(
+                                      paper.url,
+                                    )
+                                  }
+                                  className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                                 >
 
-                                  <div>
+                                  <div className="min-w-0">
+
                                     <p className="font-semibold">
                                       📄 Paper{" "}
                                       {
@@ -359,16 +488,17 @@ export function DailyNewspaper() {
                                       }
                                     </p>
 
-                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
                                       {paper.title}
                                     </p>
+
                                   </div>
 
-                                  <span className="text-sm font-semibold text-blue-600">
+                                  <span className="ml-4 shrink-0 text-sm font-semibold text-blue-600">
                                     Open →
                                   </span>
 
-                                </a>
+                                </button>
                               ),
                             )}
 
@@ -378,7 +508,7 @@ export function DailyNewspaper() {
 
                       </div>
 
-                    </div>
+                    </section>
                   ),
                 )}
 
@@ -403,11 +533,11 @@ export function DailyNewspaper() {
               </div>
 
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
-                🇮🇳 Hindi papers
+                🇮🇳 Multiple Hindi papers
               </div>
 
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
-                🇬🇧 English papers
+                🇬🇧 Multiple English papers
               </div>
 
             </div>
