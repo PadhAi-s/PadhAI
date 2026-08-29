@@ -54,7 +54,7 @@ export function DailyNewspaper() {
        * Edge Function ko direct fetch se call kar rahe hain.
        */
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/get-published-newspapers`,
+        `${supabaseUrl}/functions/v1/get-newspapers`,
         {
           method: "GET",
           headers: {
