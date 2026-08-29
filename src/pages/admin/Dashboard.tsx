@@ -17,73 +17,88 @@ interface SyllabusRow {
   is_active: boolean;
 }
 
-interface NewspaperPaper {
-  id: string;
-  newspaper_date: string;
-  language: "hindi" | "english";
-  paper_number: number;
-  title: string | null;
-  storage_path: string;
-  published: boolean;
-}
+type NewspaperLanguage = "hindi" | "english";
 
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const newspaperFileInputRef = useRef<HTMLInputElement>(null);
+  const syllabusFileInputRef =
+    useRef<HTMLInputElement>(null);
 
-  /* =========================================================
-     SYLLABUS STATE
-     ========================================================= */
+  const newspaperFileInputRef =
+    useRef<HTMLInputElement>(null);
+
+  // =========================================================
+  // SYLLABUS STATE
+  // =========================================================
 
   const [showSyllabusManager, setShowSyllabusManager] =
     useState(false);
 
-  const [csvRows, setCsvRows] = useState<SyllabusRow[]>([]);
-  const [fileName, setFileName] = useState("");
-  const [syllabusLoading, setSyllabusLoading] = useState(false);
-  const [syllabusMessage, setSyllabusMessage] = useState("");
-  const [syllabusError, setSyllabusError] = useState("");
+  const [csvRows, setCsvRows] =
+    useState<SyllabusRow[]>([]);
 
-  /* =========================================================
-     NEWSPAPER STATE
-     ========================================================= */
+  const [fileName, setFileName] =
+    useState("");
+
+  const [syllabusLoading, setSyllabusLoading] =
+    useState(false);
+
+  const [syllabusMessage, setSyllabusMessage] =
+    useState("");
+
+  const [syllabusError, setSyllabusError] =
+    useState("");
+
+  // =========================================================
+  // NEWSPAPER STATE
+  // =========================================================
 
   const [showNewspaperManager, setShowNewspaperManager] =
     useState(false);
 
-  const [newspapers, setNewspapers] = useState<NewspaperPaper[]>([]);
-  const [newspaperLoading, setNewspaperLoading] = useState(false);
-  const [newspaperUploading, setNewspaperUploading] =
-    useState(false);
+  const [newspaperDate, setNewspaperDate] =
+    useState(
+      new Date().toISOString().slice(0, 10),
+    );
 
-  const [newspaperMessage, setNewspaperMessage] = useState("");
-  const [newspaperError, setNewspaperError] = useState("");
-
-  const [newspaperDate, setNewspaperDate] = useState("");
   const [newspaperLanguage, setNewspaperLanguage] =
-    useState<"hindi" | "english">("hindi");
+    useState<NewspaperLanguage>("hindi");
 
-  const [paperNumber, setPaperNumber] = useState("1");
-  const [newspaperTitle, setNewspaperTitle] = useState("");
+  const [newspaperNumber, setNewspaperNumber] =
+    useState("1");
+
+  const [newspaperTitle, setNewspaperTitle] =
+    useState("");
 
   const [newspaperFile, setNewspaperFile] =
     useState<File | null>(null);
 
-  /* =========================================================
-     LOGOUT
-     ========================================================= */
+  const [newspaperFileName, setNewspaperFileName] =
+    useState("");
+
+  const [newspaperLoading, setNewspaperLoading] =
+    useState(false);
+
+  const [newspaperMessage, setNewspaperMessage] =
+    useState("");
+
+  const [newspaperError, setNewspaperError] =
+    useState("");
+
+  // =========================================================
+  // LOGOUT
+  // =========================================================
 
   async function handleLogout() {
     await signOut();
     navigate("/admin/login");
   }
 
-  /* =========================================================
-     SYLLABUS
-     ========================================================= */
+  // =========================================================
+  // SYLLABUS MANAGER
+  // =========================================================
 
   function openSyllabusManager() {
     setShowSyllabusManager(true);
@@ -100,8 +115,8 @@ export function AdminDashboard() {
     setSyllabusMessage("");
     setSyllabusError("");
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (syllabusFileInputRef.current) {
+      syllabusFileInputRef.current.value = "";
     }
   }
 
@@ -205,15 +220,13 @@ export function AdminDashboard() {
 
     const rows: SyllabusRow[] = [];
 
-    lines.slice(1).forEach(
-      (line, index) => {
-        const values =
-          parseCSVLine(line);
+    lines
+      .slice(1)
+      .forEach((line, index) => {
+        const values = parseCSVLine(line);
 
-        const row: Record<
-          string,
-          string
-        > = {};
+        const row: Record<string, string> =
+          {};
 
         headers.forEach(
           (
@@ -221,8 +234,7 @@ export function AdminDashboard() {
             columnIndex,
           ) => {
             row[header] =
-              values[columnIndex] ??
-              "";
+              values[columnIndex] ?? "";
           },
         );
 
@@ -245,8 +257,7 @@ export function AdminDashboard() {
 
         if (
           category !== "school" &&
-          category !==
-            "government_exam"
+          category !== "government_exam"
         ) {
           throw new Error(
             `Row ${rowNumber}: category must be school or government_exam.`,
@@ -320,19 +331,26 @@ export function AdminDashboard() {
         rows.push({
           external_id:
             externalId,
-          category,
+
+          category:
+            category as
+              | "school"
+              | "government_exam",
+
           class_name:
             category === "school"
               ? normalizeValue(
                   row.class_name,
                 )
               : null,
+
           board:
             category === "school"
               ? normalizeValue(
                   row.board,
                 )
               : null,
+
           exam:
             category ===
             "government_exam"
@@ -340,45 +358,45 @@ export function AdminDashboard() {
                   row.exam,
                 )
               : null,
+
           subject:
             row.subject.trim(),
+
           chapter_name:
             row.chapter_name.trim(),
+
           topic_name:
             normalizeValue(
               row.topic_name,
             ),
+
           key_points:
             normalizeValue(
               row.key_points,
             ),
+
           order_no:
             parsedOrder,
+
           is_active:
             parseBoolean(
               row.is_active,
             ),
         });
-      },
-    );
+      });
 
-    const ids =
-      new Set<string>();
+    const ids = new Set<string>();
 
     for (const row of rows) {
       if (
-        ids.has(
-          row.external_id,
-        )
+        ids.has(row.external_id)
       ) {
         throw new Error(
           `Duplicate external_id found: ${row.external_id}`,
         );
       }
 
-      ids.add(
-        row.external_id,
-      );
+      ids.add(row.external_id);
     }
 
     return rows;
@@ -426,10 +444,13 @@ export function AdminDashboard() {
         } loaded successfully.`,
       );
     } catch (err) {
-      setSyllabusError(
+      const errorMessage =
         err instanceof Error
           ? err.message
-          : "Unable to read CSV file.",
+          : "Unable to read CSV file.";
+
+      setSyllabusError(
+        errorMessage,
       );
 
       setFileName("");
@@ -451,7 +472,7 @@ export function AdminDashboard() {
 
     try {
       const {
-        error,
+        error: upsertError,
       } = await supabase
         .from("syllabi")
         .upsert(csvRows, {
@@ -459,8 +480,8 @@ export function AdminDashboard() {
             "external_id",
         });
 
-      if (error) {
-        throw error;
+      if (upsertError) {
+        throw upsertError;
       }
 
       setSyllabusMessage(
@@ -471,102 +492,60 @@ export function AdminDashboard() {
         } successfully inserted/updated.`,
       );
     } catch (err) {
-      setSyllabusError(
+      const errorMessage =
         err instanceof Error
           ? err.message
-          : "Unable to upload syllabus.",
+          : "Unable to upload syllabus.";
+
+      setSyllabusError(
+        errorMessage,
       );
     } finally {
       setSyllabusLoading(false);
     }
   }
 
-  /* =========================================================
-     NEWSPAPER MANAGER
-     ========================================================= */
+  // =========================================================
+  // NEWSPAPER MANAGER
+  // =========================================================
 
   function openNewspaperManager() {
     setShowNewspaperManager(true);
+
     setNewspaperMessage("");
     setNewspaperError("");
-    loadNewspapers();
+
+    setNewspaperDate(
+      new Date()
+        .toISOString()
+        .slice(0, 10),
+    );
+
+    setNewspaperLanguage(
+      "hindi",
+    );
+
+    setNewspaperNumber("1");
+    setNewspaperTitle("");
+    setNewspaperFile(null);
+    setNewspaperFileName("");
   }
 
   function closeNewspaperManager() {
-    if (newspaperUploading) return;
+    if (newspaperLoading) return;
 
     setShowNewspaperManager(false);
 
     setNewspaperMessage("");
     setNewspaperError("");
-
-    setNewspaperDate("");
-    setNewspaperLanguage("hindi");
-    setPaperNumber("1");
-    setNewspaperTitle("");
     setNewspaperFile(null);
+    setNewspaperFileName("");
 
     if (
       newspaperFileInputRef.current
     ) {
       newspaperFileInputRef.current.value =
         "";
-    }
-  }
-
-  async function loadNewspapers() {
-    setNewspaperLoading(true);
-    setNewspaperError("");
-
-    try {
-      const {
-        data,
-        error,
-      } = await supabase
-        .from("newspaper_papers")
-        .select(
-          "id,newspaper_date,language,paper_number,title,storage_path,published",
-        )
-        .order(
-          "newspaper_date",
-          {
-            ascending: false,
-          },
-        )
-        .order(
-          "language",
-          {
-            ascending: true,
-          },
-        )
-        .order(
-          "paper_number",
-          {
-            ascending: true,
-          },
-        );
-
-      if (error) {
-        throw error;
-      }
-
-      setNewspapers(
-        (data ||
-          []) as NewspaperPaper[],
-      );
-    } catch (err) {
-      console.error(
-        "Load newspapers error:",
-        err,
-      );
-
-      setNewspaperError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load newspapers.",
-      );
-    } finally {
-      setNewspaperLoading(false);
     }
   }
 
@@ -581,27 +560,60 @@ export function AdminDashboard() {
 
     if (!file) {
       setNewspaperFile(null);
+      setNewspaperFileName("");
       return;
     }
 
-    const isPDF =
+    const isPdf =
       file.type ===
         "application/pdf" ||
       file.name
         .toLowerCase()
         .endsWith(".pdf");
 
-    if (!isPDF) {
+    if (!isPdf) {
+      setNewspaperFile(null);
+      setNewspaperFileName("");
+
+      if (
+        newspaperFileInputRef.current
+      ) {
+        newspaperFileInputRef.current.value =
+          "";
+      }
+
       setNewspaperError(
-        "Please select a PDF file only.",
+        "Please select a PDF file.",
       );
 
-      event.target.value = "";
+      return;
+    }
+
+    if (
+      file.size >
+      25 * 1024 * 1024
+    ) {
       setNewspaperFile(null);
+      setNewspaperFileName("");
+
+      if (
+        newspaperFileInputRef.current
+      ) {
+        newspaperFileInputRef.current.value =
+          "";
+      }
+
+      setNewspaperError(
+        "PDF size must be less than 25 MB.",
+      );
+
       return;
     }
 
     setNewspaperFile(file);
+    setNewspaperFileName(
+      file.name,
+    );
   }
 
   async function handleNewspaperUpload() {
@@ -615,173 +627,133 @@ export function AdminDashboard() {
       return;
     }
 
-    if (
-      newspaperLanguage !==
-        "hindi" &&
-      newspaperLanguage !==
-        "english"
-    ) {
-      setNewspaperError(
-        "Please select a valid language.",
-      );
-      return;
-    }
-
-    const parsedPaperNumber =
-      Number(paperNumber);
+    const paperNumber =
+      Number(newspaperNumber);
 
     if (
       !Number.isInteger(
-        parsedPaperNumber,
+        paperNumber,
       ) ||
-      parsedPaperNumber < 1
+      paperNumber < 1
     ) {
       setNewspaperError(
-        "Paper number must be a positive whole number.",
+        "Paper number must be a positive number.",
       );
       return;
     }
 
     if (!newspaperFile) {
       setNewspaperError(
-        "Please select a PDF file.",
+        "Please select a newspaper PDF.",
       );
       return;
     }
 
-    setNewspaperUploading(true);
+    if (!user) {
+      setNewspaperError(
+        "Admin session not found. Please login again.",
+      );
+      return;
+    }
 
-    let uploadedPath = "";
+    setNewspaperLoading(true);
 
     try {
-      /*
-       * Check logged-in user
-       */
-      const {
-        data: {
-          session,
-        },
-      } =
-        await supabase.auth.getSession();
+      // -----------------------------------------------------
+      // CREATE SAFE STORAGE FILE NAME
+      // -----------------------------------------------------
 
-      if (!session) {
-        navigate("/admin/login");
-        return;
-      }
-
-      /*
-       * Safe file name
-       */
-      const originalName =
+      const extension =
         newspaperFile.name
-          .replace(
-            /[^a-zA-Z0-9._-]/g,
-            "_",
-          );
+          .split(".")
+          .pop()
+          ?.toLowerCase() ||
+        "pdf";
 
-      const uniqueId =
-        crypto.randomUUID();
+      const safeLanguage =
+        newspaperLanguage;
 
-      /*
-       * Example:
-       *
-       * hindi/2026-08-30/paper-1-xxxxx.pdf
-       *
-       * or
-       *
-       * english/2026-08-30/paper-1-xxxxx.pdf
-       */
-      uploadedPath =
-        `${newspaperLanguage}/${newspaperDate}/paper-${parsedPaperNumber}-${uniqueId}-${originalName}`;
+      const storagePath =
+        `${newspaperDate}/${safeLanguage}/paper-${paperNumber}-${Date.now()}.${extension}`;
 
-      /*
-       * Upload PDF to Storage
-       */
+      // -----------------------------------------------------
+      // UPLOAD PDF TO STORAGE
+      // -----------------------------------------------------
+
       const {
-        error: uploadError,
+        error: storageError,
       } = await supabase.storage
         .from("newspapers")
         .upload(
-          uploadedPath,
+          storagePath,
           newspaperFile,
           {
             contentType:
               "application/pdf",
+
             upsert: false,
           },
         );
 
-      if (uploadError) {
-        throw uploadError;
+      if (storageError) {
+        throw new Error(
+          `PDF upload failed: ${storageError.message}`,
+        );
       }
 
-      /*
-       * Insert database record
-       *
-       * published = true
-       *
-       * So student can immediately
-       * see today's/past paper.
-       *
-       * Future date is still hidden
-       * by Edge Function because
-       * it uses newspaper_date <= today.
-       */
+      // -----------------------------------------------------
+      // INSERT DATABASE RECORD
+      // -----------------------------------------------------
+
       const {
-        data: insertedPaper,
-        error: insertError,
+        error: databaseError,
       } = await supabase
-        .from(
-          "newspaper_papers",
-        )
+        .from("newspaper_papers")
         .insert({
           newspaper_date:
             newspaperDate,
+
           language:
             newspaperLanguage,
+
           paper_number:
-            parsedPaperNumber,
+            paperNumber,
+
           title:
             newspaperTitle.trim() ||
-            `Paper ${parsedPaperNumber}`,
-          storage_path:
-            uploadedPath,
-          published: true,
-        })
-        .select()
-        .single();
+            `Paper ${paperNumber}`,
 
-      if (insertError) {
-        /*
-         * Database insert failed.
-         * Remove uploaded file so
-         * storage doesn't contain orphan PDF.
-         */
+          storage_path:
+            storagePath,
+
+          published: true,
+        });
+
+      // -----------------------------------------------------
+      // IF DATABASE INSERT FAILS,
+      // DELETE STORAGE FILE TO AVOID ORPHAN PDF
+      // -----------------------------------------------------
+
+      if (databaseError) {
         await supabase.storage
           .from("newspapers")
           .remove([
-            uploadedPath,
+            storagePath,
           ]);
 
-        throw insertError;
+        throw new Error(
+          `Newspaper database entry failed: ${databaseError.message}`,
+        );
       }
-
-      console.log(
-        "Newspaper uploaded:",
-        insertedPaper,
-      );
 
       setNewspaperMessage(
         "✅ Newspaper uploaded and published successfully.",
       );
 
-      setNewspaperDate("");
-      setNewspaperLanguage(
-        "hindi",
-      );
-      setPaperNumber("1");
-      setNewspaperTitle("");
       setNewspaperFile(null);
+      setNewspaperFileName("");
+
+      setNewspaperTitle("");
 
       if (
         newspaperFileInputRef.current
@@ -790,7 +762,10 @@ export function AdminDashboard() {
           "";
       }
 
-      await loadNewspapers();
+      // Next paper defaults to next number
+      setNewspaperNumber(
+        String(paperNumber + 1),
+      );
     } catch (err) {
       console.error(
         "Newspaper upload error:",
@@ -803,142 +778,16 @@ export function AdminDashboard() {
           : "Newspaper upload failed.",
       );
     } finally {
-      setNewspaperUploading(false);
+      setNewspaperLoading(false);
     }
   }
-
-  async function toggleNewspaperPublished(
-    paper: NewspaperPaper,
-  ) {
-    setNewspaperError("");
-    setNewspaperMessage("");
-
-    try {
-      const {
-        error,
-      } = await supabase
-        .from(
-          "newspaper_papers",
-        )
-        .update({
-          published:
-            !paper.published,
-        })
-        .eq(
-          "id",
-          paper.id,
-        );
-
-      if (error) {
-        throw error;
-      }
-
-      setNewspaperMessage(
-        paper.published
-          ? "Newspaper hidden successfully."
-          : "Newspaper published successfully.",
-      );
-
-      await loadNewspapers();
-    } catch (err) {
-      console.error(
-        "Publish toggle error:",
-        err,
-      );
-
-      setNewspaperError(
-        err instanceof Error
-          ? err.message
-          : "Unable to update newspaper.",
-      );
-    }
-  }
-
-  async function deleteNewspaper(
-    paper: NewspaperPaper,
-  ) {
-    const confirmed =
-      window.confirm(
-        `Delete ${paper.language} Paper ${paper.paper_number} for ${paper.newspaper_date}?`,
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setNewspaperError("");
-    setNewspaperMessage("");
-
-    try {
-      /*
-       * Delete database row first
-       */
-      const {
-        error: deleteDbError,
-      } = await supabase
-        .from(
-          "newspaper_papers",
-        )
-        .delete()
-        .eq(
-          "id",
-          paper.id,
-        );
-
-      if (deleteDbError) {
-        throw deleteDbError;
-      }
-
-      /*
-       * Delete PDF from Storage
-       */
-      if (paper.storage_path) {
-        const {
-          error:
-            deleteStorageError,
-        } =
-          await supabase.storage
-            .from("newspapers")
-            .remove([
-              paper.storage_path,
-            ]);
-
-        if (
-          deleteStorageError
-        ) {
-          console.error(
-            "Storage delete error:",
-            deleteStorageError,
-          );
-        }
-      }
-
-      setNewspaperMessage(
-        "Newspaper deleted successfully.",
-      );
-
-      await loadNewspapers();
-    } catch (err) {
-      console.error(
-        "Delete newspaper error:",
-        err,
-      );
-
-      setNewspaperError(
-        err instanceof Error
-          ? err.message
-          : "Unable to delete newspaper.",
-      );
-    }
-  }
-
-  /* =========================================================
-     RENDER
-     ========================================================= */
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
+
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div>
@@ -953,9 +802,7 @@ export function AdminDashboard() {
 
           <button
             type="button"
-            onClick={
-              handleLogout
-            }
+            onClick={handleLogout}
             className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
           >
             Logout
@@ -963,8 +810,13 @@ export function AdminDashboard() {
         </div>
       </header>
 
+      {/* =====================================================
+          MAIN
+          ===================================================== */}
+
       <main className="mx-auto max-w-7xl px-4 py-8">
         {/* WELCOME */}
+
         <div className="mb-8 rounded-2xl bg-slate-900 p-6 text-white">
           <p className="text-sm text-slate-300">
             Welcome Admin
@@ -977,11 +829,15 @@ export function AdminDashboard() {
           </h2>
 
           <p className="mt-2 text-sm text-slate-400">
-            You have administrator access to PadhAI.
+            You have administrator access
+            to PadhAI.
           </p>
         </div>
 
-        {/* STATS */}
+        {/* ===================================================
+            STATS
+            =================================================== */}
+
         <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
@@ -1014,16 +870,15 @@ export function AdminDashboard() {
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
-              Newspapers
+              Newspaper
             </p>
 
-            <p className="mt-2 text-3xl font-bold text-blue-600">
-              {newspapers.length ||
-                "—"}
+            <p className="mt-2 text-3xl font-bold">
+              📰
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              Newspaper records
+              Upload newspapers
             </p>
           </div>
 
@@ -1042,13 +897,17 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* MANAGEMENT */}
+        {/* ===================================================
+            MANAGEMENT
+            =================================================== */}
+
         <h3 className="mb-4 text-xl font-bold">
           Management
         </h3>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {/* SYLLABUS */}
+
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
             <div className="text-3xl">
               📚
@@ -1059,7 +918,9 @@ export function AdminDashboard() {
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Upload and update class-wise and government exam syllabus using CSV.
+              Upload and update class-wise
+              and government exam syllabus
+              using CSV.
             </p>
 
             <button
@@ -1067,24 +928,27 @@ export function AdminDashboard() {
               onClick={
                 openSyllabusManager
               }
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
               Manage Syllabus
             </button>
           </div>
 
-          {/* NEWSPAPER */}
+          {/* NEWSPAPERS */}
+
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
             <div className="text-3xl">
               📰
             </div>
 
             <h3 className="mt-4 font-bold">
-              Newspaper
+              Newspapers
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Upload Hindi and English newspaper PDFs with date and publish control.
+              Upload Hindi and English
+              newspaper PDFs with date and
+              paper number.
             </p>
 
             <button
@@ -1092,13 +956,14 @@ export function AdminDashboard() {
               onClick={
                 openNewspaperManager
               }
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
-              Manage Newspaper
+              Upload Newspaper
             </button>
           </div>
 
           {/* STUDENTS */}
+
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
             <div className="text-3xl">
               👨‍🎓
@@ -1109,7 +974,8 @@ export function AdminDashboard() {
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Manage student accounts and profiles.
+              Manage student accounts and
+              profiles.
             </p>
 
             <button
@@ -1120,40 +986,41 @@ export function AdminDashboard() {
             </button>
           </div>
 
-          {/* VIDEOS */}
+          {/* AI */}
+
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
             <div className="text-3xl">
-              🎥
+              🤖
             </div>
 
             <h3 className="mt-4 font-bold">
-              Videos
+              AI Settings
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Manage educational video content.
+              Configure PadhAI AI features.
             </p>
 
             <button
               type="button"
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Manage
+              Configure
             </button>
           </div>
         </div>
       </main>
 
       {/* =====================================================
-          NEWSPAPER MANAGER
+          NEWSPAPER MANAGER MODAL
           ===================================================== */}
 
       {showNewspaperManager && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4">
           <div className="flex min-h-full items-center justify-center">
-            <div className="w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
-
+            <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
               {/* HEADER */}
+
               <div className="flex items-center justify-between border-b px-6 py-5">
                 <div>
                   <h2 className="text-xl font-bold">
@@ -1161,7 +1028,9 @@ export function AdminDashboard() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Upload PDF → Storage → Database automatically.
+                    Upload newspaper PDF.
+                    Database entry will be
+                    created automatically.
                   </p>
                 </div>
 
@@ -1177,161 +1046,170 @@ export function AdminDashboard() {
               </div>
 
               {/* BODY */}
-              <div className="p-6">
 
-                {/* UPLOAD FORM */}
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
+              <div className="space-y-5 p-6">
+                {/* DATE */}
 
-                  <h3 className="text-lg font-bold">
-                    Upload New Newspaper
-                  </h3>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">
+                    Newspaper Date
+                  </label>
 
-                  <div className="mt-5 grid gap-5 md:grid-cols-2">
-
-                    {/* DATE */}
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold">
-                        Newspaper Date
-                      </label>
-
-                      <input
-                        type="date"
-                        value={
-                          newspaperDate
-                        }
-                        onChange={(e) =>
-                          setNewspaperDate(
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-                      />
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        Future date bhi upload kar sakte hain.
-                      </p>
-                    </div>
-
-                    {/* LANGUAGE */}
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold">
-                        Language
-                      </label>
-
-                      <select
-                        value={
-                          newspaperLanguage
-                        }
-                        onChange={(e) =>
-                          setNewspaperLanguage(
-                            e.target.value as
-                              | "hindi"
-                              | "english",
-                          )
-                        }
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-                      >
-                        <option value="hindi">
-                          🇮🇳 Hindi
-                        </option>
-
-                        <option value="english">
-                          🇬🇧 English
-                        </option>
-                      </select>
-                    </div>
-
-                    {/* PAPER NUMBER */}
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold">
-                        Paper Number
-                      </label>
-
-                      <input
-                        type="number"
-                        min="1"
-                        value={
-                          paperNumber
-                        }
-                        onChange={(e) =>
-                          setPaperNumber(
-                            e.target.value,
-                          )
-                        }
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-                      />
-                    </div>
-
-                    {/* TITLE */}
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold">
-                        Title
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          newspaperTitle
-                        }
-                        onChange={(e) =>
-                          setNewspaperTitle(
-                            e.target.value,
-                          )
-                        }
-                        placeholder="e.g. Daily Newspaper"
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* PDF */}
-                  <div className="mt-5">
-                    <label className="mb-2 block text-sm font-semibold">
-                      Newspaper PDF
-                    </label>
-
-                    <input
-                      ref={
-                        newspaperFileInputRef
-                      }
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      onChange={
-                        handleNewspaperFile
-                      }
-                      className="block w-full rounded-xl border border-slate-300 bg-white p-3 text-sm"
-                    />
-
-                    {newspaperFile && (
-                      <p className="mt-2 text-sm font-medium text-blue-600">
-                        Selected:{" "}
-                        {
-                          newspaperFile.name
-                        }
-                      </p>
-                    )}
-                  </div>
-
-                  {/* UPLOAD BUTTON */}
-                  <button
-                    type="button"
-                    onClick={
-                      handleNewspaperUpload
+                  <input
+                    type="date"
+                    value={
+                      newspaperDate
                     }
-                    disabled={
-                      newspaperUploading
+                    onChange={(event) =>
+                      setNewspaperDate(
+                        event.target.value,
+                      )
                     }
-                    className="mt-5 rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {newspaperUploading
-                      ? "Uploading PDF..."
-                      : "📤 Upload & Publish"}
-                  </button>
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  />
                 </div>
 
-                {/* MESSAGES */}
+                {/* LANGUAGE */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">
+                    Language
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewspaperLanguage(
+                          "hindi",
+                        )
+                      }
+                      className={`rounded-xl border px-4 py-3 font-semibold transition ${
+                        newspaperLanguage ===
+                        "hindi"
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      🇮🇳 Hindi
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewspaperLanguage(
+                          "english",
+                        )
+                      }
+                      className={`rounded-xl border px-4 py-3 font-semibold transition ${
+                        newspaperLanguage ===
+                        "english"
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      🇬🇧 English
+                    </button>
+                  </div>
+                </div>
+
+                {/* PAPER NUMBER */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">
+                    Paper Number
+                  </label>
+
+                  <input
+                    type="number"
+                    min="1"
+                    value={
+                      newspaperNumber
+                    }
+                    onChange={(event) =>
+                      setNewspaperNumber(
+                        event.target.value,
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                    placeholder="1"
+                  />
+                </div>
+
+                {/* TITLE */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">
+                    Title
+                    <span className="ml-1 font-normal text-slate-400">
+                      (optional)
+                    </span>
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      newspaperTitle
+                    }
+                    onChange={(event) =>
+                      setNewspaperTitle(
+                        event.target.value,
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                    placeholder="e.g. Daily News"
+                  />
+                </div>
+
+                {/* PDF */}
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">
+                    Newspaper PDF
+                  </label>
+
+                  <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6">
+                    <div className="text-center">
+                      <div className="text-4xl">
+                        📄
+                      </div>
+
+                      <p className="mt-2 text-sm font-semibold">
+                        Select newspaper PDF
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        PDF only • Maximum 25 MB
+                      </p>
+
+                      <input
+                        ref={
+                          newspaperFileInputRef
+                        }
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={
+                          handleNewspaperFile
+                        }
+                        className="mt-4 block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-blue-700"
+                      />
+
+                      {newspaperFileName && (
+                        <p className="mt-3 text-sm font-semibold text-blue-600">
+                          Selected:{" "}
+                          {
+                            newspaperFileName
+                          }
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ERROR */}
+
                 {newspaperError && (
-                  <div className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                     ❌{" "}
                     {
                       newspaperError
@@ -1339,225 +1217,72 @@ export function AdminDashboard() {
                   </div>
                 )}
 
+                {/* SUCCESS */}
+
                 {newspaperMessage && (
-                  <div className="mt-5 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                  <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
                     {
                       newspaperMessage
                     }
                   </div>
                 )}
 
-                {/* LIST */}
-                <div className="mt-8">
+                {/* INFO */}
 
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold">
-                        Uploaded Newspapers
-                      </h3>
+                <div className="rounded-2xl bg-slate-900 p-5 text-white">
+                  <p className="font-semibold">
+                    Upload process
+                  </p>
 
-                      <p className="text-sm text-slate-500">
-                        Manage publish status and delete papers.
-                      </p>
-                    </div>
+                  <div className="mt-3 space-y-1 text-sm text-slate-300">
+                    <p>
+                      1. PDF Storage me upload hoga
+                    </p>
 
-                    <button
-                      type="button"
-                      onClick={
-                        loadNewspapers
-                      }
-                      className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50"
-                    >
-                      Refresh
-                    </button>
+                    <p>
+                      2. `newspaper_papers` me entry automatically banegi
+                    </p>
+
+                    <p>
+                      3. Paper automatically published hoga
+                    </p>
+
+                    <p>
+                      4. Student Daily Newspaper page par dikhega
+                    </p>
                   </div>
-
-                  {newspaperLoading && (
-                    <div className="rounded-2xl bg-slate-50 p-6 text-center">
-                      Loading newspapers...
-                    </div>
-                  )}
-
-                  {!newspaperLoading &&
-                    newspapers.length ===
-                      0 && (
-                      <div className="rounded-2xl bg-slate-50 p-6 text-center">
-                        <div className="text-4xl">
-                          📰
-                        </div>
-
-                        <p className="mt-2 font-semibold">
-                          No newspapers uploaded yet.
-                        </p>
-                      </div>
-                    )}
-
-                  {!newspaperLoading &&
-                    newspapers.length >
-                      0 && (
-                      <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                        <table className="min-w-[900px] w-full text-left text-sm">
-                          <thead className="bg-slate-100">
-                            <tr>
-                              <th className="px-4 py-3">
-                                Date
-                              </th>
-
-                              <th className="px-4 py-3">
-                                Language
-                              </th>
-
-                              <th className="px-4 py-3">
-                                Paper
-                              </th>
-
-                              <th className="px-4 py-3">
-                                Title
-                              </th>
-
-                              <th className="px-4 py-3">
-                                Status
-                              </th>
-
-                              <th className="px-4 py-3">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {newspapers.map(
-                              (paper) => (
-                                <tr
-                                  key={
-                                    paper.id
-                                  }
-                                  className="border-t border-slate-200"
-                                >
-                                  <td className="px-4 py-4 font-medium">
-                                    {
-                                      paper.newspaper_date
-                                    }
-                                  </td>
-
-                                  <td className="px-4 py-4">
-                                    {paper.language ===
-                                    "hindi"
-                                      ? "🇮🇳 Hindi"
-                                      : "🇬🇧 English"}
-                                  </td>
-
-                                  <td className="px-4 py-4">
-                                    Paper{" "}
-                                    {
-                                      paper.paper_number
-                                    }
-                                  </td>
-
-                                  <td className="px-4 py-4">
-                                    {paper.title ||
-                                      `Paper ${paper.paper_number}`}
-                                  </td>
-
-                                  <td className="px-4 py-4">
-                                    {paper.published ? (
-                                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                                        PUBLISHED
-                                      </span>
-                                    ) : (
-                                      <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600">
-                                        HIDDEN
-                                      </span>
-                                    )}
-                                  </td>
-
-                                  <td className="px-4 py-4">
-                                    <div className="flex gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          toggleNewspaperPublished(
-                                            paper,
-                                          )
-                                        }
-                                        className={`rounded-lg px-3 py-2 text-xs font-bold text-white ${
-                                          paper.published
-                                            ? "bg-orange-500 hover:bg-orange-600"
-                                            : "bg-green-600 hover:bg-green-700"
-                                        }`}
-                                      >
-                                        {paper.published
-                                          ? "Hide"
-                                          : "Publish"}
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          deleteNewspaper(
-                                            paper,
-                                          )
-                                        }
-                                        className="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700"
-                                      >
-                                        Delete
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ),
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                </div>
-
-                {/* IMPORTANT INFO */}
-                <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
-                  <h4 className="font-bold">
-                    🔐 How publishing works
-                  </h4>
-
-                  <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                    <li>
-                      • PDF automatically uploads to the{" "}
-                      <b>newspapers</b> Storage bucket.
-                    </li>
-
-                    <li>
-                      • Database record automatically goes into{" "}
-                      <b>newspaper_papers</b>.
-                    </li>
-
-                    <li>
-                      • Today's and previous published papers are visible to students.
-                    </li>
-
-                    <li>
-                      • Future-date papers remain hidden from students until that date.
-                    </li>
-
-                    <li>
-                      • Hide button can temporarily remove a paper from the student page.
-                    </li>
-                  </ul>
                 </div>
               </div>
 
               {/* FOOTER */}
-              <div className="flex justify-end border-t px-6 py-4">
+
+              <div className="flex justify-end gap-3 border-t px-6 py-4">
                 <button
                   type="button"
                   onClick={
                     closeNewspaperManager
                   }
                   disabled={
-                    newspaperUploading
+                    newspaperLoading
                   }
                   className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   Close
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleNewspaperUpload
+                  }
+                  disabled={
+                    newspaperLoading
+                  }
+                  className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {newspaperLoading
+                    ? "Uploading..."
+                    : "Upload & Publish"}
                 </button>
               </div>
             </div>
@@ -1566,15 +1291,15 @@ export function AdminDashboard() {
       )}
 
       {/* =====================================================
-          SYLLABUS MANAGER
+          SYLLABUS MANAGER MODAL
           ===================================================== */}
 
       {showSyllabusManager && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
           <div className="flex min-h-full items-center justify-center">
             <div className="w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
-
               {/* HEADER */}
+
               <div className="flex items-center justify-between border-b px-6 py-5">
                 <div>
                   <h2 className="text-xl font-bold">
@@ -1582,7 +1307,9 @@ export function AdminDashboard() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Upload CSV to insert new syllabus or update existing syllabus.
+                    Upload CSV to insert new
+                    syllabus or update
+                    existing syllabus.
                   </p>
                 </div>
 
@@ -1598,8 +1325,8 @@ export function AdminDashboard() {
               </div>
 
               {/* BODY */}
-              <div className="p-6">
 
+              <div className="p-6">
                 <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                   <div className="text-4xl">
                     📄
@@ -1610,19 +1337,20 @@ export function AdminDashboard() {
                   </h3>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    Use the standard PadhAI syllabus CSV format.
+                    Use the standard PadhAI
+                    syllabus CSV format.
                   </p>
 
                   <input
                     ref={
-                      fileInputRef
+                      syllabusFileInputRef
                     }
                     type="file"
                     accept=".csv,text/csv"
                     onChange={
                       handleCSVFile
                     }
-                    className="mt-5 block w-full text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-blue-700"
+                    className="mt-5 block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-blue-700"
                   />
 
                   {fileName && (
@@ -1664,7 +1392,8 @@ export function AdminDashboard() {
                           {
                             csvRows.length
                           }{" "}
-                          rows ready for upload.
+                          rows ready for
+                          upload.
                         </p>
                       </div>
 
@@ -1676,7 +1405,7 @@ export function AdminDashboard() {
                         disabled={
                           syllabusLoading
                         }
-                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {syllabusLoading
                           ? "Uploading..."
@@ -1755,18 +1484,24 @@ export function AdminDashboard() {
                                   </td>
 
                                   <td className="px-4 py-3">
-                                    {row.class_name ||
-                                      "—"}
+                                    {
+                                      row.class_name ||
+                                      "—"
+                                    }
                                   </td>
 
                                   <td className="px-4 py-3">
-                                    {row.board ||
-                                      "—"}
+                                    {
+                                      row.board ||
+                                      "—"
+                                    }
                                   </td>
 
                                   <td className="px-4 py-3">
-                                    {row.exam ||
-                                      "—"}
+                                    {
+                                      row.exam ||
+                                      "—"
+                                    }
                                   </td>
 
                                   <td className="px-4 py-3">
@@ -1782,8 +1517,10 @@ export function AdminDashboard() {
                                   </td>
 
                                   <td className="px-4 py-3">
-                                    {row.topic_name ||
-                                      "—"}
+                                    {
+                                      row.topic_name ||
+                                      "—"
+                                    }
                                   </td>
 
                                   <td className="px-4 py-3">
@@ -1801,11 +1538,13 @@ export function AdminDashboard() {
                     {csvRows.length >
                       100 && (
                       <p className="mt-2 text-xs text-slate-500">
-                        Showing first 100 rows. All{" "}
+                        Showing first 100
+                        rows. All{" "}
                         {
                           csvRows.length
                         }{" "}
-                        rows will be uploaded.
+                        rows will be
+                        uploaded.
                       </p>
                     )}
                   </div>
@@ -1817,16 +1556,29 @@ export function AdminDashboard() {
                   </p>
 
                   <p className="mt-2 break-all font-mono text-xs text-slate-300">
-                    external_id, category, class_name, board, exam, subject, chapter_name, topic_name, key_points, order_no, is_active
+                    external_id,
+                    category,
+                    class_name,
+                    board, exam,
+                    subject,
+                    chapter_name,
+                    topic_name,
+                    key_points,
+                    order_no,
+                    is_active
                   </p>
 
                   <p className="mt-3 text-xs text-slate-400">
-                    Existing external_id = update | New external_id = insert
+                    Existing external_id =
+                    update &nbsp; | &nbsp;
+                    New external_id =
+                    insert
                   </p>
                 </div>
               </div>
 
               {/* FOOTER */}
+
               <div className="flex justify-end border-t px-6 py-4">
                 <button
                   type="button"
@@ -1841,7 +1593,6 @@ export function AdminDashboard() {
                   Close
                 </button>
               </div>
-
             </div>
           </div>
         </div>
