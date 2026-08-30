@@ -15,8 +15,10 @@ import { StudentDashboard } from "./pages/student/Dashboard";
 import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
-import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
 import { DailyNewspaper } from "./pages/student/DailyNewspaper";
+
+/* CURRENT AFFAIRS */
+import CurrentAffairs from "./pages/CurrentAffairs";
 
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
@@ -68,9 +70,16 @@ export default function App() {
                   element={<AskPadhAI />}
                 />
 
+                {/* CURRENT AFFAIRS */}
                 <Route
                   path="student/current-affairs"
-                  element={<WeeklyCurrentAffairs />}
+                  element={<CurrentAffairs />}
+                />
+
+                {/* CURRENT AFFAIRS DETAILS */}
+                <Route
+                  path="current-affairs/:id"
+                  element={<CurrentAffairs />}
                 />
 
                 <Route
