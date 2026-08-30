@@ -61,17 +61,18 @@ export function StudentDashboard() {
   }
 
   function handleVocabBhaiya() {
-    window.location.href = "https://vocabbhaiya.netlify.app/";
+    window.open(
+      "https://vocabbhaiya.netlify.app/",
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-
-      {/* ==================== HEADER ==================== */}
-
+      {/* HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI
@@ -83,9 +84,6 @@ export function StudentDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-
-            {/* User Info */}
-
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-slate-800 dark:text-white">
                 {profile?.full_name || "Student"}
@@ -96,10 +94,8 @@ export function StudentDashboard() {
               </p>
             </div>
 
-            {/* ==================== 3 DOT MENU ==================== */}
-
+            {/* 3 DOT MENU */}
             <div className="relative" ref={menuRef}>
-
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
@@ -112,9 +108,6 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-
-                  {/* My Syllabus */}
-
                   <button
                     type="button"
                     onClick={handleSyllabus}
@@ -133,8 +126,6 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
-                  {/* My Profile */}
-
                   <button
                     type="button"
                     onClick={handleProfile}
@@ -152,8 +143,6 @@ export function StudentDashboard() {
                       </span>
                     </span>
                   </button>
-
-                  {/* Theme */}
 
                   <button
                     type="button"
@@ -177,8 +166,6 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
-                  {/* Settings */}
-
                   <button
                     type="button"
                     onClick={() => setMenuOpen(false)}
@@ -199,18 +186,14 @@ export function StudentDashboard() {
 
                   <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
 
-                  {/* Logout */}
-
                   <button
                     type="button"
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     <span className="text-lg">🚪</span>
-
                     <span>Logout</span>
                   </button>
-
                 </div>
               )}
             </div>
@@ -218,14 +201,9 @@ export function StudentDashboard() {
         </div>
       </header>
 
-      {/* ==================== MAIN ==================== */}
-
+      {/* MAIN */}
       <main className="mx-auto max-w-6xl px-4 py-8">
-
-        {/* Welcome */}
-
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
-
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Welcome to PadhAI 👋
           </h2>
@@ -234,10 +212,8 @@ export function StudentDashboard() {
             {profile?.full_name || user?.email || "Student"}
           </p>
 
-          {/* ==================== PROFILE INFO ==================== */}
-
+          {/* PROFILE INFO */}
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-
             <div className="rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/40">
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Class
@@ -267,206 +243,148 @@ export function StudentDashboard() {
                 {profile?.exam || "Not set"}
               </p>
             </div>
-
           </div>
 
-          {/* ==================== FEATURES ==================== */}
-
+          {/* FEATURES */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-            {/* ==================== DAILY NEWSPAPER ==================== */}
-
-            <button
-              type="button"
+            <DashboardCard
+              icon="📰"
+              title="Daily Newspaper"
+              description="Read today's important news selected specially for students."
+              action="Read Today's Paper 🔒 →"
+              badge="PREMIUM"
+              badgeClass="bg-amber-500"
+              className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20"
+              actionClass="text-amber-600 dark:text-amber-400"
               onClick={handleDailyNewspaper}
-              className="group relative rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20"
-            >
+            />
 
-              <div className="absolute right-4 top-4 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white">
-                PREMIUM
-              </div>
-
-              <div className="text-3xl">
-                📰
-              </div>
-
-              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-                Daily Newspaper
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Read today's important news selected specially for students.
-              </p>
-
-              <span className="mt-4 inline-block text-sm font-semibold text-amber-600 dark:text-amber-400">
-                Read Today's Paper 🔒 →
-              </span>
-
-            </button>
-
-            {/* ==================== WEEKLY CURRENT AFFAIRS ==================== */}
-
-            <button
-              type="button"
+            <DashboardCard
+              icon="🗞️"
+              title="Weekly Current Affairs"
+              description="Important weekly current affairs for exams and general awareness."
+              action="Read Current Affairs →"
+              badge="FREE"
+              badgeClass="bg-green-600"
+              className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
+              actionClass="text-green-600 dark:text-green-400"
               onClick={handleCurrentAffairs}
-              className="rounded-2xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
-            >
+            />
 
-              <div className="flex items-center justify-between">
-
-                <div className="text-3xl">
-                  🗞️
-                </div>
-
-                <span className="rounded-full bg-green-600 px-2.5 py-1 text-[10px] font-bold text-white">
-                  FREE
-                </span>
-
-              </div>
-
-              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-                Weekly Current Affairs
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Important weekly current affairs for exams and general awareness.
-              </p>
-
-              <span className="mt-4 inline-block text-sm font-semibold text-green-600 dark:text-green-400">
-                Read Current Affairs →
-              </span>
-
-            </button>
-
-            {/* ==================== QUICK REVISION ==================== */}
-
-            <button
-              type="button"
+            <DashboardCard
+              icon="⚡"
+              title="Quick Revision"
+              description="Revise important concepts, formulas and exam points quickly."
+              action="Revise Now →"
+              className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 dark:border-purple-900/50 dark:from-purple-950/30 dark:to-violet-950/20"
+              actionClass="text-purple-600 dark:text-purple-400"
               onClick={handleQuickRevision}
-              className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-purple-900/50 dark:from-purple-950/30 dark:to-violet-950/20"
-            >
+            />
 
-              <div className="text-3xl">
-                ⚡
-              </div>
-
-              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-                Quick Revision
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Revise important concepts, formulas and exam points quickly.
-              </p>
-
-              <span className="mt-4 inline-block text-sm font-semibold text-purple-600 dark:text-purple-400">
-                Revise Now →
-              </span>
-
-            </button>
-
-            {/* ==================== ASK PADHAI ==================== */}
-
-            <button
-              type="button"
+            <DashboardCard
+              icon="🤖"
+              title="Ask PadhAI"
+              description="Ask questions and get step-by-step AI explanations."
+              action="Ask Now →"
+              className="border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:to-cyan-950/20"
+              actionClass="text-blue-600 dark:text-blue-400"
               onClick={handleAskPadhAI}
-              className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-blue-900/50 dark:from-blue-950/30 dark:to-cyan-950/20"
-            >
+            />
 
-              <div className="text-3xl">
-                🤖
-              </div>
-
-              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-                Ask PadhAI
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Ask questions and get step-by-step AI explanations.
-              </p>
-
-              <span className="mt-4 inline-block text-sm font-semibold text-blue-600 dark:text-blue-400">
-                Ask Now →
-              </span>
-
-            </button>
-
-            {/* ==================== VOCAB BHAIYA ==================== */}
-
-            <button
-              type="button"
+            <DashboardCard
+              icon="🔤"
+              title="Vocab Bhaiya"
+              description="Improve your English vocabulary with Vocab Bhaiya."
+              action="Open Vocab Bhaiya →"
+              badge="External ↗"
+              badgeClass="bg-transparent text-indigo-600 dark:text-indigo-400"
+              className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 dark:border-indigo-900/50 dark:from-indigo-950/30 dark:to-blue-950/20"
+              actionClass="text-indigo-600 dark:text-indigo-400"
               onClick={handleVocabBhaiya}
-              className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-indigo-900/50 dark:from-indigo-950/30 dark:to-blue-950/20"
-            >
+            />
 
-              <div className="flex items-center justify-between">
-
-                <div className="text-3xl">
-                  🔤
-                </div>
-
-                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                  External ↗
-                </span>
-
-              </div>
-
-              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-                Vocab Bhaiya
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Improve your English vocabulary with Vocab Bhaiya.
-              </p>
-
-              <span className="mt-4 inline-block text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                Open Vocab Bhaiya →
-              </span>
-
-            </button>
-
-            {/* ==================== STUDY VIDEOS ==================== */}
-
-            <button
-              type="button"
-              className="rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-            >
-
-              <div className="text-3xl">
-                🎥
-              </div>
-
-              <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
-                Study Videos
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Relevant learning videos for your studies.
-              </p>
-
-              <span className="mt-4 inline-block text-sm font-semibold text-blue-600">
-                Coming soon
-              </span>
-
-            </button>
-
+            <DashboardCard
+              icon="🎥"
+              title="Study Videos"
+              description="Relevant learning videos for your studies."
+              action="Coming soon"
+              className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+              actionClass="text-blue-600"
+              onClick={() => {}}
+            />
           </div>
-
-          {/* ==================== PROFILE BUTTON ==================== */}
 
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
-
             <button
               type="button"
-              onClick={() => navigate("/student/profile")}
+              onClick={handleProfile}
               className="rounded-xl border border-blue-600 px-5 py-3 font-semibold text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-950/30"
             >
               Edit My Profile
             </button>
-
           </div>
-
         </div>
       </main>
     </div>
   );
 }
+
+interface DashboardCardProps {
+  icon: string;
+  title: string;
+  description: string;
+  action: string;
+  className: string;
+  actionClass: string;
+  onClick: () => void;
+  badge?: string;
+  badgeClass?: string;
+}
+
+function DashboardCard({
+  icon,
+  title,
+  description,
+  action,
+  className,
+  actionClass,
+  onClick,
+  badge,
+  badgeClass,
+}: DashboardCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className}`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-3xl">{icon}</div>
+
+        {badge && (
+          <span
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold text-white ${badgeClass}`}
+          >
+            {badge}
+          </span>
+        )}
+      </div>
+
+      <h3 className="mt-4 font-semibold text-slate-900 dark:text-white">
+        {title}
+      </h3>
+
+      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+        {description}
+      </p>
+
+      <span
+        className={`mt-4 inline-block text-sm font-semibold ${actionClass}`}
+      >
+        {action}
+      </span>
+    </button>
+  );
+}
+
+export default StudentDashboard;
