@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useState,
-  type ChangeEvent,
-} from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -42,15 +38,12 @@ export function AdminCurrentAffairs() {
   const { user, profile, signOut } = useAuth();
 
   const [records, setRecords] = useState<CurrentAffair[]>([]);
-  const [form, setForm] =
-    useState<CurrentAffair>(emptyForm);
+  const [form, setForm] = useState<CurrentAffair>(emptyForm);
 
   const [loading, setLoading] = useState(false);
-  const [loadingRecords, setLoadingRecords] =
-    useState(false);
+  const [loadingRecords, setLoadingRecords] = useState(false);
 
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -58,14 +51,11 @@ export function AdminCurrentAffairs() {
   const [showForm, setShowForm] = useState(false);
   const [showCSV, setShowCSV] = useState(false);
 
-  const [csvFileName, setCSVFileName] =
-    useState("");
-
-  const [csvRows, setCSVRows] =
-    useState<CurrentAffair[]>([]);
+  const [csvFileName, setCSVFileName] = useState("");
+  const [csvRows, setCSVRows] = useState<CurrentAffair[]>([]);
 
   useEffect(() => {
-    void loadCurrentAffairs();
+    loadCurrentAffairs();
   }, []);
 
   async function handleLogout() {
@@ -82,45 +72,30 @@ export function AdminCurrentAffairs() {
     setLoadingRecords(true);
 
     try {
-      const { data, error: fetchError } =
-        await supabase
-          .from("current_affairs")
-          .select(
-            "id,affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs",
-          )
-          .order("affair_date", {
-            ascending: false,
-          })
-          .order("serial_no", {
-            ascending: true,
-          });
+      const { data, error: fetchError } = await supabase
+        .from("current_affairs")
+        .select(
+          "id, affair_date, serial_no, title, why_in_news, key_facts, exam_point, static_gk, mcqs",
+        )
+        .order("affair_date", { ascending: false })
+        .order("serial_no", { ascending: true });
 
-      if (fetchError) {
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
 
       setRecords(
         (data ?? []).map((row) => ({
           id: row.id,
-          affair_date: row.affair_date,
-          serial_no: Number(
-            row.serial_no ?? 1,
-          ),
+          affair_date: row.affair_date ?? "",
+          serial_no: Number(row.serial_no ?? 1),
           title: row.title ?? "",
-          why_in_news:
-            row.why_in_news ?? "",
-          key_facts:
-            row.key_facts ?? "",
-          exam_point:
-            row.exam_point ?? "",
-          static_gk:
-            row.static_gk ?? "",
-          mcqs: Array.isArray(row.mcqs)
-            ? (row.mcqs as MCQ[])
-            : [],
+          why_in_news: row.why_in_news ?? "",
+          key_facts: row.key_facts ?? "",
+          exam_point: row.exam_point ?? "",
+          static_gk: row.static_gk ?? "",
+          mcqs: Array.isArray(row.mcqs) ? row.mcqs : [],
         })),
       );
-    } catch (err: unknown) {
+    } catch (err) {
       setError(
         err instanceof Error
           ? err.message
@@ -138,27 +113,21 @@ export function AdminCurrentAffairs() {
 
     setForm({
       ...emptyForm,
-      affair_date: new Date()
-        .toISOString()
-        .slice(0, 10),
+      affair_date: new Date().toISOString().slice(0, 10),
       serial_no: 1,
     });
 
     setShowForm(true);
   }
 
-  function openEditForm(
-    row: CurrentAffair,
-  ) {
+  function openEditForm(row: CurrentAffair) {
     clearMessages();
 
     setEditingId(row.id ?? null);
 
     setForm({
       ...row,
-      mcqs: Array.isArray(row.mcqs)
-        ? row.mcqs
-        : [],
+      mcqs: Array.isArray(row.mcqs) ? row.mcqs : [],
     });
 
     setShowForm(true);
@@ -224,10 +193,7 @@ export function AdminCurrentAffairs() {
   ) {
     setForm((previous) => {
       const mcqs = [...previous.mcqs];
-
-      const options = [
-        ...mcqs[mcqIndex].options,
-      ];
+      const options = [...mcqs[mcqIndex].options];
 
       options[optionIndex] = value;
 
@@ -247,13 +213,12 @@ export function AdminCurrentAffairs() {
     setForm((previous) => ({
       ...previous,
       mcqs: previous.mcqs.filter(
-        (_, mcqIndex) =>
-          mcqIndex !== index,
+        (_, mcqIndex) => mcqIndex !== index,
       ),
     }));
   }
 
-  function validateForm(): string | null {
+  function validateForm() {
     if (!form.affair_date) {
       return "Affair date is required.";
     }
@@ -275,41 +240,28 @@ export function AdminCurrentAffairs() {
     }
 
     if (
-      !Number.isFinite(
-        Number(form.serial_no),
-      )
+      !Number.isFinite(Number(form.serial_no)) ||
+      Number(form.serial_no) < 1
     ) {
-      return "Serial number must be a number.";
+      return "Serial number must be a valid number.";
     }
 
-    for (
-      let i = 0;
-      i < form.mcqs.length;
-      i++
-    ) {
+    for (let i = 0; i < form.mcqs.length; i++) {
       const mcq = form.mcqs[i];
 
       if (!mcq.question.trim()) {
-        return `MCQ ${
-          i + 1
-        }: question is required.`;
+        return `MCQ ${i + 1}: question is required.`;
       }
 
       if (
         mcq.options.length !== 4 ||
-        mcq.options.some(
-          (option) => !option.trim(),
-        )
+        mcq.options.some((option) => !option.trim())
       ) {
-        return `MCQ ${
-          i + 1
-        }: all 4 options are required.`;
+        return `MCQ ${i + 1}: all 4 options are required.`;
       }
 
       if (!mcq.answer.trim()) {
-        return `MCQ ${
-          i + 1
-        }: answer is required.`;
+        return `MCQ ${i + 1}: answer is required.`;
       }
     }
 
@@ -331,50 +283,32 @@ export function AdminCurrentAffairs() {
     try {
       const payload = {
         affair_date: form.affair_date,
-        serial_no: Number(
-          form.serial_no,
-        ),
+        serial_no: Number(form.serial_no),
         title: form.title.trim(),
-        why_in_news:
-          form.why_in_news.trim(),
-        key_facts:
-          form.key_facts.trim(),
-        exam_point:
-          form.exam_point.trim(),
-        static_gk:
-          form.static_gk.trim(),
+        why_in_news: form.why_in_news.trim(),
+        key_facts: form.key_facts.trim(),
+        exam_point: form.exam_point.trim(),
+        static_gk: form.static_gk.trim(),
         mcqs: form.mcqs,
       };
 
       if (editingId) {
-        const {
-          error: updateError,
-        } = await supabase
+        const { error: updateError } = await supabase
           .from("current_affairs")
           .update(payload)
           .eq("id", editingId);
 
-        if (updateError) {
-          throw updateError;
-        }
+        if (updateError) throw updateError;
 
-        setMessage(
-          "Current affair updated successfully.",
-        );
+        setMessage("Current affair updated successfully.");
       } else {
-        const {
-          error: insertError,
-        } = await supabase
+        const { error: insertError } = await supabase
           .from("current_affairs")
           .insert(payload);
 
-        if (insertError) {
-          throw insertError;
-        }
+        if (insertError) throw insertError;
 
-        setMessage(
-          "Current affair added successfully.",
-        );
+        setMessage("Current affair added successfully.");
       }
 
       setShowForm(false);
@@ -382,7 +316,7 @@ export function AdminCurrentAffairs() {
       setForm(emptyForm);
 
       await loadCurrentAffairs();
-    } catch (err: unknown) {
+    } catch (err) {
       setError(
         err instanceof Error
           ? err.message
@@ -393,9 +327,7 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  async function handleDelete(
-    id: string,
-  ) {
+  async function handleDelete(id: string) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this current affair?",
     );
@@ -406,23 +338,17 @@ export function AdminCurrentAffairs() {
     setLoading(true);
 
     try {
-      const {
-        error: deleteError,
-      } = await supabase
+      const { error: deleteError } = await supabase
         .from("current_affairs")
         .delete()
         .eq("id", id);
 
-      if (deleteError) {
-        throw deleteError;
-      }
+      if (deleteError) throw deleteError;
 
-      setMessage(
-        "Current affair deleted successfully.",
-      );
+      setMessage("Current affair deleted successfully.");
 
       await loadCurrentAffairs();
-    } catch (err: unknown) {
+    } catch (err) {
       setError(
         err instanceof Error
           ? err.message
@@ -433,211 +359,387 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  function parseCSVLine(
-    line: string,
-  ): string[] {
-    const values: string[] = [];
+  // -----------------------------------------------------
+  // CSV PARSER
+  // Supports:
+  // - quoted values
+  // - commas inside values
+  // - double quotes
+  // - multiline values
+  // -----------------------------------------------------
 
-    let current = "";
+  function parseCSVRows(text: string): string[][] {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let value = "";
     let insideQuotes = false;
 
-    for (
-      let i = 0;
-      i < line.length;
-      i++
-    ) {
-      const char = line[i];
+    const cleanedText = text.replace(/^\uFEFF/, "");
+
+    for (let i = 0; i < cleanedText.length; i++) {
+      const char = cleanedText[i];
+      const nextChar = cleanedText[i + 1];
 
       if (char === '"') {
-        if (
-          insideQuotes &&
-          line[i + 1] === '"'
-        ) {
-          current += '"';
+        if (insideQuotes && nextChar === '"') {
+          value += '"';
           i++;
         } else {
-          insideQuotes =
-            !insideQuotes;
+          insideQuotes = !insideQuotes;
         }
-      } else if (
-        char === "," &&
+
+        continue;
+      }
+
+      if (char === "," && !insideQuotes) {
+        row.push(value.trim());
+        value = "";
+        continue;
+      }
+
+      if (
+        (char === "\n" || char === "\r") &&
         !insideQuotes
       ) {
-        values.push(
-          current.trim(),
-        );
-        current = "";
-      } else {
-        current += char;
+        if (char === "\r" && nextChar === "\n") {
+          i++;
+        }
+
+        row.push(value.trim());
+
+        const hasData = row.some((cell) => cell.trim() !== "");
+
+        if (hasData) {
+          rows.push(row);
+        }
+
+        row = [];
+        value = "";
+
+        continue;
       }
+
+      value += char;
     }
 
-    values.push(current.trim());
+    row.push(value.trim());
 
-    return values;
+    if (row.some((cell) => cell.trim() !== "")) {
+      rows.push(row);
+    }
+
+    return rows;
   }
 
-  function parseCSV(
-    text: string,
-  ): CurrentAffair[] {
-    const lines = text
-      .replace(/^\uFEFF/, "")
-      .split(/\r?\n/)
-      .filter(
-        (line: string) =>
-          line.trim() !== "",
-      );
+  // Convert header names like:
+  // serial_no
+  // serial no
+  // Serial-No
+  // SERIALNO
+  // into: serialno
 
-    if (lines.length < 2) {
+  function normalizeHeader(header: string) {
+    return header
+      .trim()
+      .toLowerCase()
+      .replace(/^\uFEFF/, "")
+      .replace(/[^a-z0-9]/g, "");
+  }
+
+  function findColumn(
+    headers: string[],
+    aliases: string[],
+  ): number {
+    const normalizedAliases = aliases.map(normalizeHeader);
+
+    return headers.findIndex((header) =>
+      normalizedAliases.includes(normalizeHeader(header)),
+    );
+  }
+
+  function getCell(
+    row: string[],
+    index: number,
+  ): string {
+    if (index < 0) return "";
+
+    return row[index]?.trim() ?? "";
+  }
+
+  function parseMCQs(value: string, rowNumber: number): MCQ[] {
+    if (!value.trim()) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(value);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error("MCQs must be an array.");
+      }
+
+      return parsed.map((item, index) => {
+        if (!item || typeof item !== "object") {
+          throw new Error(
+            `MCQ ${index + 1} must be an object.`,
+          );
+        }
+
+        const mcq = item as Record<string, unknown>;
+
+        return {
+          question:
+            typeof mcq.question === "string"
+              ? mcq.question
+              : "",
+          options: Array.isArray(mcq.options)
+            ? mcq.options.map(String)
+            : [],
+          answer:
+            typeof mcq.answer === "string"
+              ? mcq.answer
+              : "",
+          explanation:
+            typeof mcq.explanation === "string"
+              ? mcq.explanation
+              : "",
+        };
+      });
+    } catch {
       throw new Error(
-        "CSV must contain a header and at least one row.",
+        `Row ${rowNumber}: mcqs contains invalid JSON.`,
+      );
+    }
+  }
+
+  function parseCSV(text: string): CurrentAffair[] {
+    const rows = parseCSVRows(text);
+
+    if (rows.length < 2) {
+      throw new Error(
+        "CSV must contain a header and at least one data row.",
       );
     }
 
-    const headers = parseCSVLine(
-      lines[0],
-    ).map((header: string) =>
-      header.trim().toLowerCase(),
-    );
+    const headers = rows[0];
 
-    const requiredHeaders = [
+    const affairDateIndex = findColumn(headers, [
       "affair_date",
-      "serial_no",
-      "title",
-      "why_in_news",
-      "key_facts",
-      "exam_point",
-      "static_gk",
-      "mcqs",
-    ];
+      "affair date",
+      "date",
+    ]);
 
-    for (
-      const header of requiredHeaders
-    ) {
-      if (!headers.includes(header)) {
-        throw new Error(
-          `Missing CSV column: ${header}`,
-        );
-      }
+    const serialNoIndex = findColumn(headers, [
+      "serial_no",
+      "serial no",
+      "serial number",
+      "serial",
+      "sr_no",
+      "sr no",
+      "sr",
+      "sno",
+    ]);
+
+    const titleIndex = findColumn(headers, [
+      "title",
+      "heading",
+      "topic",
+    ]);
+
+    const whyInNewsIndex = findColumn(headers, [
+      "why_in_news",
+      "why in news",
+      "whynews",
+    ]);
+
+    const keyFactsIndex = findColumn(headers, [
+      "key_facts",
+      "key facts",
+      "keyfacts",
+    ]);
+
+    const examPointIndex = findColumn(headers, [
+      "exam_point",
+      "exam point",
+      "exampoint",
+    ]);
+
+    const staticGKIndex = findColumn(headers, [
+      "static_gk",
+      "static gk",
+      "staticgk",
+    ]);
+
+    const mcqsIndex = findColumn(headers, [
+      "mcqs",
+      "mcq",
+    ]);
+
+    if (affairDateIndex === -1) {
+      throw new Error(
+        "Missing CSV column: affair_date",
+      );
+    }
+
+    if (serialNoIndex === -1) {
+      throw new Error(
+        "Missing CSV column: serial_no",
+      );
+    }
+
+    if (titleIndex === -1) {
+      throw new Error(
+        "Missing CSV column: title",
+      );
+    }
+
+    if (whyInNewsIndex === -1) {
+      throw new Error(
+        "Missing CSV column: why_in_news",
+      );
+    }
+
+    if (keyFactsIndex === -1) {
+      throw new Error(
+        "Missing CSV column: key_facts",
+      );
+    }
+
+    if (examPointIndex === -1) {
+      throw new Error(
+        "Missing CSV column: exam_point",
+      );
+    }
+
+    if (staticGKIndex === -1) {
+      throw new Error(
+        "Missing CSV column: static_gk",
+      );
+    }
+
+    if (mcqsIndex === -1) {
+      throw new Error(
+        "Missing CSV column: mcqs",
+      );
     }
 
     const result: CurrentAffair[] = [];
 
-    lines.slice(1).forEach(
-      (
-        line: string,
-        index: number,
-      ) => {
-        const values =
-          parseCSVLine(line);
+    for (let index = 1; index < rows.length; index++) {
+      const csvRow = rows[index];
+      const rowNumber = index + 1;
 
-        const row: Record<
-          string,
-          string
-        > = {};
+      // Ignore completely empty rows
+      if (
+        csvRow.every(
+          (cell) => !cell || cell.trim() === "",
+        )
+      ) {
+        continue;
+      }
 
-        headers.forEach(
-          (
-            header: string,
-            columnIndex: number,
-          ) => {
-            row[header] =
-              values[columnIndex] ?? "";
-          },
+      const date = getCell(
+        csvRow,
+        affairDateIndex,
+      );
+
+      const serialText = getCell(
+        csvRow,
+        serialNoIndex,
+      );
+
+      const title = getCell(
+        csvRow,
+        titleIndex,
+      );
+
+      // Skip spreadsheet empty / incomplete rows
+      // This prevents false "Row X: title is required"
+      // when there is no actual affair data.
+      if (
+        !date &&
+        !serialText &&
+        !title &&
+        csvRow.filter(
+          (cell) => cell.trim() !== "",
+        ).length <= 1
+      ) {
+        continue;
+      }
+
+      if (!date) {
+        throw new Error(
+          `Row ${rowNumber}: affair_date is required.`,
         );
+      }
 
-        const rowNumber = index + 2;
+      const serial = Number(serialText);
 
-        const date =
-          row.affair_date?.trim();
-
-        const serial = Number(
-          row.serial_no || "1",
+      if (
+        !serialText ||
+        !Number.isFinite(serial) ||
+        serial < 1
+      ) {
+        throw new Error(
+          `Row ${rowNumber}: serial_no must be a valid number.`,
         );
+      }
 
-        const title =
-          row.title?.trim();
+      if (!title) {
+        throw new Error(
+          `Row ${rowNumber}: title is required.`,
+        );
+      }
 
-        if (!date) {
-          throw new Error(
-            `Row ${rowNumber}: affair_date is required.`,
-          );
-        }
+      const mcqs = parseMCQs(
+        getCell(csvRow, mcqsIndex),
+        rowNumber,
+      );
 
-        if (
-          !Number.isFinite(serial)
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: serial_no must be a number.`,
-          );
-        }
+      result.push({
+        affair_date: date,
+        serial_no: serial,
+        title,
+        why_in_news: getCell(
+          csvRow,
+          whyInNewsIndex,
+        ),
+        key_facts: getCell(
+          csvRow,
+          keyFactsIndex,
+        ),
+        exam_point: getCell(
+          csvRow,
+          examPointIndex,
+        ),
+        static_gk: getCell(
+          csvRow,
+          staticGKIndex,
+        ),
+        mcqs,
+      });
+    }
 
-        if (!title) {
-          throw new Error(
-            `Row ${rowNumber}: title is required.`,
-          );
-        }
-
-        let mcqs: MCQ[] = [];
-
-        if (row.mcqs?.trim()) {
-          try {
-            const parsed: unknown =
-              JSON.parse(row.mcqs);
-
-            if (!Array.isArray(parsed)) {
-              throw new Error(
-                "MCQs must be an array.",
-              );
-            }
-
-            mcqs = parsed as MCQ[];
-          } catch {
-            throw new Error(
-              `Row ${rowNumber}: mcqs must contain valid JSON.`,
-            );
-          }
-        }
-
-        result.push({
-          affair_date: date,
-          serial_no: serial,
-          title,
-          why_in_news:
-            row.why_in_news?.trim() ||
-            "",
-          key_facts:
-            row.key_facts?.trim() || "",
-          exam_point:
-            row.exam_point?.trim() || "",
-          static_gk:
-            row.static_gk?.trim() || "",
-          mcqs,
-        });
-      },
-    );
+    if (!result.length) {
+      throw new Error(
+        "No valid current affair rows were found in the CSV.",
+      );
+    }
 
     return result;
   }
 
   async function handleCSVFile(
-    event: ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>,
   ) {
     clearMessages();
 
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
-    if (
-      !file.name
-        .toLowerCase()
-        .endsWith(".csv")
-    ) {
-      setError(
-        "Please select a CSV file.",
-      );
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setError("Please select a CSV file.");
       return;
     }
 
@@ -646,24 +748,26 @@ export function AdminCurrentAffairs() {
     try {
       const text = await file.text();
 
-      const rows = parseCSV(text);
+      const parsedRows = parseCSV(text);
 
-      setCSVRows(rows);
+      setCSVRows(parsedRows);
 
       setMessage(
-        `${rows.length} current affair row${
-          rows.length === 1 ? "" : "s"
+        `${parsedRows.length} current affair row${
+          parsedRows.length === 1 ? "" : "s"
         } loaded successfully.`,
       );
-    } catch (err: unknown) {
+    } catch (err) {
+      setCSVRows([]);
+      setCSVFileName("");
+
       setError(
         err instanceof Error
           ? err.message
           : "Unable to read CSV file.",
       );
-
-      setCSVRows([]);
-      setCSVFileName("");
+    } finally {
+      event.target.value = "";
     }
   }
 
@@ -671,58 +775,42 @@ export function AdminCurrentAffairs() {
     clearMessages();
 
     if (!csvRows.length) {
-      setError(
-        "Please select a valid CSV file first.",
-      );
+      setError("Please select a valid CSV file first.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const payload = csvRows.map(
-        (row: CurrentAffair) => ({
-          affair_date:
-            row.affair_date,
-          serial_no: Number(
-            row.serial_no,
-          ),
-          title: row.title,
-          why_in_news:
-            row.why_in_news,
-          key_facts:
-            row.key_facts,
-          exam_point:
-            row.exam_point,
-          static_gk:
-            row.static_gk,
-          mcqs: row.mcqs,
-        }),
-      );
+      const payload = csvRows.map((row) => ({
+        affair_date: row.affair_date,
+        serial_no: Number(row.serial_no),
+        title: row.title.trim(),
+        why_in_news: row.why_in_news.trim(),
+        key_facts: row.key_facts.trim(),
+        exam_point: row.exam_point.trim(),
+        static_gk: row.static_gk.trim(),
+        mcqs: row.mcqs,
+      }));
 
-      const {
-        error: insertError,
-      } = await supabase
+      const { error: insertError } = await supabase
         .from("current_affairs")
         .insert(payload);
 
-      if (insertError) {
-        throw insertError;
-      }
+      if (insertError) throw insertError;
 
       setMessage(
         `${csvRows.length} current affair${
-          csvRows.length === 1
-            ? ""
-            : "s"
+          csvRows.length === 1 ? "" : "s"
         } uploaded successfully.`,
       );
 
       setCSVRows([]);
       setCSVFileName("");
+      setShowCSV(false);
 
       await loadCurrentAffairs();
-    } catch (err: unknown) {
+    } catch (err) {
       setError(
         err instanceof Error
           ? err.message
@@ -733,13 +821,10 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  const today = new Date()
-    .toISOString()
-    .slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
 
   const todayRecords = records.filter(
-    (record) =>
-      record.affair_date === today,
+    (record) => record.affair_date === today,
   );
 
   return (
@@ -841,9 +926,7 @@ export function AdminCurrentAffairs() {
 
           <button
             type="button"
-            onClick={() =>
-              navigate("/admin/dashboard")
-            }
+            onClick={() => navigate("/admin/dashboard")}
             className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
             ← Dashboard
@@ -876,15 +959,11 @@ export function AdminCurrentAffairs() {
 
             <button
               type="button"
-              onClick={() => {
-                void loadCurrentAffairs();
-              }}
+              onClick={loadCurrentAffairs}
               disabled={loadingRecords}
               className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
             >
-              {loadingRecords
-                ? "Loading..."
-                : "Refresh"}
+              {loadingRecords ? "Loading..." : "Refresh"}
             </button>
           </div>
 
@@ -911,26 +990,13 @@ export function AdminCurrentAffairs() {
               <table className="min-w-[1100px] w-full text-left text-sm">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="px-4 py-3">
-                      Date
-                    </th>
-
-                    <th className="px-4 py-3">
-                      #
-                    </th>
-
-                    <th className="px-4 py-3">
-                      Title
-                    </th>
-
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">#</th>
+                    <th className="px-4 py-3">Title</th>
                     <th className="px-4 py-3">
                       Exam Point
                     </th>
-
-                    <th className="px-4 py-3">
-                      MCQs
-                    </th>
-
+                    <th className="px-4 py-3">MCQs</th>
                     <th className="px-4 py-3">
                       Actions
                     </th>
@@ -938,77 +1004,65 @@ export function AdminCurrentAffairs() {
                 </thead>
 
                 <tbody>
-                  {records.map(
-                    (record: CurrentAffair) => (
-                      <tr
-                        key={record.id}
-                        className="border-t border-slate-100"
-                      >
-                        <td className="px-4 py-4">
-                          {record.affair_date}
-                        </td>
+                  {records.map((record) => (
+                    <tr
+                      key={record.id}
+                      className="border-t border-slate-100"
+                    >
+                      <td className="px-4 py-4">
+                        {record.affair_date}
+                      </td>
 
-                        <td className="px-4 py-4 font-bold">
-                          {record.serial_no}
-                        </td>
+                      <td className="px-4 py-4 font-bold">
+                        {record.serial_no}
+                      </td>
 
-                        <td className="max-w-[350px] px-4 py-4">
-                          <p className="font-semibold">
-                            {record.title}
-                          </p>
+                      <td className="max-w-[350px] px-4 py-4">
+                        <p className="font-semibold">
+                          {record.title}
+                        </p>
 
-                          <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-                            {
-                              record.why_in_news
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                          {record.why_in_news}
+                        </p>
+                      </td>
+
+                      <td className="max-w-[300px] px-4 py-4 text-slate-600">
+                        <span className="line-clamp-2">
+                          {record.exam_point || "—"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        {record.mcqs.length}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openEditForm(record)
                             }
-                          </p>
-                        </td>
+                            className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                          >
+                            Edit
+                          </button>
 
-                        <td className="max-w-[300px] px-4 py-4 text-slate-600">
-                          <span className="line-clamp-2">
-                            {record.exam_point ||
-                              "—"}
-                          </span>
-                        </td>
-
-                        <td className="px-4 py-4">
-                          {
-                            record.mcqs.length
-                          }
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openEditForm(
-                                  record,
-                                )
-                              }
-                              className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (record.id) {
-                                  void handleDelete(
-                                    record.id,
-                                  );
-                                }
-                              }}
-                              className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ),
-                  )}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              record.id &&
+                              handleDelete(record.id)
+                            }
+                            className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -1050,9 +1104,7 @@ export function AdminCurrentAffairs() {
 
                   <input
                     type="date"
-                    value={
-                      form.affair_date
-                    }
+                    value={form.affair_date}
                     onChange={(e) =>
                       updateForm(
                         "affair_date",
@@ -1071,15 +1123,11 @@ export function AdminCurrentAffairs() {
                   <input
                     type="number"
                     min="1"
-                    value={
-                      form.serial_no
-                    }
+                    value={form.serial_no}
                     onChange={(e) =>
                       updateForm(
                         "serial_no",
-                        Number(
-                          e.target.value,
-                        ),
+                        Number(e.target.value),
                       )
                     }
                     className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
@@ -1096,13 +1144,9 @@ export function AdminCurrentAffairs() {
                   type="text"
                   value={form.title}
                   onChange={(e) =>
-                    updateForm(
-                      "title",
-                      e.target.value,
-                    )
+                    updateForm("title", e.target.value)
                   }
-                  placeholder="Example: RBI launches new digital initiative"
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3"
                 />
               </div>
 
@@ -1113,17 +1157,14 @@ export function AdminCurrentAffairs() {
 
                 <textarea
                   rows={4}
-                  value={
-                    form.why_in_news
-                  }
+                  value={form.why_in_news}
                   onChange={(e) =>
                     updateForm(
                       "why_in_news",
                       e.target.value,
                     )
                   }
-                  placeholder="Explain why this topic is in the news..."
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3"
                 />
               </div>
 
@@ -1134,17 +1175,14 @@ export function AdminCurrentAffairs() {
 
                 <textarea
                   rows={5}
-                  value={
-                    form.key_facts
-                  }
+                  value={form.key_facts}
                   onChange={(e) =>
                     updateForm(
                       "key_facts",
                       e.target.value,
                     )
                   }
-                  placeholder="Important facts for students..."
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3"
                 />
               </div>
 
@@ -1155,17 +1193,14 @@ export function AdminCurrentAffairs() {
 
                 <textarea
                   rows={4}
-                  value={
-                    form.exam_point
-                  }
+                  value={form.exam_point}
                   onChange={(e) =>
                     updateForm(
                       "exam_point",
                       e.target.value,
                     )
                   }
-                  placeholder="What can be asked in competitive exams?"
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3"
                 />
               </div>
 
@@ -1176,17 +1211,14 @@ export function AdminCurrentAffairs() {
 
                 <textarea
                   rows={4}
-                  value={
-                    form.static_gk
-                  }
+                  value={form.static_gk}
                   onChange={(e) =>
                     updateForm(
                       "static_gk",
                       e.target.value,
                     )
                   }
-                  placeholder="Related static GK..."
-                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3"
                 />
               </div>
 
@@ -1212,125 +1244,96 @@ export function AdminCurrentAffairs() {
                 </div>
 
                 <div className="mt-5 space-y-5">
-                  {form.mcqs.length ===
-                  0 ? (
+                  {form.mcqs.length === 0 ? (
                     <p className="text-sm text-slate-500">
                       No MCQs added.
                     </p>
                   ) : (
-                    form.mcqs.map(
-                      (
-                        mcq: MCQ,
-                        mcqIndex: number,
-                      ) => (
-                        <div
-                          key={mcqIndex}
-                          className="rounded-2xl border bg-white p-5"
-                        >
-                          <div className="mb-4 flex items-center justify-between">
-                            <h4 className="font-bold">
-                              MCQ{" "}
-                              {mcqIndex + 1}
-                            </h4>
+                    form.mcqs.map((mcq, mcqIndex) => (
+                      <div
+                        key={mcqIndex}
+                        className="rounded-2xl border bg-white p-5"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <h4 className="font-bold">
+                            MCQ {mcqIndex + 1}
+                          </h4>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeMCQ(
-                                  mcqIndex,
-                                )
-                              }
-                              className="text-sm font-semibold text-red-600"
-                            >
-                              Remove
-                            </button>
-                          </div>
-
-                          <input
-                            type="text"
-                            value={
-                              mcq.question
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeMCQ(mcqIndex)
                             }
-                            onChange={(e) =>
-                              updateMCQ(
-                                mcqIndex,
-                                "question",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Question"
-                            className="w-full rounded-xl border px-4 py-3 text-sm"
-                          />
-
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                            {mcq.options.map(
-                              (
-                                option: string,
-                                optionIndex: number,
-                              ) => (
-                                <input
-                                  key={
-                                    optionIndex
-                                  }
-                                  type="text"
-                                  value={
-                                    option
-                                  }
-                                  onChange={(
-                                    e,
-                                  ) =>
-                                    updateMCQOption(
-                                      mcqIndex,
-                                      optionIndex,
-                                      e.target
-                                        .value,
-                                    )
-                                  }
-                                  placeholder={`Option ${
-                                    optionIndex +
-                                    1
-                                  }`}
-                                  className="rounded-xl border px-4 py-3 text-sm"
-                                />
-                              ),
-                            )}
-                          </div>
-
-                          <input
-                            type="text"
-                            value={
-                              mcq.answer
-                            }
-                            onChange={(e) =>
-                              updateMCQ(
-                                mcqIndex,
-                                "answer",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Correct answer"
-                            className="mt-4 w-full rounded-xl border px-4 py-3 text-sm"
-                          />
-
-                          <textarea
-                            rows={2}
-                            value={
-                              mcq.explanation ||
-                              ""
-                            }
-                            onChange={(e) =>
-                              updateMCQ(
-                                mcqIndex,
-                                "explanation",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Explanation (optional)"
-                            className="mt-4 w-full rounded-xl border px-4 py-3 text-sm"
-                          />
+                            className="text-sm font-semibold text-red-600"
+                          >
+                            Remove
+                          </button>
                         </div>
-                      ),
-                    )
+
+                        <input
+                          type="text"
+                          value={mcq.question}
+                          onChange={(e) =>
+                            updateMCQ(
+                              mcqIndex,
+                              "question",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Question"
+                          className="w-full rounded-xl border px-4 py-3 text-sm"
+                        />
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          {mcq.options.map(
+                            (option, optionIndex) => (
+                              <input
+                                key={optionIndex}
+                                type="text"
+                                value={option}
+                                onChange={(e) =>
+                                  updateMCQOption(
+                                    mcqIndex,
+                                    optionIndex,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder={`Option ${optionIndex + 1}`}
+                                className="rounded-xl border px-4 py-3 text-sm"
+                              />
+                            ),
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={mcq.answer}
+                          onChange={(e) =>
+                            updateMCQ(
+                              mcqIndex,
+                              "answer",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Correct answer"
+                          className="mt-4 w-full rounded-xl border px-4 py-3 text-sm"
+                        />
+
+                        <textarea
+                          rows={2}
+                          value={mcq.explanation || ""}
+                          onChange={(e) =>
+                            updateMCQ(
+                              mcqIndex,
+                              "explanation",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Explanation (optional)"
+                          className="mt-4 w-full rounded-xl border px-4 py-3 text-sm"
+                        />
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
@@ -1348,9 +1351,7 @@ export function AdminCurrentAffairs() {
 
               <button
                 type="button"
-                onClick={() => {
-                  void handleSave();
-                }}
+                onClick={handleSave}
                 disabled={loading}
                 className="rounded-xl bg-green-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
               >
@@ -1371,12 +1372,11 @@ export function AdminCurrentAffairs() {
             <div className="flex items-center justify-between border-b px-6 py-5">
               <div>
                 <h2 className="text-xl font-bold">
-                  📄 Current Affairs CSV
-                  Upload
+                  📄 Current Affairs CSV Upload
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Upload daily Top 10 current affairs.
+                  Upload daily current affairs.
                 </p>
               </div>
 
@@ -1428,16 +1428,13 @@ export function AdminCurrentAffairs() {
                       </h3>
 
                       <p className="text-sm text-slate-500">
-                        {csvRows.length} rows
-                        ready.
+                        {csvRows.length} rows ready.
                       </p>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => {
-                        void handleCSVUpload();
-                      }}
+                      onClick={handleCSVUpload}
                       disabled={loading}
                       className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
                     >
@@ -1454,19 +1451,15 @@ export function AdminCurrentAffairs() {
                           <th className="px-4 py-3">
                             Date
                           </th>
-
                           <th className="px-4 py-3">
                             #
                           </th>
-
                           <th className="px-4 py-3">
                             Title
                           </th>
-
                           <th className="px-4 py-3">
                             Why in News
                           </th>
-
                           <th className="px-4 py-3">
                             MCQs
                           </th>
@@ -1474,49 +1467,36 @@ export function AdminCurrentAffairs() {
                       </thead>
 
                       <tbody>
-                        {csvRows
-                          .slice(0, 100)
-                          .map(
-                            (
-                              row: CurrentAffair,
-                              index: number,
-                            ) => (
-                              <tr
-                                key={`${row.affair_date}-${row.serial_no}-${index}`}
-                                className="border-t"
-                              >
-                                <td className="px-4 py-3">
-                                  {
-                                    row.affair_date
-                                  }
-                                </td>
+                        {csvRows.slice(0, 100).map(
+                          (row, index) => (
+                            <tr
+                              key={`${row.affair_date}-${row.serial_no}-${index}`}
+                              className="border-t"
+                            >
+                              <td className="px-4 py-3">
+                                {row.affair_date}
+                              </td>
 
-                                <td className="px-4 py-3 font-bold">
-                                  {
-                                    row.serial_no
-                                  }
-                                </td>
+                              <td className="px-4 py-3 font-bold">
+                                {row.serial_no}
+                              </td>
 
-                                <td className="px-4 py-3 font-semibold">
-                                  {row.title}
-                                </td>
+                              <td className="px-4 py-3 font-semibold">
+                                {row.title}
+                              </td>
 
-                                <td className="max-w-[350px] px-4 py-3">
-                                  <span className="line-clamp-2">
-                                    {
-                                      row.why_in_news
-                                    }
-                                  </span>
-                                </td>
+                              <td className="max-w-[350px] px-4 py-3">
+                                <span className="line-clamp-2">
+                                  {row.why_in_news}
+                                </span>
+                              </td>
 
-                                <td className="px-4 py-3">
-                                  {
-                                    row.mcqs.length
-                                  }
-                                </td>
-                              </tr>
-                            ),
-                          )}
+                              <td className="px-4 py-3">
+                                {row.mcqs.length}
+                              </td>
+                            </tr>
+                          ),
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -1528,32 +1508,21 @@ export function AdminCurrentAffairs() {
                   Required CSV columns
                 </p>
 
-                <p className="mt-2 break-all font-mono text-xs text-slate-300">
-                  affair_date, serial_no,
-                  title, why_in_news,
-                  key_facts, exam_point,
+                <p className="mt-2 font-mono text-xs text-slate-300">
+                  affair_date, serial_no, title,
+                  why_in_news, key_facts, exam_point,
                   static_gk, mcqs
                 </p>
 
                 <p className="mt-3 text-xs text-slate-400">
-                  `mcqs` column mein valid
-                  JSON array hona chahiye.
+                  Extra columns like <b>published</b> are allowed
+                  and will be ignored.
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
-                  Example MCQ JSON:
+                  The mcqs column must contain a valid JSON
+                  array, or it can be empty.
                 </p>
-
-                <pre className="mt-2 overflow-x-auto rounded-lg bg-black/30 p-3 text-[11px] text-slate-300">
-{`[
-  {
-    "question": "Example question?",
-    "options": ["A", "B", "C", "D"],
-    "answer": "A",
-    "explanation": "Explanation"
-  }
-]`}
-                </pre>
               </div>
             </div>
           </div>
