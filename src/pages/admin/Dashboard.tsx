@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -17,74 +17,90 @@ interface SyllabusRow {
   is_active: boolean;
 }
 
-type NewspaperLanguage = "hindi" | "english";
+interface MCQ {
+  question: string;
+  options: string[];
+  answer: string;
+  explanation: string;
+}
+
+interface CurrentAffair {
+  id?: string;
+  affair_date: string;
+  serial_no: number;
+  title: string;
+  why_in_news: string;
+  key_facts: string;
+  exam_point: string;
+  static_gk: string;
+  mcqs: MCQ[];
+  published: boolean;
+}
+
+const emptyMCQ = (): MCQ => ({
+  question: "",
+  options: ["", "", "", ""],
+  answer: "",
+  explanation: "",
+});
+
+const createEmptyAffair = (
+  date: string,
+  serialNo: number,
+): CurrentAffair => ({
+  affair_date: date,
+  serial_no: serialNo,
+  title: "",
+  why_in_news: "",
+  key_facts: "",
+  exam_point: "",
+  static_gk: "",
+  mcqs: [],
+  published: false,
+});
 
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
 
-  const syllabusFileInputRef =
-    useRef<HTMLInputElement>(null);
-
-  const newspaperFileInputRef =
-    useRef<HTMLInputElement>(null);
-
   // =========================================================
-  // SYLLABUS STATE
+  // SYLLABUS
   // =========================================================
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showSyllabusManager, setShowSyllabusManager] =
     useState(false);
 
-  const [csvRows, setCsvRows] =
-    useState<SyllabusRow[]>([]);
-
-  const [fileName, setFileName] =
-    useState("");
-
-  const [syllabusLoading, setSyllabusLoading] =
-    useState(false);
-
-  const [syllabusMessage, setSyllabusMessage] =
-    useState("");
-
-  const [syllabusError, setSyllabusError] =
-    useState("");
+  const [csvRows, setCsvRows] = useState<SyllabusRow[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [syllabusLoading, setSyllabusLoading] = useState(false);
+  const [syllabusMessage, setSyllabusMessage] = useState("");
+  const [syllabusError, setSyllabusError] = useState("");
 
   // =========================================================
-  // NEWSPAPER STATE
+  // CURRENT AFFAIRS
   // =========================================================
 
-  const [showNewspaperManager, setShowNewspaperManager] =
+  const [showCurrentAffairsManager, setShowCurrentAffairsManager] =
     useState(false);
 
-  const [newspaperDate, setNewspaperDate] =
-    useState(
-      new Date().toISOString().slice(0, 10),
-    );
+  const [affairDate, setAffairDate] = useState(() => {
+    return new Date().toISOString().slice(0, 10);
+  });
 
-  const [newspaperLanguage, setNewspaperLanguage] =
-    useState<NewspaperLanguage>("hindi");
+  const [affairs, setAffairs] = useState<CurrentAffair[]>([]);
 
-  const [newspaperNumber, setNewspaperNumber] =
-    useState("1");
-
-  const [newspaperTitle, setNewspaperTitle] =
-    useState("");
-
-  const [newspaperFile, setNewspaperFile] =
-    useState<File | null>(null);
-
-  const [newspaperFileName, setNewspaperFileName] =
-    useState("");
-
-  const [newspaperLoading, setNewspaperLoading] =
+  const [currentAffairsLoading, setCurrentAffairsLoading] =
     useState(false);
 
-  const [newspaperMessage, setNewspaperMessage] =
+  const [currentAffairsSaving, setCurrentAffairsSaving] =
+    useState(false);
+
+  const [currentAffairsMessage, setCurrentAffairsMessage] =
     useState("");
 
-  const [newspaperError, setNewspaperError] =
+  const [currentAffairsError, setCurrentAffairsError] =
     useState("");
 
   // =========================================================
@@ -115,8 +131,8 @@ export function AdminDashboard() {
     setSyllabusMessage("");
     setSyllabusError("");
 
-    if (syllabusFileInputRef.current) {
-      syllabusFileInputRef.current.value = "";
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   }
 
@@ -129,19 +145,13 @@ export function AdminDashboard() {
       const char = line[i];
 
       if (char === '"') {
-        if (
-          insideQuotes &&
-          line[i + 1] === '"'
-        ) {
+        if (insideQuotes && line[i + 1] === '"') {
           current += '"';
           i++;
         } else {
           insideQuotes = !insideQuotes;
         }
-      } else if (
-        char === "," &&
-        !insideQuotes
-      ) {
+      } else if (char === "," && !insideQuotes) {
         values.push(current.trim());
         current = "";
       } else {
@@ -155,8 +165,7 @@ export function AdminDashboard() {
   }
 
   function parseBoolean(value: string): boolean {
-    const normalized =
-      value.trim().toLowerCase();
+    const normalized = value.trim().toLowerCase();
 
     return ![
       "false",
@@ -166,23 +175,17 @@ export function AdminDashboard() {
     ].includes(normalized);
   }
 
-  function normalizeValue(
-    value: string,
-  ): string | null {
+  function normalizeValue(value: string): string | null {
     const trimmed = value.trim();
 
     return trimmed ? trimmed : null;
   }
 
-  function parseCSV(
-    text: string,
-  ): SyllabusRow[] {
+  function parseCSV(text: string): SyllabusRow[] {
     const lines = text
       .replace(/^\uFEFF/, "")
       .split(/\r?\n/)
-      .filter(
-        (line) => line.trim() !== "",
-      );
+      .filter((line) => line.trim() !== "");
 
     if (lines.length < 2) {
       throw new Error(
@@ -190,9 +193,7 @@ export function AdminDashboard() {
       );
     }
 
-    const headers = parseCSVLine(
-      lines[0],
-    ).map((header) =>
+    const headers = parseCSVLine(lines[0]).map((header) =>
       header.trim().toLowerCase(),
     );
 
@@ -220,177 +221,115 @@ export function AdminDashboard() {
 
     const rows: SyllabusRow[] = [];
 
-    lines
-      .slice(1)
-      .forEach((line, index) => {
-        const values = parseCSVLine(line);
+    lines.slice(1).forEach((line, index) => {
+      const values = parseCSVLine(line);
+      const row: Record<string, string> = {};
 
-        const row: Record<string, string> =
-          {};
-
-        headers.forEach(
-          (
-            header,
-            columnIndex,
-          ) => {
-            row[header] =
-              values[columnIndex] ?? "";
-          },
-        );
-
-        const rowNumber =
-          index + 2;
-
-        const externalId =
-          row.external_id?.trim();
-
-        const category =
-          row.category
-            ?.trim()
-            .toLowerCase();
-
-        if (!externalId) {
-          throw new Error(
-            `Row ${rowNumber}: external_id is required.`,
-          );
-        }
-
-        if (
-          category !== "school" &&
-          category !== "government_exam"
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: category must be school or government_exam.`,
-          );
-        }
-
-        if (
-          !row.subject?.trim()
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: subject is required.`,
-          );
-        }
-
-        if (
-          !row.chapter_name?.trim()
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: chapter_name is required.`,
-          );
-        }
-
-        if (
-          category === "school"
-        ) {
-          if (
-            !row.class_name?.trim()
-          ) {
-            throw new Error(
-              `Row ${rowNumber}: class_name is required for school syllabus.`,
-            );
-          }
-
-          if (
-            !row.board?.trim()
-          ) {
-            throw new Error(
-              `Row ${rowNumber}: board is required for school syllabus.`,
-            );
-          }
-        }
-
-        if (
-          category ===
-          "government_exam"
-        ) {
-          if (
-            !row.exam?.trim()
-          ) {
-            throw new Error(
-              `Row ${rowNumber}: exam is required for government_exam.`,
-            );
-          }
-        }
-
-        const parsedOrder =
-          Number(
-            row.order_no || "1",
-          );
-
-        if (
-          !Number.isFinite(
-            parsedOrder,
-          )
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: order_no must be a number.`,
-          );
-        }
-
-        rows.push({
-          external_id:
-            externalId,
-
-          category:
-            category as
-              | "school"
-              | "government_exam",
-
-          class_name:
-            category === "school"
-              ? normalizeValue(
-                  row.class_name,
-                )
-              : null,
-
-          board:
-            category === "school"
-              ? normalizeValue(
-                  row.board,
-                )
-              : null,
-
-          exam:
-            category ===
-            "government_exam"
-              ? normalizeValue(
-                  row.exam,
-                )
-              : null,
-
-          subject:
-            row.subject.trim(),
-
-          chapter_name:
-            row.chapter_name.trim(),
-
-          topic_name:
-            normalizeValue(
-              row.topic_name,
-            ),
-
-          key_points:
-            normalizeValue(
-              row.key_points,
-            ),
-
-          order_no:
-            parsedOrder,
-
-          is_active:
-            parseBoolean(
-              row.is_active,
-            ),
-        });
+      headers.forEach((header, columnIndex) => {
+        row[header] = values[columnIndex] ?? "";
       });
+
+      const rowNumber = index + 2;
+
+      const externalId = row.external_id?.trim();
+      const category = row.category
+        ?.trim()
+        .toLowerCase();
+
+      if (!externalId) {
+        throw new Error(
+          `Row ${rowNumber}: external_id is required.`,
+        );
+      }
+
+      if (
+        category !== "school" &&
+        category !== "government_exam"
+      ) {
+        throw new Error(
+          `Row ${rowNumber}: category must be school or government_exam.`,
+        );
+      }
+
+      if (!row.subject?.trim()) {
+        throw new Error(
+          `Row ${rowNumber}: subject is required.`,
+        );
+      }
+
+      if (!row.chapter_name?.trim()) {
+        throw new Error(
+          `Row ${rowNumber}: chapter_name is required.`,
+        );
+      }
+
+      if (category === "school") {
+        if (!row.class_name?.trim()) {
+          throw new Error(
+            `Row ${rowNumber}: class_name is required for school syllabus.`,
+          );
+        }
+
+        if (!row.board?.trim()) {
+          throw new Error(
+            `Row ${rowNumber}: board is required for school syllabus.`,
+          );
+        }
+      }
+
+      if (category === "government_exam") {
+        if (!row.exam?.trim()) {
+          throw new Error(
+            `Row ${rowNumber}: exam is required for government_exam.`,
+          );
+        }
+      }
+
+      const parsedOrder = Number(
+        row.order_no || "1",
+      );
+
+      if (!Number.isFinite(parsedOrder)) {
+        throw new Error(
+          `Row ${rowNumber}: order_no must be a number.`,
+        );
+      }
+
+      rows.push({
+        external_id: externalId,
+        category,
+        class_name:
+          category === "school"
+            ? normalizeValue(row.class_name)
+            : null,
+        board:
+          category === "school"
+            ? normalizeValue(row.board)
+            : null,
+        exam:
+          category === "government_exam"
+            ? normalizeValue(row.exam)
+            : null,
+        subject: row.subject.trim(),
+        chapter_name:
+          row.chapter_name.trim(),
+        topic_name: normalizeValue(
+          row.topic_name,
+        ),
+        key_points: normalizeValue(
+          row.key_points,
+        ),
+        order_no: parsedOrder,
+        is_active: parseBoolean(
+          row.is_active,
+        ),
+      });
+    });
 
     const ids = new Set<string>();
 
     for (const row of rows) {
-      if (
-        ids.has(row.external_id)
-      ) {
+      if (ids.has(row.external_id)) {
         throw new Error(
           `Duplicate external_id found: ${row.external_id}`,
         );
@@ -409,8 +348,7 @@ export function AdminDashboard() {
     setSyllabusMessage("");
     setCsvRows([]);
 
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
@@ -428,31 +366,23 @@ export function AdminDashboard() {
     setFileName(file.name);
 
     try {
-      const text =
-        await file.text();
-
-      const rows =
-        parseCSV(text);
+      const text = await file.text();
+      const rows = parseCSV(text);
 
       setCsvRows(rows);
 
       setSyllabusMessage(
         `${rows.length} syllabus row${
-          rows.length === 1
-            ? ""
-            : "s"
+          rows.length === 1 ? "" : "s"
         } loaded successfully.`,
       );
     } catch (err) {
-      const errorMessage =
+      const message =
         err instanceof Error
           ? err.message
           : "Unable to read CSV file.";
 
-      setSyllabusError(
-        errorMessage,
-      );
-
+      setSyllabusError(message);
       setFileName("");
     }
   }
@@ -471,14 +401,12 @@ export function AdminDashboard() {
     setSyllabusLoading(true);
 
     try {
-      const {
-        error: upsertError,
-      } = await supabase
-        .from("syllabi")
-        .upsert(csvRows, {
-          onConflict:
-            "external_id",
-        });
+      const { error: upsertError } =
+        await supabase
+          .from("syllabi")
+          .upsert(csvRows, {
+            onConflict: "external_id",
+          });
 
       if (upsertError) {
         throw upsertError;
@@ -492,306 +420,448 @@ export function AdminDashboard() {
         } successfully inserted/updated.`,
       );
     } catch (err) {
-      const errorMessage =
+      const message =
         err instanceof Error
           ? err.message
           : "Unable to upload syllabus.";
 
-      setSyllabusError(
-        errorMessage,
-      );
+      setSyllabusError(message);
     } finally {
       setSyllabusLoading(false);
     }
   }
 
   // =========================================================
-  // NEWSPAPER MANAGER
+  // CURRENT AFFAIRS HELPERS
   // =========================================================
 
-  function openNewspaperManager() {
-    setShowNewspaperManager(true);
-
-    setNewspaperMessage("");
-    setNewspaperError("");
-
-    setNewspaperDate(
-      new Date()
-        .toISOString()
-        .slice(0, 10),
-    );
-
-    setNewspaperLanguage(
-      "hindi",
-    );
-
-    setNewspaperNumber("1");
-    setNewspaperTitle("");
-    setNewspaperFile(null);
-    setNewspaperFileName("");
+  function clearCurrentAffairsMessages() {
+    setCurrentAffairsMessage("");
+    setCurrentAffairsError("");
   }
 
-  function closeNewspaperManager() {
-    if (newspaperLoading) return;
-
-    setShowNewspaperManager(false);
-
-    setNewspaperMessage("");
-    setNewspaperError("");
-    setNewspaperFile(null);
-    setNewspaperFileName("");
-
-    if (
-      newspaperFileInputRef.current
-    ) {
-      newspaperFileInputRef.current.value =
-        "";
-    }
+  function openCurrentAffairsManager() {
+    clearCurrentAffairsMessages();
+    setShowCurrentAffairsManager(true);
+    loadCurrentAffairs(affairDate);
   }
 
-  function handleNewspaperFile(
-    event: React.ChangeEvent<HTMLInputElement>,
+  function closeCurrentAffairsManager() {
+    if (currentAffairsSaving) return;
+
+    setShowCurrentAffairsManager(false);
+    setAffairs([]);
+    clearCurrentAffairsMessages();
+  }
+
+  async function loadCurrentAffairs(
+    date: string,
   ) {
-    setNewspaperError("");
-    setNewspaperMessage("");
-
-    const file =
-      event.target.files?.[0];
-
-    if (!file) {
-      setNewspaperFile(null);
-      setNewspaperFileName("");
-      return;
-    }
-
-    const isPdf =
-      file.type ===
-        "application/pdf" ||
-      file.name
-        .toLowerCase()
-        .endsWith(".pdf");
-
-    if (!isPdf) {
-      setNewspaperFile(null);
-      setNewspaperFileName("");
-
-      if (
-        newspaperFileInputRef.current
-      ) {
-        newspaperFileInputRef.current.value =
-          "";
-      }
-
-      setNewspaperError(
-        "Please select a PDF file.",
-      );
-
-      return;
-    }
-
-    if (
-      file.size >
-      25 * 1024 * 1024
-    ) {
-      setNewspaperFile(null);
-      setNewspaperFileName("");
-
-      if (
-        newspaperFileInputRef.current
-      ) {
-        newspaperFileInputRef.current.value =
-          "";
-      }
-
-      setNewspaperError(
-        "PDF size must be less than 25 MB.",
-      );
-
-      return;
-    }
-
-    setNewspaperFile(file);
-    setNewspaperFileName(
-      file.name,
-    );
-  }
-
-  async function handleNewspaperUpload() {
-    setNewspaperError("");
-    setNewspaperMessage("");
-
-    if (!newspaperDate) {
-      setNewspaperError(
-        "Please select newspaper date.",
-      );
-      return;
-    }
-
-    const paperNumber =
-      Number(newspaperNumber);
-
-    if (
-      !Number.isInteger(
-        paperNumber,
-      ) ||
-      paperNumber < 1
-    ) {
-      setNewspaperError(
-        "Paper number must be a positive number.",
-      );
-      return;
-    }
-
-    if (!newspaperFile) {
-      setNewspaperError(
-        "Please select a newspaper PDF.",
-      );
-      return;
-    }
-
-    if (!user) {
-      setNewspaperError(
-        "Admin session not found. Please login again.",
-      );
-      return;
-    }
-
-    setNewspaperLoading(true);
+    setCurrentAffairsLoading(true);
+    clearCurrentAffairsMessages();
 
     try {
-      // -----------------------------------------------------
-      // CREATE SAFE STORAGE FILE NAME
-      // -----------------------------------------------------
-
-      const extension =
-        newspaperFile.name
-          .split(".")
-          .pop()
-          ?.toLowerCase() ||
-        "pdf";
-
-      const safeLanguage =
-        newspaperLanguage;
-
-      const storagePath =
-        `${newspaperDate}/${safeLanguage}/paper-${paperNumber}-${Date.now()}.${extension}`;
-
-      // -----------------------------------------------------
-      // UPLOAD PDF TO STORAGE
-      // -----------------------------------------------------
-
       const {
-        error: storageError,
-      } = await supabase.storage
-        .from("newspapers")
-        .upload(
-          storagePath,
-          newspaperFile,
-          {
-            contentType:
-              "application/pdf",
-
-            upsert: false,
-          },
-        );
-
-      if (storageError) {
-        throw new Error(
-          `PDF upload failed: ${storageError.message}`,
-        );
-      }
-
-      // -----------------------------------------------------
-      // INSERT DATABASE RECORD
-      // -----------------------------------------------------
-
-      const {
-        error: databaseError,
+        data,
+        error,
       } = await supabase
-        .from("newspaper_papers")
-        .insert({
-          newspaper_date:
-            newspaperDate,
-
-          language:
-            newspaperLanguage,
-
-          paper_number:
-            paperNumber,
-
-          title:
-            newspaperTitle.trim() ||
-            `Paper ${paperNumber}`,
-
-          storage_path:
-            storagePath,
-
-          published: true,
+        .from("current_affairs")
+        .select(
+          `
+          id,
+          affair_date,
+          serial_no,
+          title,
+          why_in_news,
+          key_facts,
+          exam_point,
+          static_gk,
+          mcqs,
+          published
+          `,
+        )
+        .eq("affair_date", date)
+        .order("serial_no", {
+          ascending: true,
         });
 
-      // -----------------------------------------------------
-      // IF DATABASE INSERT FAILS,
-      // DELETE STORAGE FILE TO AVOID ORPHAN PDF
-      // -----------------------------------------------------
+      if (error) {
+        throw error;
+      }
 
-      if (databaseError) {
-        await supabase.storage
-          .from("newspapers")
-          .remove([
-            storagePath,
-          ]);
+      const loaded =
+        (data ?? []).map(
+          (item) => ({
+            id: item.id,
+            affair_date:
+              item.affair_date,
+            serial_no:
+              Number(item.serial_no),
+            title:
+              item.title ?? "",
+            why_in_news:
+              item.why_in_news ?? "",
+            key_facts:
+              item.key_facts ?? "",
+            exam_point:
+              item.exam_point ?? "",
+            static_gk:
+              item.static_gk ?? "",
+            mcqs: Array.isArray(item.mcqs)
+              ? item.mcqs
+              : [],
+            published:
+              Boolean(item.published),
+          }),
+        );
 
-        throw new Error(
-          `Newspaper database entry failed: ${databaseError.message}`,
+      const normalized: CurrentAffair[] =
+        [];
+
+      for (let i = 1; i <= 10; i++) {
+        const existing =
+          loaded.find(
+            (item) =>
+              item.serial_no === i,
+          );
+
+        normalized.push(
+          existing ??
+            createEmptyAffair(
+              date,
+              i,
+            ),
         );
       }
 
-      setNewspaperMessage(
-        "✅ Newspaper uploaded and published successfully.",
-      );
-
-      setNewspaperFile(null);
-      setNewspaperFileName("");
-
-      setNewspaperTitle("");
-
-      if (
-        newspaperFileInputRef.current
-      ) {
-        newspaperFileInputRef.current.value =
-          "";
-      }
-
-      // Next paper defaults to next number
-      setNewspaperNumber(
-        String(paperNumber + 1),
-      );
+      setAffairs(normalized);
     } catch (err) {
       console.error(
-        "Newspaper upload error:",
+        "Current affairs loading error:",
         err,
       );
 
-      setNewspaperError(
+      setCurrentAffairsError(
         err instanceof Error
           ? err.message
-          : "Newspaper upload failed.",
+          : "Current affairs load nahi hua.",
+      );
+
+      setAffairs(
+        Array.from(
+          { length: 10 },
+          (_, index) =>
+            createEmptyAffair(
+              date,
+              index + 1,
+            ),
+        ),
       );
     } finally {
-      setNewspaperLoading(false);
+      setCurrentAffairsLoading(false);
     }
   }
 
+  function handleAffairDateChange(
+    date: string,
+  ) {
+    setAffairDate(date);
+    loadCurrentAffairs(date);
+  }
+
+  function updateAffair(
+    index: number,
+    field: keyof CurrentAffair,
+    value: string | boolean,
+  ) {
+    setAffairs((previous) =>
+      previous.map((affair, affairIndex) =>
+        affairIndex === index
+          ? {
+              ...affair,
+              [field]: value,
+            }
+          : affair,
+      ),
+    );
+  }
+
+  function addMCQ(affairIndex: number) {
+    setAffairs((previous) =>
+      previous.map(
+        (affair, index) =>
+          index === affairIndex
+            ? {
+                ...affair,
+                mcqs: [
+                  ...affair.mcqs,
+                  emptyMCQ(),
+                ],
+              }
+            : affair,
+      ),
+    );
+  }
+
+  function removeMCQ(
+    affairIndex: number,
+    mcqIndex: number,
+  ) {
+    setAffairs((previous) =>
+      previous.map(
+        (affair, index) =>
+          index === affairIndex
+            ? {
+                ...affair,
+                mcqs: affair.mcqs.filter(
+                  (_, index2) =>
+                    index2 !== mcqIndex,
+                ),
+              }
+            : affair,
+      ),
+    );
+  }
+
+  function updateMCQ(
+    affairIndex: number,
+    mcqIndex: number,
+    field: keyof MCQ,
+    value: string | string[],
+  ) {
+    setAffairs((previous) =>
+      previous.map(
+        (affair, index) => {
+          if (
+            index !== affairIndex
+          ) {
+            return affair;
+          }
+
+          return {
+            ...affair,
+            mcqs: affair.mcqs.map(
+              (mcq, index2) =>
+                index2 === mcqIndex
+                  ? {
+                      ...mcq,
+                      [field]:
+                        value,
+                    }
+                  : mcq,
+            ),
+          };
+        },
+      ),
+    );
+  }
+
+  function updateMCQOption(
+    affairIndex: number,
+    mcqIndex: number,
+    optionIndex: number,
+    value: string,
+  ) {
+    setAffairs((previous) =>
+      previous.map(
+        (affair, index) => {
+          if (
+            index !== affairIndex
+          ) {
+            return affair;
+          }
+
+          return {
+            ...affair,
+            mcqs: affair.mcqs.map(
+              (mcq, index2) => {
+                if (
+                  index2 !==
+                  mcqIndex
+                ) {
+                  return mcq;
+                }
+
+                const options = [
+                  ...mcq.options,
+                ];
+
+                options[
+                  optionIndex
+                ] = value;
+
+                return {
+                  ...mcq,
+                  options,
+                };
+              },
+            ),
+          };
+        },
+      ),
+    );
+  }
+
+  function validateAffairs(): string | null {
+    const nonEmptyAffairs =
+      affairs.filter(
+        (affair) =>
+          affair.title.trim() !== "",
+      );
+
+    if (!nonEmptyAffairs.length) {
+      return "Kam se kam 1 current affair enter karo.";
+    }
+
+    for (const affair of nonEmptyAffairs) {
+      if (!affair.title.trim()) {
+        return `Top ${affair.serial_no}: title required hai.`;
+      }
+
+      for (let i = 0; i < affair.mcqs.length; i++) {
+        const mcq =
+          affair.mcqs[i];
+
+        if (!mcq.question.trim()) {
+          return `Top ${affair.serial_no}, MCQ ${i + 1}: question required hai.`;
+        }
+
+        if (
+          mcq.options.some(
+            (option) =>
+              !option.trim(),
+          )
+        ) {
+          return `Top ${affair.serial_no}, MCQ ${i + 1}: all 4 options required hain.`;
+        }
+
+        if (!mcq.answer.trim()) {
+          return `Top ${affair.serial_no}, MCQ ${i + 1}: answer required hai.`;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  async function saveCurrentAffairs(
+    publish: boolean,
+  ) {
+    clearCurrentAffairsMessages();
+
+    const validationError =
+      validateAffairs();
+
+    if (validationError) {
+      setCurrentAffairsError(
+        validationError,
+      );
+      return;
+    }
+
+    setCurrentAffairsSaving(true);
+
+    try {
+      const rows = affairs
+        .filter(
+          (affair) =>
+            affair.title.trim() !== "",
+        )
+        .map((affair) => ({
+          affair_date:
+            affairDate,
+          serial_no:
+            affair.serial_no,
+          title:
+            affair.title.trim(),
+          why_in_news:
+            affair.why_in_news.trim() ||
+            null,
+          key_facts:
+            affair.key_facts.trim() ||
+            null,
+          exam_point:
+            affair.exam_point.trim() ||
+            null,
+          static_gk:
+            affair.static_gk.trim() ||
+            null,
+          mcqs: affair.mcqs,
+          published: publish,
+          updated_at:
+            new Date().toISOString(),
+        }));
+
+      const {
+        error,
+      } = await supabase
+        .from("current_affairs")
+        .upsert(rows, {
+          onConflict:
+            "affair_date,serial_no",
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      setAffairs((previous) =>
+        previous.map(
+          (affair) => ({
+            ...affair,
+            published:
+              publish
+                ? true
+                : affair.published,
+          }),
+        ),
+      );
+
+      setCurrentAffairsMessage(
+        publish
+          ? `${rows.length} current affair${
+              rows.length === 1
+                ? ""
+                : "s"
+            } successfully published.`
+          : `${rows.length} current affair${
+              rows.length === 1
+                ? ""
+                : "s"
+            } successfully saved as draft.`,
+      );
+    } catch (err) {
+      console.error(
+        "Current affairs save error:",
+        err,
+      );
+
+      setCurrentAffairsError(
+        err instanceof Error
+          ? err.message
+          : "Current affairs save nahi hua.",
+      );
+    } finally {
+      setCurrentAffairsSaving(false);
+    }
+  }
+
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+
       {/* =====================================================
           HEADER
           ===================================================== */}
 
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-bold">
               PadhAI Admin
             </h1>
 
@@ -807,6 +877,7 @@ export function AdminDashboard() {
           >
             Logout
           </button>
+
         </div>
       </header>
 
@@ -815,9 +886,11 @@ export function AdminDashboard() {
           ===================================================== */}
 
       <main className="mx-auto max-w-7xl px-4 py-8">
-        {/* WELCOME */}
+
+        {/* Welcome */}
 
         <div className="mb-8 rounded-2xl bg-slate-900 p-6 text-white">
+
           <p className="text-sm text-slate-300">
             Welcome Admin
           </p>
@@ -832,6 +905,7 @@ export function AdminDashboard() {
             You have administrator access
             to PadhAI.
           </p>
+
         </div>
 
         {/* ===================================================
@@ -839,6 +913,7 @@ export function AdminDashboard() {
             =================================================== */}
 
         <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
               Students
@@ -859,8 +934,7 @@ export function AdminDashboard() {
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              {csvRows.length ||
-                "—"}
+              {csvRows.length || "—"}
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
@@ -870,19 +944,20 @@ export function AdminDashboard() {
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
-              Newspaper
+              Current Affairs
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              📰
+              10
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              Upload newspapers
+              Daily Top 10
             </p>
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
+
             <p className="text-sm font-medium text-slate-500">
               AI
             </p>
@@ -894,7 +969,9 @@ export function AdminDashboard() {
             <p className="mt-1 text-xs text-slate-400">
               AI features
             </p>
+
           </div>
+
         </div>
 
         {/* ===================================================
@@ -906,9 +983,11 @@ export function AdminDashboard() {
         </h3>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {/* SYLLABUS */}
+
+          {/* Syllabus */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
+
             <div className="text-3xl">
               📚
             </div>
@@ -928,43 +1007,46 @@ export function AdminDashboard() {
               onClick={
                 openSyllabusManager
               }
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Manage Syllabus
             </button>
+
           </div>
 
-          {/* NEWSPAPERS */}
+          {/* Current Affairs */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
+
             <div className="text-3xl">
               📰
             </div>
 
             <h3 className="mt-4 font-bold">
-              Newspapers
+              Current Affairs
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Upload Hindi and English
-              newspaper PDFs with date and
-              paper number.
+              Daily Top 10 current affairs,
+              facts and MCQs publish karo.
             </p>
 
             <button
               type="button"
               onClick={
-                openNewspaperManager
+                openCurrentAffairsManager
               }
-              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Upload Newspaper
+              Manage Current Affairs
             </button>
+
           </div>
 
-          {/* STUDENTS */}
+          {/* Students */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
+
             <div className="text-3xl">
               👨‍🎓
             </div>
@@ -984,333 +1066,66 @@ export function AdminDashboard() {
             >
               Manage
             </button>
+
           </div>
 
-          {/* AI */}
+          {/* Videos */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
+
             <div className="text-3xl">
-              🤖
+              🎥
             </div>
 
             <h3 className="mt-4 font-bold">
-              AI Settings
+              Videos
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Configure PadhAI AI features.
+              Manage educational video
+              content.
             </p>
 
             <button
               type="button"
               className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Configure
+              Manage
             </button>
+
           </div>
+
         </div>
+
       </main>
 
       {/* =====================================================
-          NEWSPAPER MANAGER MODAL
-          ===================================================== */}
-
-      {showNewspaperManager && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4">
-          <div className="flex min-h-full items-center justify-center">
-            <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
-              {/* HEADER */}
-
-              <div className="flex items-center justify-between border-b px-6 py-5">
-                <div>
-                  <h2 className="text-xl font-bold">
-                    📰 Newspaper Manager
-                  </h2>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    Upload newspaper PDF.
-                    Database entry will be
-                    created automatically.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={
-                    closeNewspaperManager
-                  }
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-600 hover:bg-slate-200"
-                >
-                  ×
-                </button>
-              </div>
-
-              {/* BODY */}
-
-              <div className="space-y-5 p-6">
-                {/* DATE */}
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold">
-                    Newspaper Date
-                  </label>
-
-                  <input
-                    type="date"
-                    value={
-                      newspaperDate
-                    }
-                    onChange={(event) =>
-                      setNewspaperDate(
-                        event.target.value,
-                      )
-                    }
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* LANGUAGE */}
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold">
-                    Language
-                  </label>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setNewspaperLanguage(
-                          "hindi",
-                        )
-                      }
-                      className={`rounded-xl border px-4 py-3 font-semibold transition ${
-                        newspaperLanguage ===
-                        "hindi"
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "border-slate-300 bg-white text-slate-700"
-                      }`}
-                    >
-                      🇮🇳 Hindi
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setNewspaperLanguage(
-                          "english",
-                        )
-                      }
-                      className={`rounded-xl border px-4 py-3 font-semibold transition ${
-                        newspaperLanguage ===
-                        "english"
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "border-slate-300 bg-white text-slate-700"
-                      }`}
-                    >
-                      🇬🇧 English
-                    </button>
-                  </div>
-                </div>
-
-                {/* PAPER NUMBER */}
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold">
-                    Paper Number
-                  </label>
-
-                  <input
-                    type="number"
-                    min="1"
-                    value={
-                      newspaperNumber
-                    }
-                    onChange={(event) =>
-                      setNewspaperNumber(
-                        event.target.value,
-                      )
-                    }
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
-                    placeholder="1"
-                  />
-                </div>
-
-                {/* TITLE */}
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold">
-                    Title
-                    <span className="ml-1 font-normal text-slate-400">
-                      (optional)
-                    </span>
-                  </label>
-
-                  <input
-                    type="text"
-                    value={
-                      newspaperTitle
-                    }
-                    onChange={(event) =>
-                      setNewspaperTitle(
-                        event.target.value,
-                      )
-                    }
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
-                    placeholder="e.g. Daily News"
-                  />
-                </div>
-
-                {/* PDF */}
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold">
-                    Newspaper PDF
-                  </label>
-
-                  <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6">
-                    <div className="text-center">
-                      <div className="text-4xl">
-                        📄
-                      </div>
-
-                      <p className="mt-2 text-sm font-semibold">
-                        Select newspaper PDF
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        PDF only • Maximum 25 MB
-                      </p>
-
-                      <input
-                        ref={
-                          newspaperFileInputRef
-                        }
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        onChange={
-                          handleNewspaperFile
-                        }
-                        className="mt-4 block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-blue-700"
-                      />
-
-                      {newspaperFileName && (
-                        <p className="mt-3 text-sm font-semibold text-blue-600">
-                          Selected:{" "}
-                          {
-                            newspaperFileName
-                          }
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* ERROR */}
-
-                {newspaperError && (
-                  <div className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                    ❌{" "}
-                    {
-                      newspaperError
-                    }
-                  </div>
-                )}
-
-                {/* SUCCESS */}
-
-                {newspaperMessage && (
-                  <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-                    {
-                      newspaperMessage
-                    }
-                  </div>
-                )}
-
-                {/* INFO */}
-
-                <div className="rounded-2xl bg-slate-900 p-5 text-white">
-                  <p className="font-semibold">
-                    Upload process
-                  </p>
-
-                  <div className="mt-3 space-y-1 text-sm text-slate-300">
-                    <p>
-                      1. PDF Storage me upload hoga
-                    </p>
-
-                    <p>
-                      2. `newspaper_papers` me entry automatically banegi
-                    </p>
-
-                    <p>
-                      3. Paper automatically published hoga
-                    </p>
-
-                    <p>
-                      4. Student Daily Newspaper page par dikhega
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* FOOTER */}
-
-              <div className="flex justify-end gap-3 border-t px-6 py-4">
-                <button
-                  type="button"
-                  onClick={
-                    closeNewspaperManager
-                  }
-                  disabled={
-                    newspaperLoading
-                  }
-                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Close
-                </button>
-
-                <button
-                  type="button"
-                  onClick={
-                    handleNewspaperUpload
-                  }
-                  disabled={
-                    newspaperLoading
-                  }
-                  className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {newspaperLoading
-                    ? "Uploading..."
-                    : "Upload & Publish"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =====================================================
-          SYLLABUS MANAGER MODAL
+          SYLLABUS MODAL
           ===================================================== */}
 
       {showSyllabusManager && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
+
           <div className="flex min-h-full items-center justify-center">
+
             <div className="w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
-              {/* HEADER */}
+
+              {/* Header */}
 
               <div className="flex items-center justify-between border-b px-6 py-5">
+
                 <div>
+
                   <h2 className="text-xl font-bold">
                     📚 Syllabus Manager
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
                     Upload CSV to insert new
-                    syllabus or update
-                    existing syllabus.
+                    syllabus or update existing
+                    syllabus.
                   </p>
+
                 </div>
 
                 <button
@@ -1322,12 +1137,15 @@ export function AdminDashboard() {
                 >
                   ×
                 </button>
+
               </div>
 
-              {/* BODY */}
+              {/* Body */}
 
               <div className="p-6">
+
                 <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+
                   <div className="text-4xl">
                     📄
                   </div>
@@ -1342,59 +1160,51 @@ export function AdminDashboard() {
                   </p>
 
                   <input
-                    ref={
-                      syllabusFileInputRef
-                    }
+                    ref={fileInputRef}
                     type="file"
                     accept=".csv,text/csv"
                     onChange={
                       handleCSVFile
                     }
-                    className="mt-5 block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-blue-700"
+                    className="mt-5 block w-full text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white"
                   />
 
                   {fileName && (
                     <p className="mt-3 text-sm font-medium text-blue-600">
-                      Selected:{" "}
-                      {fileName}
+                      Selected: {fileName}
                     </p>
                   )}
+
                 </div>
 
                 {syllabusError && (
                   <div className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                    ❌{" "}
-                    {
-                      syllabusError
-                    }
+                    ❌ {syllabusError}
                   </div>
                 )}
 
                 {syllabusMessage && (
                   <div className="mt-5 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-                    ✅{" "}
-                    {
-                      syllabusMessage
-                    }
+                    ✅ {syllabusMessage}
                   </div>
                 )}
 
-                {csvRows.length >
-                  0 && (
+                {csvRows.length > 0 && (
                   <div className="mt-6">
+
                     <div className="mb-3 flex items-center justify-between">
+
                       <div>
+
                         <h3 className="font-bold">
                           CSV Preview
                         </h3>
 
                         <p className="text-sm text-slate-500">
-                          {
-                            csvRows.length
-                          }{" "}
-                          rows ready for
-                          upload.
+                          {csvRows.length} rows
+                          ready for upload.
                         </p>
+
                       </div>
 
                       <button
@@ -1405,18 +1215,23 @@ export function AdminDashboard() {
                         disabled={
                           syllabusLoading
                         }
-                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
                       >
                         {syllabusLoading
                           ? "Uploading..."
                           : "Upload / Update"}
                       </button>
+
                     </div>
 
-                    <div className="max-h-[420px] overflow-auto rounded-2xl border border-slate-200">
+                    <div className="max-h-[420px] overflow-auto rounded-2xl border">
+
                       <table className="min-w-[1100px] w-full text-left text-sm">
+
                         <thead className="sticky top-0 bg-slate-100">
+
                           <tr>
+
                             <th className="px-4 py-3">
                               ID
                             </th>
@@ -1452,134 +1267,130 @@ export function AdminDashboard() {
                             <th className="px-4 py-3">
                               Order
                             </th>
+
                           </tr>
+
                         </thead>
 
                         <tbody>
+
                           {csvRows
-                            .slice(
-                              0,
-                              100,
-                            )
-                            .map(
-                              (
-                                row,
-                              ) => (
-                                <tr
-                                  key={
+                            .slice(0, 100)
+                            .map((row) => (
+                              <tr
+                                key={
+                                  row.external_id
+                                }
+                                className="border-t"
+                              >
+
+                                <td className="px-4 py-3 font-mono text-xs">
+                                  {
                                     row.external_id
                                   }
-                                  className="border-t border-slate-100"
-                                >
-                                  <td className="px-4 py-3 font-mono text-xs">
-                                    {
-                                      row.external_id
-                                    }
-                                  </td>
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.category
-                                    }
-                                  </td>
+                                <td className="px-4 py-3">
+                                  {
+                                    row.category
+                                  }
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.class_name ||
-                                      "—"
-                                    }
-                                  </td>
+                                <td className="px-4 py-3">
+                                  {
+                                    row.class_name ||
+                                    "—"
+                                  }
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.board ||
-                                      "—"
-                                    }
-                                  </td>
+                                <td className="px-4 py-3">
+                                  {
+                                    row.board ||
+                                    "—"
+                                  }
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.exam ||
-                                      "—"
-                                    }
-                                  </td>
+                                <td className="px-4 py-3">
+                                  {
+                                    row.exam ||
+                                    "—"
+                                  }
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.subject
-                                    }
-                                  </td>
+                                <td className="px-4 py-3">
+                                  {
+                                    row.subject
+                                  }
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.chapter_name
-                                    }
-                                  </td>
+                                <td className="px-4 py-3">
+                                  {
+                                    row.chapter_name
+                                  }
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.topic_name ||
-                                      "—"
-                                    }
-                                  </td>
+                                <td className="px-4 py-3">
+                                  {
+                                    row.topic_name ||
+                                    "—"
+                                  }
+                                </td>
 
-                                  <td className="px-4 py-3">
-                                    {
-                                      row.order_no
-                                    }
-                                  </td>
-                                </tr>
-                              ),
-                            )}
+                                <td className="px-4 py-3">
+                                  {
+                                    row.order_no
+                                  }
+                                </td>
+
+                              </tr>
+                            ))}
+
                         </tbody>
+
                       </table>
+
                     </div>
 
-                    {csvRows.length >
-                      100 && (
+                    {csvRows.length > 100 && (
                       <p className="mt-2 text-xs text-slate-500">
-                        Showing first 100
-                        rows. All{" "}
-                        {
-                          csvRows.length
-                        }{" "}
-                        rows will be
-                        uploaded.
+                        Showing first 100 rows.
+                        All{" "}
+                        {csvRows.length}{" "}
+                        rows will be uploaded.
                       </p>
                     )}
+
                   </div>
                 )}
 
                 <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
+
                   <p className="text-sm font-semibold">
                     Required CSV columns
                   </p>
 
                   <p className="mt-2 break-all font-mono text-xs text-slate-300">
-                    external_id,
-                    category,
-                    class_name,
-                    board, exam,
-                    subject,
-                    chapter_name,
-                    topic_name,
-                    key_points,
-                    order_no,
-                    is_active
+                    external_id, category,
+                    class_name, board, exam,
+                    subject, chapter_name,
+                    topic_name, key_points,
+                    order_no, is_active
                   </p>
 
                   <p className="mt-3 text-xs text-slate-400">
                     Existing external_id =
-                    update &nbsp; | &nbsp;
-                    New external_id =
-                    insert
+                    update | New
+                    external_id = insert
                   </p>
+
                 </div>
+
               </div>
 
-              {/* FOOTER */}
+              {/* Footer */}
 
               <div className="flex justify-end border-t px-6 py-4">
+
                 <button
                   type="button"
                   onClick={
@@ -1588,15 +1399,598 @@ export function AdminDashboard() {
                   disabled={
                     syllabusLoading
                   }
-                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold hover:bg-slate-50"
                 >
                   Close
                 </button>
+
               </div>
+
             </div>
+
           </div>
+
         </div>
       )}
+
+      {/* =====================================================
+          CURRENT AFFAIRS MODAL
+          ===================================================== */}
+
+      {showCurrentAffairsManager && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-3 sm:p-5">
+
+          <div className="mx-auto w-full max-w-7xl rounded-3xl bg-white shadow-2xl">
+
+            {/* Modal Header */}
+
+            <div className="sticky top-0 z-10 rounded-t-3xl border-b bg-white px-5 py-5 sm:px-7">
+
+              <div className="flex items-start justify-between gap-4">
+
+                <div>
+
+                  <h2 className="text-xl font-bold sm:text-2xl">
+                    📰 Current Affairs Manager
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Daily Top 10 Current Affairs
+                  </p>
+
+                </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    closeCurrentAffairsManager
+                  }
+                  disabled={
+                    currentAffairsSaving
+                  }
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                >
+                  ×
+                </button>
+
+              </div>
+
+              {/* Date */}
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+
+                <div>
+
+                  <label className="mb-1 block text-sm font-semibold">
+                    Affair Date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={affairDate}
+                    onChange={(event) =>
+                      handleAffairDateChange(
+                        event.target.value,
+                      )
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                  />
+
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    loadCurrentAffairs(
+                      affairDate,
+                    )
+                  }
+                  disabled={
+                    currentAffairsLoading ||
+                    currentAffairsSaving
+                  }
+                  className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
+                >
+                  🔄 Reload
+                </button>
+
+              </div>
+
+            </div>
+
+            {/* Messages */}
+
+            <div className="px-5 sm:px-7">
+
+              {currentAffairsError && (
+                <div className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  ❌ {currentAffairsError}
+                </div>
+              )}
+
+              {currentAffairsMessage && (
+                <div className="mt-5 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                  ✅ {currentAffairsMessage}
+                </div>
+              )}
+
+            </div>
+
+            {/* Loading */}
+
+            {currentAffairsLoading ? (
+              <div className="p-10 text-center">
+
+                <div className="text-4xl">
+                  📰
+                </div>
+
+                <p className="mt-3 text-sm text-slate-500">
+                  Current affairs loading...
+                </p>
+
+              </div>
+            ) : (
+              <div className="space-y-6 p-5 sm:p-7">
+
+                {affairs.map(
+                  (affair, affairIndex) => (
+                    <div
+                      key={
+                        affair.serial_no
+                      }
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
+                    >
+
+                      {/* Affair Header */}
+
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+
+                        <div className="flex items-center gap-3">
+
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
+                            {
+                              affair.serial_no
+                            }
+                          </span>
+
+                          <div>
+
+                            <h3 className="font-bold">
+                              Top{" "}
+                              {
+                                affair.serial_no
+                              }
+                            </h3>
+
+                            <p className="text-xs text-slate-500">
+                              Current Affair
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${
+                            affair.published
+                              ? "bg-green-100 text-green-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {affair.published
+                            ? "PUBLISHED"
+                            : "DRAFT"}
+                        </span>
+
+                      </div>
+
+                      {/* Title */}
+
+                      <div className="mt-5">
+
+                        <label className="mb-1 block text-sm font-semibold">
+                          Title *
+                        </label>
+
+                        <input
+                          type="text"
+                          value={
+                            affair.title
+                          }
+                          onChange={(event) =>
+                            updateAffair(
+                              affairIndex,
+                              "title",
+                              event.target
+                                .value,
+                            )
+                          }
+                          placeholder="Example: RBI announces new FCNR(B) rules"
+                          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        />
+
+                      </div>
+
+                      {/* Why in News */}
+
+                      <div className="mt-4">
+
+                        <label className="mb-1 block text-sm font-semibold">
+                          Why in News
+                        </label>
+
+                        <textarea
+                          value={
+                            affair.why_in_news
+                          }
+                          onChange={(event) =>
+                            updateAffair(
+                              affairIndex,
+                              "why_in_news",
+                              event.target
+                                .value,
+                            )
+                          }
+                          rows={3}
+                          placeholder="Why is this news important?"
+                          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        />
+
+                      </div>
+
+                      {/* Key Facts */}
+
+                      <div className="mt-4">
+
+                        <label className="mb-1 block text-sm font-semibold">
+                          Key Facts
+                        </label>
+
+                        <textarea
+                          value={
+                            affair.key_facts
+                          }
+                          onChange={(event) =>
+                            updateAffair(
+                              affairIndex,
+                              "key_facts",
+                              event.target
+                                .value,
+                            )
+                          }
+                          rows={4}
+                          placeholder={"• Important fact 1\n• Important fact 2\n• Important fact 3"}
+                          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        />
+
+                      </div>
+
+                      {/* Exam Point + Static GK */}
+
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+
+                        <div>
+
+                          <label className="mb-1 block text-sm font-semibold">
+                            🎯 Exam Point
+                          </label>
+
+                          <textarea
+                            value={
+                              affair.exam_point
+                            }
+                            onChange={(
+                              event,
+                            ) =>
+                              updateAffair(
+                                affairIndex,
+                                "exam_point",
+                                event
+                                  .target
+                                  .value,
+                              )
+                            }
+                            rows={4}
+                            placeholder="What should an aspirant remember?"
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                          />
+
+                        </div>
+
+                        <div>
+
+                          <label className="mb-1 block text-sm font-semibold">
+                            📚 Static GK
+                          </label>
+
+                          <textarea
+                            value={
+                              affair.static_gk
+                            }
+                            onChange={(
+                              event,
+                            ) =>
+                              updateAffair(
+                                affairIndex,
+                                "static_gk",
+                                event
+                                  .target
+                                  .value,
+                              )
+                            }
+                            rows={4}
+                            placeholder="Related static GK"
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                          />
+
+                        </div>
+
+                      </div>
+
+                      {/* MCQs */}
+
+                      <div className="mt-6 rounded-2xl border border-blue-100 bg-white p-4">
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+
+                          <div>
+
+                            <h4 className="font-bold">
+                              ❓ MCQs
+                            </h4>
+
+                            <p className="text-xs text-slate-500">
+                              Optional exam
+                              questions
+                            </p>
+
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              addMCQ(
+                                affairIndex,
+                              )
+                            }
+                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                          >
+                            + Add MCQ
+                          </button>
+
+                        </div>
+
+                        <div className="mt-4 space-y-5">
+
+                          {affair.mcqs.map(
+                            (
+                              mcq,
+                              mcqIndex,
+                            ) => (
+                              <div
+                                key={
+                                  mcqIndex
+                                }
+                                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                              >
+
+                                <div className="mb-3 flex items-center justify-between">
+
+                                  <p className="font-semibold">
+                                    MCQ{" "}
+                                    {
+                                      mcqIndex +
+                                      1
+                                    }
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeMCQ(
+                                        affairIndex,
+                                        mcqIndex,
+                                      )
+                                    }
+                                    className="text-sm font-semibold text-red-600 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </button>
+
+                                </div>
+
+                                <textarea
+                                  value={
+                                    mcq.question
+                                  }
+                                  onChange={(
+                                    event,
+                                  ) =>
+                                    updateMCQ(
+                                      affairIndex,
+                                      mcqIndex,
+                                      "question",
+                                      event
+                                        .target
+                                        .value,
+                                    )
+                                  }
+                                  rows={2}
+                                  placeholder="Question"
+                                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                                />
+
+                                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+
+                                  {mcq.options.map(
+                                    (
+                                      option,
+                                      optionIndex,
+                                    ) => (
+                                      <input
+                                        key={
+                                          optionIndex
+                                        }
+                                        type="text"
+                                        value={
+                                          option
+                                        }
+                                        onChange={(
+                                          event,
+                                        ) =>
+                                          updateMCQOption(
+                                            affairIndex,
+                                            mcqIndex,
+                                            optionIndex,
+                                            event
+                                              .target
+                                              .value,
+                                          )
+                                        }
+                                        placeholder={`Option ${String.fromCharCode(
+                                          65 +
+                                            optionIndex,
+                                        )}`}
+                                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                                      />
+                                    ),
+                                  )}
+
+                                </div>
+
+                                <div className="mt-3 grid gap-3 md:grid-cols-2">
+
+                                  <input
+                                    type="text"
+                                    value={
+                                      mcq.answer
+                                    }
+                                    onChange={(
+                                      event,
+                                    ) =>
+                                      updateMCQ(
+                                        affairIndex,
+                                        mcqIndex,
+                                        "answer",
+                                        event
+                                          .target
+                                          .value,
+                                      )
+                                    }
+                                    placeholder="Correct answer — e.g. A"
+                                    className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                                  />
+
+                                  <input
+                                    type="text"
+                                    value={
+                                      mcq.explanation
+                                    }
+                                    onChange={(
+                                      event,
+                                    ) =>
+                                      updateMCQ(
+                                        affairIndex,
+                                        mcqIndex,
+                                        "explanation",
+                                        event
+                                          .target
+                                          .value,
+                                      )
+                                    }
+                                    placeholder="Explanation"
+                                    className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                                  />
+
+                                </div>
+
+                              </div>
+                            ),
+                          )}
+
+                          {affair.mcqs
+                            .length ===
+                            0 && (
+                            <p className="rounded-xl bg-slate-50 p-4 text-center text-sm text-slate-500">
+                              Abhi koi MCQ
+                              nahi hai.
+                            </p>
+                          )}
+
+                        </div>
+
+                      </div>
+
+                    </div>
+                  ),
+                )}
+
+              </div>
+            )}
+
+            {/* =================================================
+                FOOTER ACTIONS
+                ================================================= */}
+
+            <div className="sticky bottom-0 flex flex-col-reverse gap-3 rounded-b-3xl border-t bg-white p-5 sm:flex-row sm:justify-end sm:px-7">
+
+              <button
+                type="button"
+                onClick={
+                  closeCurrentAffairsManager
+                }
+                disabled={
+                  currentAffairsSaving
+                }
+                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  saveCurrentAffairs(
+                    false,
+                  )
+                }
+                disabled={
+                  currentAffairsSaving ||
+                  currentAffairsLoading
+                }
+                className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+              >
+                {currentAffairsSaving
+                  ? "Saving..."
+                  : "💾 Save Draft"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  saveCurrentAffairs(
+                    true,
+                  )
+                }
+                disabled={
+                  currentAffairsSaving ||
+                  currentAffairsLoading
+                }
+                className="rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {currentAffairsSaving
+                  ? "Publishing..."
+                  : "🚀 Publish All"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
     </div>
   );
 }
