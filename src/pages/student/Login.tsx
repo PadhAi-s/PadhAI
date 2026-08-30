@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../lib/supabase";
 
 export function StudentLogin() {
+  const { t } = useTranslation();
+
   const [isSignup, setIsSignup] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -45,17 +48,17 @@ export function StudentLogin() {
     setMessage("");
 
     if (!email.trim() || !password) {
-      setError("Please enter your email and password.");
+      setError(t("studentLogin.errors.emailPasswordRequired"));
       return;
     }
 
     if (isSignup && !fullName.trim()) {
-      setError("Please enter your full name.");
+      setError(t("studentLogin.errors.fullNameRequired"));
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("studentLogin.errors.passwordLength"));
       return;
     }
 
@@ -79,17 +82,16 @@ export function StudentLogin() {
         }
 
         if (!data.user) {
-          throw new Error("Account could not be created.");
+          throw new Error(
+            t("studentLogin.errors.accountCreateFailed"),
+          );
         }
 
         if (!data.session) {
-          setMessage(
-            "Account created! Please check your email to confirm your account."
-          );
+          setMessage(t("studentLogin.messages.confirmEmail"));
           return;
         }
 
-        // Save the signup name to the student's profile.
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
@@ -98,7 +100,10 @@ export function StudentLogin() {
           .eq("id", data.user.id);
 
         if (profileError) {
-          console.error("Profile name update error:", profileError);
+          console.error(
+            "Profile name update error:",
+            profileError,
+          );
         }
 
         await redirectStudent(data.user.id);
@@ -114,7 +119,9 @@ export function StudentLogin() {
         }
 
         if (!data.user) {
-          throw new Error("Unable to login. Please try again.");
+          throw new Error(
+            t("studentLogin.errors.loginFailed"),
+          );
         }
 
         await redirectStudent(data.user.id);
@@ -123,7 +130,7 @@ export function StudentLogin() {
       const errorMessage =
         err instanceof Error
           ? err.message
-          : "Something went wrong.";
+          : t("studentLogin.errors.generic");
 
       setError(errorMessage);
     } finally {
@@ -131,8 +138,14 @@ export function StudentLogin() {
     }
   }
 
+  function toggleMode() {
+    setIsSignup((previous) => !previous);
+    setError("");
+    setMessage("");
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-8">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">
@@ -141,14 +154,14 @@ export function StudentLogin() {
 
           <h1 className="text-2xl font-bold text-slate-900">
             {isSignup
-              ? "Create Student Account"
-              : "Student Login"}
+              ? t("studentLogin.createAccount")
+              : t("studentLogin.login")}
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
             {isSignup
-              ? "Create your PadhAI student account"
-              : "Login to continue learning with PadhAI"}
+              ? t("studentLogin.createSubtitle")
+              : t("studentLogin.loginSubtitle")}
           </p>
         </div>
 
@@ -156,7 +169,7 @@ export function StudentLogin() {
           {isSignup && (
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Full Name
+                {t("studentLogin.fullName")}
               </label>
 
               <input
@@ -165,7 +178,7 @@ export function StudentLogin() {
                 onChange={(event) =>
                   setFullName(event.target.value)
                 }
-                placeholder="Enter your full name"
+                placeholder={t("studentLogin.fullNamePlaceholder")}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 autoComplete="name"
               />
@@ -174,7 +187,7 @@ export function StudentLogin() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
-              Email
+              {t("studentLogin.email")}
             </label>
 
             <input
@@ -191,7 +204,7 @@ export function StudentLogin() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
-              Password
+              {t("studentLogin.password")}
             </label>
 
             <input
@@ -200,7 +213,7 @@ export function StudentLogin() {
               onChange={(event) =>
                 setPassword(event.target.value)
               }
-              placeholder="Enter your password"
+              placeholder={t("studentLogin.passwordPlaceholder")}
               className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               autoComplete={
                 isSignup
@@ -228,31 +241,31 @@ export function StudentLogin() {
             className="w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading
-              ? "Please wait..."
+              ? t("studentLogin.pleaseWait")
               : isSignup
-                ? "Create Account"
-                : "Login"}
+                ? t("studentLogin.createAccountButton")
+                : t("studentLogin.loginButton")}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-600">
           {isSignup
-            ? "Already have an account?"
-            : "Don't have an account?"}
+            ? t("studentLogin.alreadyAccount")
+            : t("studentLogin.noAccount")}
 
           <button
             type="button"
-            onClick={() => {
-              setIsSignup(!isSignup);
-              setError("");
-              setMessage("");
-            }}
+            onClick={toggleMode}
             className="ml-1 font-semibold text-blue-600 hover:underline"
           >
-            {isSignup ? "Login" : "Create account"}
+            {isSignup
+              ? t("studentLogin.login")
+              : t("studentLogin.createAccount")}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+export default StudentLogin;
