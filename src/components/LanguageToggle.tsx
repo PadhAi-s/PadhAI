@@ -1,26 +1,23 @@
 import { useTranslation } from "react-i18next";
 
-export default function LanguageToggle() {
+export function LanguageToggle() {
   const { i18n } = useTranslation();
 
-  const currentLanguage = i18n.language?.startsWith("hi")
-    ? "hi"
-    : "en";
+  const language = i18n.language?.startsWith("hi") ? "hi" : "en";
 
-  function changeLanguage(language: "hi" | "en") {
-    i18n.changeLanguage(language);
-    localStorage.setItem("padhai-language", language);
+  async function changeLanguage(nextLanguage: "hi" | "en") {
+    await i18n.changeLanguage(nextLanguage);
   }
 
   return (
-    <div className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 p-1 shadow-sm">
+    <div className="flex items-center rounded-full border border-slate-300 bg-white p-1 shadow-sm">
       <button
         type="button"
         onClick={() => changeLanguage("hi")}
-        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-          currentLanguage === "hi"
-            ? "bg-white text-slate-900 shadow"
-            : "text-slate-600 hover:text-slate-900"
+        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+          language === "hi"
+            ? "bg-amber-500 text-white shadow"
+            : "text-slate-600 hover:bg-slate-100"
         }`}
       >
         हिंदी
@@ -29,10 +26,10 @@ export default function LanguageToggle() {
       <button
         type="button"
         onClick={() => changeLanguage("en")}
-        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-          currentLanguage === "en"
-            ? "bg-white text-slate-900 shadow"
-            : "text-slate-600 hover:text-slate-900"
+        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+          language === "en"
+            ? "bg-amber-500 text-white shadow"
+            : "text-slate-600 hover:bg-slate-100"
         }`}
       >
         English
@@ -40,3 +37,5 @@ export default function LanguageToggle() {
     </div>
   );
 }
+
+export default LanguageToggle;
