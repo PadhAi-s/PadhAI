@@ -852,4 +852,4 @@ function MCQCard({
   );
 }
 
-export default WeeklyCurrentAffair
+export default WeeklyCurrentAffairs;
