@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -7,10 +7,12 @@ interface MCQ {
   question: string;
   options: string[];
   answer: string;
-  explanation: string;
+  explanation?: string;
 }
 
 interface CurrentAffair {
+  id?: string;
+  affair_date: string;
   serial_no: number;
   title: string;
   why_in_news: string;
@@ -20,561 +22,995 @@ interface CurrentAffair {
   mcqs: MCQ[];
 }
 
-function createEmptyAffair(serial: number): CurrentAffair {
-  return {
-    serial_no: serial,
-    title: "",
-    why_in_news: "",
-    key_facts: "",
-    exam_point: "",
-    static_gk: "",
-    mcqs: [
-      {
-        question: "",
-        options: ["", "", "", ""],
-        answer: "",
-        explanation: "",
-      },
-    ],
-  };
-}
+const emptyForm: CurrentAffair = {
+  affair_date: new Date().toISOString().slice(0, 10),
+  serial_no: 1,
+  title: "",
+  why_in_news: "",
+  key_facts: "",
+  exam_point: "",
+  static_gk: "",
+  mcqs: [],
+};
 
 export function AdminCurrentAffairs() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
 
-  const [affairDate, setAffairDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
-
-  const [affairs, setAffairs] = useState<CurrentAffair[]>(
-    Array.from({ length: 10 }, (_, index) =>
-      createEmptyAffair(index + 1),
-    ),
-  );
+  const [records, setRecords] = useState<CurrentAffair[]>([]);
+  const [form, setForm] = useState<CurrentAffair>(emptyForm);
 
   const [loading, setLoading] = useState(false);
+  const [loadingRecords, setLoadingRecords] = useState(false);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const [showForm, setShowForm] = useState(false);
+  const [showCSV, setShowCSV] = useState(false);
+
+  const [csvFileName, setCSVFileName] = useState("");
+  const [csvRows, setCSVRows] = useState<CurrentAffair[]>([]);
+
+  useEffect(() => {
+    loadCurrentAffairs();
+  }, []);
 
   async function handleLogout() {
     await signOut();
     navigate("/admin/login");
   }
 
-  function updateAffair(
-    index: number,
+  function clearMessages() {
+    setMessage("");
+    setError("");
+  }
+
+  async function loadCurrentAffairs() {
+    clearMessages();
+    setLoadingRecords(true);
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("current_affairs")
+        .select(
+          "id,affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs",
+        )
+        .order("affair_date", { ascending: false })
+        .order("serial_no", { ascending: true });
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      setRecords(
+        (data ?? []).map((row) => ({
+          id: row.id,
+          affair_date: row.affair_date,
+          serial_no: Number(row.serial_no ?? 1),
+          title: row.title ?? "",
+          why_in_news: row.why_in_news ?? "",
+          key_facts: row.key_facts ?? "",
+          exam_point: row.exam_point ?? "",
+          static_gk: row.static_gk ?? "",
+          mcqs: Array.isArray(row.mcqs) ? row.mcqs : [],
+        })),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load current affairs.",
+      );
+    } finally {
+      setLoadingRecords(false);
+    }
+  }
+
+  function openAddForm() {
+    clearMessages();
+
+    setEditingId(null);
+
+    setForm({
+      ...emptyForm,
+      affair_date: new Date().toISOString().slice(0, 10),
+      serial_no: 1,
+    });
+
+    setShowForm(true);
+  }
+
+  function openEditForm(row: CurrentAffair) {
+    clearMessages();
+
+    setEditingId(row.id ?? null);
+
+    setForm({
+      ...row,
+      mcqs: Array.isArray(row.mcqs) ? row.mcqs : [],
+    });
+
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    if (loading) return;
+
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
+  function updateForm(
     field: keyof CurrentAffair,
-    value: string,
+    value: string | number,
   ) {
-    setAffairs((previous) =>
-      previous.map((item, itemIndex) =>
-        itemIndex === index
-          ? {
-              ...item,
-              [field]: value,
-            }
-          : item,
-      ),
-    );
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  }
+
+  function addMCQ() {
+    setForm((previous) => ({
+      ...previous,
+      mcqs: [
+        ...previous.mcqs,
+        {
+          question: "",
+          options: ["", "", "", ""],
+          answer: "",
+          explanation: "",
+        },
+      ],
+    }));
   }
 
   function updateMCQ(
-    affairIndex: number,
     mcqIndex: number,
     field: keyof MCQ,
-    value: string,
+    value: string | string[],
   ) {
-    setAffairs((previous) =>
-      previous.map((affair, index) => {
-        if (index !== affairIndex) {
-          return affair;
-        }
+    setForm((previous) => {
+      const mcqs = [...previous.mcqs];
 
-        const updatedMCQs = affair.mcqs.map(
-          (mcq, currentMCQIndex) => {
-            if (currentMCQIndex !== mcqIndex) {
-              return mcq;
-            }
+      mcqs[mcqIndex] = {
+        ...mcqs[mcqIndex],
+        [field]: value,
+      };
 
-            return {
-              ...mcq,
-              [field]: value,
-            };
-          },
-        );
-
-        return {
-          ...affair,
-          mcqs: updatedMCQs,
-        };
-      }),
-    );
+      return {
+        ...previous,
+        mcqs,
+      };
+    });
   }
 
   function updateMCQOption(
-    affairIndex: number,
     mcqIndex: number,
     optionIndex: number,
     value: string,
   ) {
-    setAffairs((previous) =>
-      previous.map((affair, index) => {
-        if (index !== affairIndex) {
-          return affair;
-        }
+    setForm((previous) => {
+      const mcqs = [...previous.mcqs];
+      const options = [...mcqs[mcqIndex].options];
 
-        const updatedMCQs = affair.mcqs.map(
-          (mcq, currentMCQIndex) => {
-            if (currentMCQIndex !== mcqIndex) {
-              return mcq;
-            }
+      options[optionIndex] = value;
 
-            const updatedOptions = [...mcq.options];
+      mcqs[mcqIndex] = {
+        ...mcqs[mcqIndex],
+        options,
+      };
 
-            updatedOptions[optionIndex] = value;
-
-            return {
-              ...mcq,
-              options: updatedOptions,
-            };
-          },
-        );
-
-        return {
-          ...affair,
-          mcqs: updatedMCQs,
-        };
-      }),
-    );
+      return {
+        ...previous,
+        mcqs,
+      };
+    });
   }
 
-  function addMCQ(affairIndex: number) {
-    setAffairs((previous) =>
-      previous.map((affair, index) => {
-        if (index !== affairIndex) {
-          return affair;
-        }
-
-        return {
-          ...affair,
-          mcqs: [
-            ...affair.mcqs,
-            {
-              question: "",
-              options: ["", "", "", ""],
-              answer: "",
-              explanation: "",
-            },
-          ],
-        };
-      }),
-    );
+  function removeMCQ(index: number) {
+    setForm((previous) => ({
+      ...previous,
+      mcqs: previous.mcqs.filter(
+        (_, mcqIndex) => mcqIndex !== index,
+      ),
+    }));
   }
 
-  function removeMCQ(
-    affairIndex: number,
-    mcqIndex: number,
-  ) {
-    setAffairs((previous) =>
-      previous.map((affair, index) => {
-        if (index !== affairIndex) {
-          return affair;
-        }
-
-        if (affair.mcqs.length <= 1) {
-          return affair;
-        }
-
-        return {
-          ...affair,
-          mcqs: affair.mcqs.filter(
-            (_, index) => index !== mcqIndex,
-          ),
-        };
-      }),
-    );
-  }
-
-  function validate(): string | null {
-    if (!affairDate) {
-      return "Please select current affairs date.";
+  function validateForm() {
+    if (!form.affair_date) {
+      return "Affair date is required.";
     }
 
-    for (let i = 0; i < affairs.length; i++) {
-      const affair = affairs[i];
+    if (!form.title.trim()) {
+      return "Title is required.";
+    }
 
-      if (!affair.title.trim()) {
-        return `Top ${i + 1}: title is required.`;
+    if (!form.why_in_news.trim()) {
+      return "Why in News is required.";
+    }
+
+    if (!form.key_facts.trim()) {
+      return "Key Facts are required.";
+    }
+
+    if (!form.exam_point.trim()) {
+      return "Exam Point is required.";
+    }
+
+    if (!Number.isFinite(Number(form.serial_no))) {
+      return "Serial number must be a number.";
+    }
+
+    for (let i = 0; i < form.mcqs.length; i++) {
+      const mcq = form.mcqs[i];
+
+      if (!mcq.question.trim()) {
+        return `MCQ ${i + 1}: question is required.`;
       }
 
-      if (!affair.why_in_news.trim()) {
-        return `Top ${i + 1}: Why in News is required.`;
-      }
-
-      if (!affair.key_facts.trim()) {
-        return `Top ${i + 1}: Key Facts is required.`;
-      }
-
-      if (!affair.exam_point.trim()) {
-        return `Top ${i + 1}: Exam Point is required.`;
-      }
-
-      for (
-        let mcqIndex = 0;
-        mcqIndex < affair.mcqs.length;
-        mcqIndex++
+      if (
+        mcq.options.length !== 4 ||
+        mcq.options.some((option) => !option.trim())
       ) {
-        const mcq = affair.mcqs[mcqIndex];
+        return `MCQ ${i + 1}: all 4 options are required.`;
+      }
 
-        if (!mcq.question.trim()) {
-          return `Top ${i + 1}, MCQ ${
-            mcqIndex + 1
-          }: question is required.`;
-        }
-
-        if (
-          mcq.options.some(
-            (option) => !option.trim(),
-          )
-        ) {
-          return `Top ${i + 1}, MCQ ${
-            mcqIndex + 1
-          }: all 4 options are required.`;
-        }
-
-        if (!mcq.answer.trim()) {
-          return `Top ${i + 1}, MCQ ${
-            mcqIndex + 1
-          }: answer is required.`;
-        }
+      if (!mcq.answer.trim()) {
+        return `MCQ ${i + 1}: answer is required.`;
       }
     }
 
     return null;
   }
 
-  async function handleUpload() {
-    setError("");
-    setMessage("");
+  async function handleSave() {
+    clearMessages();
 
-    const validationError = validate();
+    const validationError = validateForm();
 
     if (validationError) {
       setError(validationError);
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-      return;
-    }
-
-    if (!user) {
-      setError("Admin session not found. Please login again.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const rows = affairs.map((affair) => ({
-        affair_date: affairDate,
-        serial_no: affair.serial_no,
-        title: affair.title.trim(),
-        why_in_news: affair.why_in_news.trim(),
-        key_facts: affair.key_facts.trim(),
-        exam_point: affair.exam_point.trim(),
-        static_gk: affair.static_gk.trim() || null,
-        mcqs: affair.mcqs.map((mcq) => ({
-          question: mcq.question.trim(),
-          options: mcq.options.map((option) =>
-            option.trim(),
-          ),
-          answer: mcq.answer.trim(),
-          explanation: mcq.explanation.trim(),
-        })),
+      const payload = {
+        affair_date: form.affair_date,
+        serial_no: Number(form.serial_no),
+        title: form.title.trim(),
+        why_in_news: form.why_in_news.trim(),
+        key_facts: form.key_facts.trim(),
+        exam_point: form.exam_point.trim(),
+        static_gk: form.static_gk.trim(),
+        mcqs: form.mcqs,
+      };
+
+      if (editingId) {
+        const { error: updateError } = await supabase
+          .from("current_affairs")
+          .update(payload)
+          .eq("id", editingId);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setMessage("Current affair updated successfully.");
+      } else {
+        const { error: insertError } = await supabase
+          .from("current_affairs")
+          .insert(payload);
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        setMessage("Current affair added successfully.");
+      }
+
+      setShowForm(false);
+      setEditingId(null);
+      setForm(emptyForm);
+
+      await loadCurrentAffairs();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save current affair.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this current affair?",
+    );
+
+    if (!confirmed) return;
+
+    clearMessages();
+    setLoading(true);
+
+    try {
+      const { error: deleteError } = await supabase
+        .from("current_affairs")
+        .delete()
+        .eq("id", id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      setMessage("Current affair deleted successfully.");
+
+      await loadCurrentAffairs();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to delete current affair.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function parseCSVLine(line: string): string[] {
+    const values: string[] = [];
+
+    let current = "";
+    let insideQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        if (insideQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          insideQuotes = !insideQuotes;
+        }
+      } else if (char === "," && !insideQuotes) {
+        values.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current.trim());
+
+    return values;
+  }
+
+  function parseCSV(text: string): CurrentAffair[] {
+    const lines = text
+      .replace(/^\uFEFF/, "")
+      .split(/\r?\n/)
+      .filter((line) => line.trim() !== "");
+
+    if (lines.length < 2) {
+      throw new Error(
+        "CSV must contain a header and at least one row.",
+      );
+    }
+
+    const headers = parseCSVLine(lines[0]).map((header) =>
+      header.trim().toLowerCase(),
+    );
+
+    const requiredHeaders = [
+      "affair_date",
+      "serial_no",
+      "title",
+      "why_in_news",
+      "key_facts",
+      "exam_point",
+      "static_gk",
+      "mcqs",
+    ];
+
+    for (const header of requiredHeaders) {
+      if (!headers.includes(header)) {
+        throw new Error(`Missing CSV column: ${header}`);
+      }
+    }
+
+    const result: CurrentAffair[] = [];
+
+    lines.slice(1).forEach((line, index) => {
+      const values = parseCSVLine(line);
+
+      const row: Record<string, string> = {};
+
+      headers.forEach((header, columnIndex) => {
+        row[header] = values[columnIndex] ?? "";
+      });
+
+      const rowNumber = index + 2;
+
+      const date = row.affair_date?.trim();
+      const serial = Number(row.serial_no || "1");
+      const title = row.title?.trim();
+
+      if (!date) {
+        throw new Error(
+          `Row ${rowNumber}: affair_date is required.`,
+        );
+      }
+
+      if (!Number.isFinite(serial)) {
+        throw new Error(
+          `Row ${rowNumber}: serial_no must be a number.`,
+        );
+      }
+
+      if (!title) {
+        throw new Error(
+          `Row ${rowNumber}: title is required.`,
+        );
+      }
+
+      let mcqs: MCQ[] = [];
+
+      if (row.mcqs?.trim()) {
+        try {
+          const parsed = JSON.parse(row.mcqs);
+
+          if (!Array.isArray(parsed)) {
+            throw new Error("MCQs must be an array.");
+          }
+
+          mcqs = parsed;
+        } catch {
+          throw new Error(
+            `Row ${rowNumber}: mcqs must contain valid JSON.`,
+          );
+        }
+      }
+
+      result.push({
+        affair_date: date,
+        serial_no: serial,
+        title,
+        why_in_news: row.why_in_news?.trim() || "",
+        key_facts: row.key_facts?.trim() || "",
+        exam_point: row.exam_point?.trim() || "",
+        static_gk: row.static_gk?.trim() || "",
+        mcqs,
+      });
+    });
+
+    return result;
+  }
+
+  async function handleCSVFile(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    clearMessages();
+
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setError("Please select a CSV file.");
+      return;
+    }
+
+    setCSVFileName(file.name);
+
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+
+      setCSVRows(rows);
+
+      setMessage(
+        `${rows.length} current affair row${
+          rows.length === 1 ? "" : "s"
+        } loaded successfully.`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to read CSV file.",
+      );
+
+      setCSVRows([]);
+      setCSVFileName("");
+    }
+  }
+
+  async function handleCSVUpload() {
+    clearMessages();
+
+    if (!csvRows.length) {
+      setError("Please select a valid CSV file first.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = csvRows.map((row) => ({
+        affair_date: row.affair_date,
+        serial_no: Number(row.serial_no),
+        title: row.title,
+        why_in_news: row.why_in_news,
+        key_facts: row.key_facts,
+        exam_point: row.exam_point,
+        static_gk: row.static_gk,
+        mcqs: row.mcqs,
       }));
 
       const { error: insertError } = await supabase
         .from("current_affairs")
-        .insert(rows);
+        .insert(payload);
 
       if (insertError) {
         throw insertError;
       }
 
       setMessage(
-        `Successfully uploaded Top 10 Current Affairs for ${affairDate}.`,
+        `${csvRows.length} current affair${
+          csvRows.length === 1 ? "" : "s"
+        } uploaded successfully.`,
       );
 
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      setCSVRows([]);
+      setCSVFileName("");
+
+      await loadCurrentAffairs();
     } catch (err) {
-      console.error(
-        "Current affairs upload error:",
-        err,
-      );
-
       setError(
         err instanceof Error
           ? err.message
-          : "Current affairs upload failed.",
+          : "Unable to upload current affairs.",
       );
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
     } finally {
       setLoading(false);
     }
   }
 
-  function resetForm() {
-    setAffairs(
-      Array.from({ length: 10 }, (_, index) =>
-        createEmptyAffair(index + 1),
-      ),
-    );
+  const today = new Date().toISOString().slice(0, 10);
 
-    setMessage("");
-    setError("");
-  }
+  const todayRecords = records.filter(
+    (record) => record.affair_date === today,
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* HEADER */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+      <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-bold">
               PadhAI Admin
             </h1>
 
             <p className="text-sm text-slate-500">
-              Current Affairs Manager
+              Current Affairs Management
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/admin/dashboard")
-              }
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100"
-            >
-              ← Dashboard
-            </button>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-            >
-              Logout
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
-      {/* CONTENT */}
       <main className="mx-auto max-w-7xl px-4 py-8">
-        {/* ADMIN INFO */}
-        <div className="mb-6 rounded-2xl bg-slate-900 p-6 text-white">
+        {/* WELCOME */}
+        <div className="mb-8 rounded-2xl bg-slate-900 p-6 text-white">
           <p className="text-sm text-slate-300">
             Welcome Admin
           </p>
 
-          <h2 className="mt-1 text-xl font-bold">
+          <h2 className="mt-1 text-2xl font-bold">
             {profile?.full_name ||
               user?.email ||
               "Administrator"}
           </h2>
 
           <p className="mt-2 text-sm text-slate-400">
-            Upload daily Top 10 current affairs for students.
+            Manage daily current affairs for students.
           </p>
         </div>
 
-        {/* TITLE */}
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold">
-            📰 Daily Top 10 Current Affairs
-          </h2>
+        {/* STATS */}
+        <div className="mb-8 grid gap-5 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <p className="text-sm text-slate-500">
+              Total Affairs
+            </p>
 
-          <p className="mt-2 text-sm text-slate-500">
-            Add today's important current affairs with
-            exam-focused MCQs.
-          </p>
+            <p className="mt-2 text-3xl font-bold">
+              {records.length}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <p className="text-sm text-slate-500">
+              Today
+            </p>
+
+            <p className="mt-2 text-3xl font-bold text-blue-600">
+              {todayRecords.length}
+            </p>
+
+            <p className="mt-1 text-xs text-slate-400">
+              Target: Top 10
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <p className="text-sm text-slate-500">
+              AI
+            </p>
+
+            <p className="mt-2 text-3xl font-bold text-green-600">
+              ON
+            </p>
+          </div>
+        </div>
+
+        {/* ACTIONS */}
+        <div className="mb-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            + Add Current Affair
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              clearMessages();
+              setShowCSV(true);
+            }}
+            className="rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700"
+          >
+            📄 Upload CSV
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/admin/dashboard")}
+            className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            ← Dashboard
+          </button>
         </div>
 
         {/* MESSAGES */}
         {error && (
-          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
-            <p className="font-bold">
-              ❌ Upload Failed
-            </p>
-
-            <p className="mt-2 text-sm">
-              {error}
-            </p>
+          <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            ❌ {error}
           </div>
         )}
 
         {message && (
-          <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5 text-green-700">
-            <p className="font-bold">
-              ✅ Success
-            </p>
-
-            <p className="mt-2 text-sm">
-              {message}
-            </p>
+          <div className="mb-5 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+            ✅ {message}
           </div>
         )}
 
-        {/* DATE */}
-        <div className="mb-8 rounded-2xl bg-white p-6 shadow-sm">
-          <label className="block text-sm font-bold text-slate-700">
-            Current Affairs Date
-          </label>
+        {/* RECORDS */}
+        <div className="rounded-2xl bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b px-6 py-5">
+            <div>
+              <h2 className="text-xl font-bold">
+                Current Affairs
+              </h2>
 
-          <input
-            type="date"
-            value={affairDate}
-            onChange={(event) =>
-              setAffairDate(event.target.value)
-            }
-            className="mt-2 w-full max-w-xs rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
-          />
+              <p className="mt-1 text-sm text-slate-500">
+                Daily current affairs records
+              </p>
+            </div>
 
-          <p className="mt-2 text-xs text-slate-500">
-            All 10 current affairs will be saved with this
-            date.
-          </p>
-        </div>
-
-        {/* TOP 10 */}
-        <div className="space-y-8">
-          {affairs.map((affair, affairIndex) => (
-            <section
-              key={affair.serial_no}
-              className="rounded-3xl bg-white p-6 shadow-sm"
+            <button
+              type="button"
+              onClick={loadCurrentAffairs}
+              disabled={loadingRecords}
+              className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
             >
-              {/* CARD HEADER */}
-              <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4">
-                <div>
-                  <span className="inline-flex rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
-                    TOP {affair.serial_no}
-                  </span>
+              {loadingRecords ? "Loading..." : "Refresh"}
+            </button>
+          </div>
 
-                  <h3 className="mt-2 text-xl font-bold">
-                    Current Affair #{affair.serial_no}
-                  </h3>
+          {loadingRecords ? (
+            <div className="p-10 text-center text-slate-500">
+              Loading current affairs...
+            </div>
+          ) : records.length === 0 ? (
+            <div className="p-10 text-center">
+              <div className="text-4xl">📰</div>
+
+              <p className="mt-3 font-semibold">
+                No current affairs found
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Add today's Top 10 current affairs.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[1100px] w-full text-left text-sm">
+                <thead className="bg-slate-100">
+                  <tr>
+                    <th className="px-4 py-3">
+                      Date
+                    </th>
+
+                    <th className="px-4 py-3">
+                      #
+                    </th>
+
+                    <th className="px-4 py-3">
+                      Title
+                    </th>
+
+                    <th className="px-4 py-3">
+                      Exam Point
+                    </th>
+
+                    <th className="px-4 py-3">
+                      MCQs
+                    </th>
+
+                    <th className="px-4 py-3">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {records.map((record) => (
+                    <tr
+                      key={record.id}
+                      className="border-t border-slate-100"
+                    >
+                      <td className="px-4 py-4">
+                        {record.affair_date}
+                      </td>
+
+                      <td className="px-4 py-4 font-bold">
+                        {record.serial_no}
+                      </td>
+
+                      <td className="max-w-[350px] px-4 py-4">
+                        <p className="font-semibold">
+                          {record.title}
+                        </p>
+
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                          {record.why_in_news}
+                        </p>
+                      </td>
+
+                      <td className="max-w-[300px] px-4 py-4 text-slate-600">
+                        <span className="line-clamp-2">
+                          {record.exam_point || "—"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        {record.mcqs.length}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openEditForm(record)
+                            }
+                            className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              record.id &&
+                              handleDelete(record.id)
+                            }
+                            className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* =====================================================
+          ADD / EDIT MODAL
+          ===================================================== */}
+
+      {showForm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
+          <div className="mx-auto my-8 max-w-5xl rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b px-6 py-5">
+              <div>
+                <h2 className="text-xl font-bold">
+                  {editingId
+                    ? "Edit Current Affair"
+                    : "Add Current Affair"}
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Create daily exam-focused current affairs.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeForm}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl hover:bg-slate-200"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-6 p-6">
+              {/* DATE + SERIAL */}
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold">
+                    Affair Date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={form.affair_date}
+                    onChange={(e) =>
+                      updateForm(
+                        "affair_date",
+                        e.target.value,
+                      )
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold">
+                    Serial Number
+                  </label>
+
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.serial_no}
+                    onChange={(e) =>
+                      updateForm(
+                        "serial_no",
+                        Number(e.target.value),
+                      )
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  />
                 </div>
               </div>
 
               {/* TITLE */}
               <div>
-                <label className="text-sm font-bold">
-                  Title *
+                <label className="text-sm font-semibold">
+                  Title
                 </label>
 
                 <input
                   type="text"
-                  value={affair.title}
-                  onChange={(event) =>
-                    updateAffair(
-                      affairIndex,
-                      "title",
-                      event.target.value,
-                    )
+                  value={form.title}
+                  onChange={(e) =>
+                    updateForm("title", e.target.value)
                   }
-                  placeholder="Example: RBI announces new monetary policy..."
+                  placeholder="Example: RBI launches new digital initiative"
                   className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
                 />
               </div>
 
-              {/* WHY IN NEWS */}
-              <div className="mt-5">
-                <label className="text-sm font-bold">
-                  Why in News *
+              {/* WHY */}
+              <div>
+                <label className="text-sm font-semibold">
+                  Why in News
                 </label>
 
                 <textarea
                   rows={4}
-                  value={affair.why_in_news}
-                  onChange={(event) =>
-                    updateAffair(
-                      affairIndex,
+                  value={form.why_in_news}
+                  onChange={(e) =>
+                    updateForm(
                       "why_in_news",
-                      event.target.value,
+                      e.target.value,
                     )
                   }
-                  placeholder="Explain why this topic is in news..."
+                  placeholder="Explain why this topic is in the news..."
                   className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
                 />
               </div>
 
               {/* KEY FACTS */}
-              <div className="mt-5">
-                <label className="text-sm font-bold">
-                  Key Facts *
+              <div>
+                <label className="text-sm font-semibold">
+                  Key Facts
                 </label>
 
                 <textarea
                   rows={5}
-                  value={affair.key_facts}
-                  onChange={(event) =>
-                    updateAffair(
-                      affairIndex,
+                  value={form.key_facts}
+                  onChange={(e) =>
+                    updateForm(
                       "key_facts",
-                      event.target.value,
+                      e.target.value,
                     )
                   }
-                  placeholder="Important facts, dates, numbers, places, persons..."
+                  placeholder="Important facts for students..."
                   className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
                 />
               </div>
 
               {/* EXAM POINT */}
-              <div className="mt-5">
-                <label className="text-sm font-bold">
-                  Exam Point *
+              <div>
+                <label className="text-sm font-semibold">
+                  Exam Point
                 </label>
 
                 <textarea
                   rows={4}
-                  value={affair.exam_point}
-                  onChange={(event) =>
-                    updateAffair(
-                      affairIndex,
+                  value={form.exam_point}
+                  onChange={(e) =>
+                    updateForm(
                       "exam_point",
-                      event.target.value,
+                      e.target.value,
                     )
                   }
-                  placeholder="What should UPSC/SSC/Banking/State exam students remember?"
+                  placeholder="What can be asked in competitive exams?"
                   className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
                 />
               </div>
 
               {/* STATIC GK */}
-              <div className="mt-5">
-                <label className="text-sm font-bold">
+              <div>
+                <label className="text-sm font-semibold">
                   Static GK
                 </label>
 
                 <textarea
-                  rows={3}
-                  value={affair.static_gk}
-                  onChange={(event) =>
-                    updateAffair(
-                      affairIndex,
+                  rows={4}
+                  value={form.static_gk}
+                  onChange={(e) =>
+                    updateForm(
                       "static_gk",
-                      event.target.value,
+                      e.target.value,
                     )
                   }
                   placeholder="Related static GK..."
@@ -583,221 +1019,335 @@ export function AdminCurrentAffairs() {
               </div>
 
               {/* MCQS */}
-              <div className="mt-8 rounded-2xl bg-slate-50 p-5">
+              <div className="rounded-2xl bg-slate-50 p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-lg font-bold">
-                      📝 MCQs
-                    </h4>
+                    <h3 className="font-bold">
+                      MCQs
+                    </h3>
 
-                    <p className="mt-1 text-xs text-slate-500">
-                      Add one or more exam-style MCQs.
+                    <p className="text-xs text-slate-500">
+                      Add MCQs for this current affair.
                     </p>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      addMCQ(affairIndex)
-                    }
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    onClick={addMCQ}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
                   >
                     + Add MCQ
                   </button>
                 </div>
 
                 <div className="mt-5 space-y-5">
-                  {affair.mcqs.map(
-                    (mcq, mcqIndex) => (
+                  {form.mcqs.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      No MCQs added.
+                    </p>
+                  ) : (
+                    form.mcqs.map((mcq, mcqIndex) => (
                       <div
                         key={mcqIndex}
-                        className="rounded-2xl border border-slate-200 bg-white p-5"
+                        className="rounded-2xl border bg-white p-5"
                       >
                         <div className="mb-4 flex items-center justify-between">
-                          <h5 className="font-bold">
+                          <h4 className="font-bold">
                             MCQ {mcqIndex + 1}
-                          </h5>
+                          </h4>
 
-                          {affair.mcqs.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeMCQ(
-                                  affairIndex,
-                                  mcqIndex,
-                                )
-                              }
-                              className="text-sm font-semibold text-red-600 hover:text-red-700"
-                            >
-                              Remove
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeMCQ(mcqIndex)
+                            }
+                            className="text-sm font-semibold text-red-600"
+                          >
+                            Remove
+                          </button>
                         </div>
 
-                        {/* QUESTION */}
-                        <label className="text-sm font-semibold">
-                          Question *
-                        </label>
-
-                        <textarea
-                          rows={3}
+                        <input
+                          type="text"
                           value={mcq.question}
-                          onChange={(event) =>
+                          onChange={(e) =>
                             updateMCQ(
-                              affairIndex,
                               mcqIndex,
                               "question",
-                              event.target.value,
+                              e.target.value,
                             )
                           }
-                          placeholder="Enter MCQ question..."
-                          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                          placeholder="Question"
+                          className="w-full rounded-xl border px-4 py-3 text-sm"
                         />
 
-                        {/* OPTIONS */}
-                        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           {mcq.options.map(
                             (option, optionIndex) => (
-                              <div key={optionIndex}>
-                                <label className="text-sm font-semibold">
-                                  Option{" "}
-                                  {String.fromCharCode(
-                                    65 + optionIndex,
-                                  )}{" "}
-                                  *
-                                </label>
-
-                                <input
-                                  type="text"
-                                  value={option}
-                                  onChange={(event) =>
-                                    updateMCQOption(
-                                      affairIndex,
-                                      mcqIndex,
-                                      optionIndex,
-                                      event.target.value,
-                                    )
-                                  }
-                                  placeholder={`Option ${String.fromCharCode(
-                                    65 + optionIndex,
-                                  )}`}
-                                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
-                                />
-                              </div>
+                              <input
+                                key={optionIndex}
+                                type="text"
+                                value={option}
+                                onChange={(e) =>
+                                  updateMCQOption(
+                                    mcqIndex,
+                                    optionIndex,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder={`Option ${
+                                  optionIndex + 1
+                                }`}
+                                className="rounded-xl border px-4 py-3 text-sm"
+                              />
                             ),
                           )}
                         </div>
 
-                        {/* ANSWER */}
-                        <div className="mt-5">
-                          <label className="text-sm font-semibold">
-                            Correct Answer *
-                          </label>
+                        <input
+                          type="text"
+                          value={mcq.answer}
+                          onChange={(e) =>
+                            updateMCQ(
+                              mcqIndex,
+                              "answer",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Correct answer"
+                          className="mt-4 w-full rounded-xl border px-4 py-3 text-sm"
+                        />
 
-                          <select
-                            value={mcq.answer}
-                            onChange={(event) =>
-                              updateMCQ(
-                                affairIndex,
-                                mcqIndex,
-                                "answer",
-                                event.target.value,
-                              )
-                            }
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
-                          >
-                            <option value="">
-                              Select correct option
-                            </option>
-
-                            <option value="A">
-                              A
-                            </option>
-
-                            <option value="B">
-                              B
-                            </option>
-
-                            <option value="C">
-                              C
-                            </option>
-
-                            <option value="D">
-                              D
-                            </option>
-                          </select>
-                        </div>
-
-                        {/* EXPLANATION */}
-                        <div className="mt-5">
-                          <label className="text-sm font-semibold">
-                            Explanation
-                          </label>
-
-                          <textarea
-                            rows={3}
-                            value={mcq.explanation}
-                            onChange={(event) =>
-                              updateMCQ(
-                                affairIndex,
-                                mcqIndex,
-                                "explanation",
-                                event.target.value,
-                              )
-                            }
-                            placeholder="Explain the correct answer..."
-                            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
-                          />
-                        </div>
+                        <textarea
+                          rows={2}
+                          value={mcq.explanation || ""}
+                          onChange={(e) =>
+                            updateMCQ(
+                              mcqIndex,
+                              "explanation",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Explanation (optional)"
+                          className="mt-4 w-full rounded-xl border px-4 py-3 text-sm"
+                        />
                       </div>
-                    ),
+                    ))
                   )}
                 </div>
               </div>
-            </section>
-          ))}
+            </div>
+
+            {/* FOOTER */}
+            <div className="flex justify-end gap-3 border-t px-6 py-4">
+              <button
+                type="button"
+                onClick={closeForm}
+                disabled={loading}
+                className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={loading}
+                className="rounded-xl bg-green-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+              >
+                {loading
+                  ? "Saving..."
+                  : editingId
+                    ? "Update Affair"
+                    : "Save Affair"}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* ACTIONS */}
-        <div className="mt-8 flex flex-col gap-3 rounded-3xl bg-white p-6 shadow-sm sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={resetForm}
-            disabled={loading}
-            className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            Reset Form
-          </button>
+      {/* =====================================================
+          CSV MODAL
+          ===================================================== */}
 
-          <button
-            type="button"
-            onClick={handleUpload}
-            disabled={loading}
-            className="rounded-xl bg-green-600 px-8 py-3 text-sm font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading
-              ? "Uploading..."
-              : "🚀 Publish Top 10 Current Affairs"}
-          </button>
+      {showCSV && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
+          <div className="mx-auto my-10 max-w-6xl rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b px-6 py-5">
+              <div>
+                <h2 className="text-xl font-bold">
+                  📄 Current Affairs CSV Upload
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Upload daily Top 10 current affairs.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!loading) {
+                    setShowCSV(false);
+                    setCSVRows([]);
+                    setCSVFileName("");
+                  }
+                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                <div className="text-4xl">
+                  📰
+                </div>
+
+                <h3 className="mt-3 font-bold">
+                  Upload Current Affairs CSV
+                </h3>
+
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleCSVFile}
+                  className="mt-5 block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white"
+                />
+
+                {csvFileName && (
+                  <p className="mt-3 text-sm font-semibold text-blue-600">
+                    Selected: {csvFileName}
+                  </p>
+                )}
+              </div>
+
+              {csvRows.length > 0 && (
+                <div className="mt-6">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold">
+                        CSV Preview
+                      </h3>
+
+                      <p className="text-sm text-slate-500">
+                        {csvRows.length} rows ready.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCSVUpload}
+                      disabled={loading}
+                      className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                    >
+                      {loading
+                        ? "Uploading..."
+                        : "Upload All"}
+                    </button>
+                  </div>
+
+                  <div className="max-h-[400px] overflow-auto rounded-2xl border">
+                    <table className="min-w-[1000px] w-full text-left text-sm">
+                      <thead className="sticky top-0 bg-slate-100">
+                        <tr>
+                          <th className="px-4 py-3">
+                            Date
+                          </th>
+
+                          <th className="px-4 py-3">
+                            #
+                          </th>
+
+                          <th className="px-4 py-3">
+                            Title
+                          </th>
+
+                          <th className="px-4 py-3">
+                            Why in News
+                          </th>
+
+                          <th className="px-4 py-3">
+                            MCQs
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {csvRows.slice(0, 100).map(
+                          (row, index) => (
+                            <tr
+                              key={`${row.affair_date}-${row.serial_no}-${index}`}
+                              className="border-t"
+                            >
+                              <td className="px-4 py-3">
+                                {row.affair_date}
+                              </td>
+
+                              <td className="px-4 py-3 font-bold">
+                                {row.serial_no}
+                              </td>
+
+                              <td className="px-4 py-3 font-semibold">
+                                {row.title}
+                              </td>
+
+                              <td className="max-w-[350px] px-4 py-3">
+                                <span className="line-clamp-2">
+                                  {row.why_in_news}
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-3">
+                                {row.mcqs.length}
+                              </td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
+                <p className="text-sm font-semibold">
+                  Required CSV columns
+                </p>
+
+                <p className="mt-2 break-all font-mono text-xs text-slate-300">
+                  affair_date, serial_no, title,
+                  why_in_news, key_facts, exam_point,
+                  static_gk, mcqs
+                </p>
+
+                <p className="mt-3 text-xs text-slate-400">
+                  `mcqs` column mein valid JSON array
+                  hona chahiye.
+                </p>
+
+                <p className="mt-2 text-xs text-slate-400">
+                  Example MCQ JSON:
+                </p>
+
+                <pre className="mt-2 overflow-x-auto rounded-lg bg-black/30 p-3 text-[11px] text-slate-300">
+{`[
+  {
+    "question": "Example question?",
+    "options": ["A", "B", "C", "D"],
+    "answer": "A",
+    "explanation": "Explanation"
+  }
+]`}
+                </pre>
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* DATABASE INFO */}
-        <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
-          <p className="text-sm font-bold">
-            Database
-          </p>
-
-          <p className="mt-2 font-mono text-xs text-slate-300">
-            public.current_affairs
-          </p>
-
-          <p className="mt-3 text-xs text-slate-400">
-            10 rows will be inserted with the selected
-            affair_date. MCQs are stored in the mcqs JSONB
-            column.
-          </p>
-        </div>
-      </main>
+      )}
     </div>
   );
 }
+
+export default AdminCurrentAffairs;
