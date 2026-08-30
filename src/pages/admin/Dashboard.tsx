@@ -21,14 +21,22 @@ interface SyllabusRow {
   is_active: boolean;
 }
 
+interface MCQ {
+  question: string;
+  options: string[];
+  answer: string;
+  explanation?: string;
+}
+
 interface CurrentAffairRow {
-  external_id: string;
+  affair_date: string;
+  serial_no: number;
   title: string;
-  summary: string;
-  category: string;
-  date: string;
-  source: string | null;
-  is_active: boolean;
+  why_in_news: string;
+  key_facts: string;
+  exam_point: string;
+  static_gk: string;
+  mcqs: MCQ[];
 }
 
 /* =====================================================
@@ -37,6 +45,7 @@ interface CurrentAffairRow {
 
 export function AdminDashboard() {
   const navigate = useNavigate();
+
   const { user, profile, signOut } = useAuth();
 
   const syllabusFileInputRef =
@@ -49,8 +58,10 @@ export function AdminDashboard() {
      MODALS
   ===================================================== */
 
-  const [showSyllabusManager, setShowSyllabusManager] =
-    useState(false);
+  const [
+    showSyllabusManager,
+    setShowSyllabusManager,
+  ] = useState(false);
 
   const [
     showCurrentAffairsManager,
@@ -61,17 +72,20 @@ export function AdminDashboard() {
      SYLLABUS STATES
   ===================================================== */
 
-  const [csvRows, setCsvRows] = useState<SyllabusRow[]>(
-    [],
-  );
+  const [csvRows, setCsvRows] =
+    useState<SyllabusRow[]>([]);
 
-  const [fileName, setFileName] = useState("");
+  const [fileName, setFileName] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [message, setMessage] = useState("");
+  const [message, setMessage] =
+    useState("");
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
   /* =====================================================
      CURRENT AFFAIRS STATES
@@ -108,6 +122,7 @@ export function AdminDashboard() {
 
   async function handleLogout() {
     await signOut();
+
     navigate("/admin/login");
   }
 
@@ -115,14 +130,20 @@ export function AdminDashboard() {
      COMMON CSV FUNCTIONS
   ===================================================== */
 
-  function parseCSVLine(line: string): string[] {
+  function parseCSVLine(
+    line: string,
+  ): string[] {
     const values: string[] = [];
 
     let current = "";
 
     let insideQuotes = false;
 
-    for (let i = 0; i < line.length; i++) {
+    for (
+      let i = 0;
+      i < line.length;
+      i++
+    ) {
       const char = line[i];
 
       if (char === '"') {
@@ -133,25 +154,33 @@ export function AdminDashboard() {
           current += '"';
           i++;
         } else {
-          insideQuotes = !insideQuotes;
+          insideQuotes =
+            !insideQuotes;
         }
       } else if (
         char === "," &&
         !insideQuotes
       ) {
-        values.push(current.trim());
+        values.push(
+          current.trim(),
+        );
+
         current = "";
       } else {
         current += char;
       }
     }
 
-    values.push(current.trim());
+    values.push(
+      current.trim(),
+    );
 
     return values;
   }
 
-  function parseBoolean(value: string): boolean {
+  function parseBoolean(
+    value: string,
+  ): boolean {
     const normalized =
       value.trim().toLowerCase();
 
@@ -166,9 +195,12 @@ export function AdminDashboard() {
   function normalizeValue(
     value: string | undefined,
   ): string | null {
-    const trimmed = value?.trim() || "";
+    const trimmed =
+      value?.trim() || "";
 
-    return trimmed ? trimmed : null;
+    return trimmed
+      ? trimmed
+      : null;
   }
 
   /* =====================================================
@@ -176,7 +208,9 @@ export function AdminDashboard() {
   ===================================================== */
 
   function openSyllabusManager() {
-    setShowSyllabusManager(true);
+    setShowSyllabusManager(
+      true,
+    );
 
     setMessage("");
     setError("");
@@ -185,16 +219,22 @@ export function AdminDashboard() {
   function closeSyllabusManager() {
     if (loading) return;
 
-    setShowSyllabusManager(false);
+    setShowSyllabusManager(
+      false,
+    );
 
     setCsvRows([]);
+
     setFileName("");
 
     setMessage("");
     setError("");
 
-    if (syllabusFileInputRef.current) {
-      syllabusFileInputRef.current.value = "";
+    if (
+      syllabusFileInputRef.current
+    ) {
+      syllabusFileInputRef.current.value =
+        "";
     }
   }
 
@@ -215,11 +255,14 @@ export function AdminDashboard() {
       );
     }
 
-    const headers = parseCSVLine(
-      lines[0],
-    ).map((header) =>
-      header.trim().toLowerCase(),
-    );
+    const headers =
+      parseCSVLine(
+        lines[0],
+      ).map((header) =>
+        header
+          .trim()
+          .toLowerCase(),
+      );
 
     const requiredHeaders = [
       "external_id",
@@ -235,168 +278,201 @@ export function AdminDashboard() {
       "is_active",
     ];
 
-    for (const required of requiredHeaders) {
-      if (!headers.includes(required)) {
+    for (
+      const required of requiredHeaders
+    ) {
+      if (
+        !headers.includes(
+          required,
+        )
+      ) {
         throw new Error(
           `Missing CSV column: ${required}`,
         );
       }
     }
 
-    const rows: SyllabusRow[] = [];
+    const rows: SyllabusRow[] =
+      [];
 
     lines
       .slice(1)
-      .forEach((line, index) => {
-        const values =
-          parseCSVLine(line);
+      .forEach(
+        (line, index) => {
+          const values =
+            parseCSVLine(
+              line,
+            );
 
-        const row: Record<
-          string,
-          string
-        > = {};
+          const row: Record<
+            string,
+            string
+          > = {};
 
-        headers.forEach(
-          (header, columnIndex) => {
-            row[header] =
-              values[columnIndex] ?? "";
-          },
-        );
-
-        const rowNumber = index + 2;
-
-        const externalId =
-          row.external_id?.trim();
-
-        const category =
-          row.category
-            ?.trim()
-            .toLowerCase();
-
-        if (!externalId) {
-          throw new Error(
-            `Row ${rowNumber}: external_id is required.`,
+          headers.forEach(
+            (
+              header,
+              columnIndex,
+            ) => {
+              row[header] =
+                values[
+                  columnIndex
+                ] ?? "";
+            },
           );
-        }
 
-        if (
-          category !== "school" &&
-          category !== "government_exam"
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: category must be school or government_exam.`,
-          );
-        }
+          const rowNumber =
+            index + 2;
 
-        if (!row.subject?.trim()) {
-          throw new Error(
-            `Row ${rowNumber}: subject is required.`,
-          );
-        }
+          const externalId =
+            row.external_id?.trim();
 
-        if (
-          !row.chapter_name?.trim()
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: chapter_name is required.`,
-          );
-        }
+          const category =
+            row.category
+              ?.trim()
+              .toLowerCase();
 
-        if (category === "school") {
+          if (!externalId) {
+            throw new Error(
+              `Row ${rowNumber}: external_id is required.`,
+            );
+          }
+
           if (
-            !row.class_name?.trim()
+            category !== "school" &&
+            category !==
+              "government_exam"
           ) {
             throw new Error(
-              `Row ${rowNumber}: class_name is required for school syllabus.`,
+              `Row ${rowNumber}: category must be school or government_exam.`,
             );
           }
 
-          if (!row.board?.trim()) {
+          if (
+            !row.subject?.trim()
+          ) {
             throw new Error(
-              `Row ${rowNumber}: board is required for school syllabus.`,
+              `Row ${rowNumber}: subject is required.`,
             );
           }
-        }
 
-        if (
-          category ===
-          "government_exam"
-        ) {
-          if (!row.exam?.trim()) {
+          if (
+            !row.chapter_name?.trim()
+          ) {
             throw new Error(
-              `Row ${rowNumber}: exam is required for government_exam.`,
+              `Row ${rowNumber}: chapter_name is required.`,
             );
           }
-        }
 
-        const parsedOrder = Number(
-          row.order_no || "1",
-        );
-
-        if (
-          !Number.isFinite(
-            parsedOrder,
-          )
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: order_no must be a number.`,
-          );
-        }
-
-        rows.push({
-          external_id: externalId,
-
-          category,
-
-          class_name:
+          if (
             category === "school"
-              ? normalizeValue(
-                  row.class_name,
-                )
-              : null,
+          ) {
+            if (
+              !row.class_name?.trim()
+            ) {
+              throw new Error(
+                `Row ${rowNumber}: class_name is required for school syllabus.`,
+              );
+            }
 
-          board:
-            category === "school"
-              ? normalizeValue(
-                  row.board,
-                )
-              : null,
+            if (
+              !row.board?.trim()
+            ) {
+              throw new Error(
+                `Row ${rowNumber}: board is required for school syllabus.`,
+              );
+            }
+          }
 
-          exam:
+          if (
             category ===
             "government_exam"
-              ? normalizeValue(
-                  row.exam,
-                )
-              : null,
+          ) {
+            if (
+              !row.exam?.trim()
+            ) {
+              throw new Error(
+                `Row ${rowNumber}: exam is required for government_exam.`,
+              );
+            }
+          }
 
-          subject:
-            row.subject.trim(),
+          const parsedOrder =
+            Number(
+              row.order_no ||
+                "1",
+            );
 
-          chapter_name:
-            row.chapter_name.trim(),
+          if (
+            !Number.isFinite(
+              parsedOrder,
+            )
+          ) {
+            throw new Error(
+              `Row ${rowNumber}: order_no must be a number.`,
+            );
+          }
 
-          topic_name:
-            normalizeValue(
-              row.topic_name,
-            ),
+          rows.push({
+            external_id:
+              externalId,
 
-          key_points:
-            normalizeValue(
-              row.key_points,
-            ),
+            category:
+              category as
+                | "school"
+                | "government_exam",
 
-          order_no:
-            parsedOrder,
+            class_name:
+              category === "school"
+                ? normalizeValue(
+                    row.class_name,
+                  )
+                : null,
 
-          is_active:
-            parseBoolean(
-              row.is_active,
-            ),
-        });
-      });
+            board:
+              category === "school"
+                ? normalizeValue(
+                    row.board,
+                  )
+                : null,
 
-    const ids = new Set<string>();
+            exam:
+              category ===
+              "government_exam"
+                ? normalizeValue(
+                    row.exam,
+                  )
+                : null,
+
+            subject:
+              row.subject.trim(),
+
+            chapter_name:
+              row.chapter_name.trim(),
+
+            topic_name:
+              normalizeValue(
+                row.topic_name,
+              ),
+
+            key_points:
+              normalizeValue(
+                row.key_points,
+              ),
+
+            order_no:
+              parsedOrder,
+
+            is_active:
+              parseBoolean(
+                row.is_active,
+              ),
+          });
+        },
+      );
+
+    const ids =
+      new Set<string>();
 
     for (const row of rows) {
       if (
@@ -465,12 +541,14 @@ export function AdminDashboard() {
         } loaded successfully.`,
       );
     } catch (err) {
-      const message =
+      const errorMessage =
         err instanceof Error
           ? err.message
           : "Unable to read CSV file.";
 
-      setError(message);
+      setError(
+        errorMessage,
+      );
 
       setFileName("");
     }
@@ -515,12 +593,14 @@ export function AdminDashboard() {
         } successfully inserted/updated.`,
       );
     } catch (err) {
-      const message =
+      const errorMessage =
         err instanceof Error
           ? err.message
           : "Unable to upload syllabus.";
 
-      setError(message);
+      setError(
+        errorMessage,
+      );
     } finally {
       setLoading(false);
     }
@@ -535,8 +615,13 @@ export function AdminDashboard() {
       true,
     );
 
-    setCurrentAffairsMessage("");
-    setCurrentAffairsError("");
+    setCurrentAffairsMessage(
+      "",
+    );
+
+    setCurrentAffairsError(
+      "",
+    );
   }
 
   function closeCurrentAffairsManager() {
@@ -574,6 +659,10 @@ export function AdminDashboard() {
     }
   }
 
+  /* =====================================================
+     PARSE CURRENT AFFAIRS CSV
+  ===================================================== */
+
   function parseCurrentAffairsCSV(
     text: string,
   ): CurrentAffairRow[] {
@@ -601,16 +690,19 @@ export function AdminDashboard() {
       );
 
     const requiredHeaders = [
-      "external_id",
+      "affair_date",
+      "serial_no",
       "title",
-      "summary",
-      "category",
-      "date",
-      "source",
-      "is_active",
+      "why_in_news",
+      "key_facts",
+      "exam_point",
+      "static_gk",
+      "mcqs",
     ];
 
-    for (const required of requiredHeaders) {
+    for (
+      const required of requiredHeaders
+    ) {
       if (
         !headers.includes(
           required,
@@ -627,122 +719,198 @@ export function AdminDashboard() {
 
     lines
       .slice(1)
-      .forEach((line, index) => {
-        const values =
-          parseCSVLine(
-            line,
+      .forEach(
+        (line, index) => {
+          const values =
+            parseCSVLine(
+              line,
+            );
+
+          const row: Record<
+            string,
+            string
+          > = {};
+
+          headers.forEach(
+            (
+              header,
+              columnIndex,
+            ) => {
+              row[header] =
+                values[
+                  columnIndex
+                ] ?? "";
+            },
           );
 
-        const row: Record<
-          string,
-          string
-        > = {};
+          const rowNumber =
+            index + 2;
 
-        headers.forEach(
-          (
-            header,
-            columnIndex,
-          ) => {
-            row[header] =
-              values[
-                columnIndex
-              ] ?? "";
-          },
-        );
+          const affairDate =
+            row.affair_date?.trim();
 
-        const rowNumber =
-          index + 2;
+          const title =
+            row.title?.trim();
 
-        const externalId =
-          row.external_id?.trim();
+          const serialNo =
+            Number(
+              row.serial_no?.trim(),
+            );
 
-        const title =
-          row.title?.trim();
+          if (!affairDate) {
+            throw new Error(
+              `Row ${rowNumber}: affair_date is required.`,
+            );
+          }
 
-        const summary =
-          row.summary?.trim();
+          const parsedDate =
+            new Date(
+              `${affairDate}T00:00:00`,
+            );
 
-        const category =
-          row.category?.trim();
+          if (
+            Number.isNaN(
+              parsedDate.getTime(),
+            )
+          ) {
+            throw new Error(
+              `Row ${rowNumber}: affair_date must be YYYY-MM-DD.`,
+            );
+          }
 
-        const date =
-          row.date?.trim();
+          if (
+            !Number.isFinite(
+              serialNo,
+            ) ||
+            serialNo < 1
+          ) {
+            throw new Error(
+              `Row ${rowNumber}: serial_no must be a valid number.`,
+            );
+          }
 
-        if (!externalId) {
-          throw new Error(
-            `Row ${rowNumber}: external_id is required.`,
-          );
-        }
+          if (!title) {
+            throw new Error(
+              `Row ${rowNumber}: title is required.`,
+            );
+          }
 
-        if (!title) {
-          throw new Error(
-            `Row ${rowNumber}: title is required.`,
-          );
-        }
+          let mcqs: MCQ[] = [];
 
-        if (!summary) {
-          throw new Error(
-            `Row ${rowNumber}: summary is required.`,
-          );
-        }
+          if (
+            row.mcqs?.trim()
+          ) {
+            try {
+              const parsed =
+                JSON.parse(
+                  row.mcqs,
+                );
 
-        if (!category) {
-          throw new Error(
-            `Row ${rowNumber}: category is required.`,
-          );
-        }
+              if (
+                !Array.isArray(
+                  parsed,
+                )
+              ) {
+                throw new Error();
+              }
 
-        if (!date) {
-          throw new Error(
-            `Row ${rowNumber}: date is required.`,
-          );
-        }
+              mcqs =
+                parsed.map(
+                  (
+                    mcq: unknown,
+                    mcqIndex: number,
+                  ) => {
+                    const item =
+                      mcq as Partial<MCQ>;
 
-        rows.push({
-          external_id:
-            externalId,
+                    if (
+                      !item.question ||
+                      !Array.isArray(
+                        item.options,
+                      ) ||
+                      !item.answer
+                    ) {
+                      throw new Error(
+                        `MCQ ${mcqIndex + 1} is invalid`,
+                      );
+                    }
 
-          title,
+                    return {
+                      question:
+                        String(
+                          item.question,
+                        ),
 
-          summary,
+                      options:
+                        item.options.map(
+                          (option) =>
+                            String(
+                              option,
+                            ),
+                        ),
 
-          category,
+                      answer:
+                        String(
+                          item.answer,
+                        ),
 
-          date,
+                      explanation:
+                        item.explanation
+                          ? String(
+                              item.explanation,
+                            )
+                          : undefined,
+                    };
+                  },
+                );
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "Invalid JSON";
 
-          source:
-            normalizeValue(
-              row.source,
-            ),
+              throw new Error(
+                `Row ${rowNumber}: mcqs must contain valid JSON. ${errorMessage}`,
+              );
+            }
+          }
 
-          is_active:
-            parseBoolean(
-              row.is_active,
-            ),
-        });
-      });
+          rows.push({
+            affair_date:
+              affairDate,
 
-    const ids =
-      new Set<string>();
+            serial_no:
+              serialNo,
 
-    for (const row of rows) {
-      if (
-        ids.has(
-          row.external_id,
-        )
-      ) {
-        throw new Error(
-          `Duplicate external_id found: ${row.external_id}`,
-        );
-      }
+            title,
 
-      ids.add(
-        row.external_id,
+            why_in_news:
+              row.why_in_news?.trim() ||
+              "",
+
+            key_facts:
+              row.key_facts?.trim() ||
+              "",
+
+            exam_point:
+              row.exam_point?.trim() ||
+              "",
+
+            static_gk:
+              row.static_gk?.trim() ||
+              "",
+
+            mcqs,
+          });
+        },
       );
-    }
 
     return rows;
   }
+
+  /* =====================================================
+     SELECT CURRENT AFFAIRS FILE
+  ===================================================== */
 
   async function handleCurrentAffairsCSVFile(
     event: React.ChangeEvent<HTMLInputElement>,
@@ -794,27 +962,35 @@ export function AdminDashboard() {
       );
 
       setCurrentAffairsMessage(
-        `${rows.length} current affair${
+        `✅ ${rows.length} current affair${
           rows.length === 1
             ? ""
             : "s"
-        } loaded successfully.`,
+        } loaded successfully. Click Upload Current Affairs to submit.`,
       );
     } catch (err) {
-      const message =
+      const errorMessage =
         err instanceof Error
           ? err.message
           : "Unable to read CSV file.";
 
       setCurrentAffairsError(
-        message,
+        errorMessage,
       );
 
       setCurrentAffairsFileName(
         "",
       );
+
+      setCurrentAffairsRows(
+        [],
+      );
     }
   }
+
+  /* =====================================================
+     UPLOAD CURRENT AFFAIRS
+  ===================================================== */
 
   async function handleCurrentAffairsUpload() {
     setCurrentAffairsError(
@@ -841,39 +1017,50 @@ export function AdminDashboard() {
 
     try {
       const {
-        error: upsertError,
+        error: insertError,
       } = await supabase
         .from(
           "current_affairs",
         )
-        .upsert(
+        .insert(
           currentAffairsRows,
-          {
-            onConflict:
-              "external_id",
-          },
         );
 
-      if (upsertError) {
-        throw upsertError;
+      if (insertError) {
+        throw insertError;
       }
 
       setCurrentAffairsMessage(
-        `${currentAffairsRows.length} current affair${
+        `🎉 ${currentAffairsRows.length} current affair${
           currentAffairsRows.length ===
           1
             ? ""
             : "s"
-        } successfully inserted/updated.`,
+        } successfully uploaded to Supabase.`,
       );
+
+      setCurrentAffairsRows(
+        [],
+      );
+
+      setCurrentAffairsFileName(
+        "",
+      );
+
+      if (
+        currentAffairsFileInputRef.current
+      ) {
+        currentAffairsFileInputRef.current.value =
+          "";
+      }
     } catch (err) {
-      const message =
+      const errorMessage =
         err instanceof Error
           ? err.message
           : "Unable to upload current affairs.";
 
       setCurrentAffairsError(
-        message,
+        errorMessage,
       );
     } finally {
       setCurrentAffairsLoading(
@@ -892,9 +1079,11 @@ export function AdminDashboard() {
       {/* HEADER */}
 
       <header className="border-b bg-white">
+
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
 
           <div>
+
             <h1 className="text-2xl font-bold">
               PadhAI Admin
             </h1>
@@ -902,6 +1091,7 @@ export function AdminDashboard() {
             <p className="text-sm text-slate-500">
               Administration Dashboard
             </p>
+
           </div>
 
           <button
@@ -913,6 +1103,7 @@ export function AdminDashboard() {
           </button>
 
         </div>
+
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8">
@@ -942,6 +1133,7 @@ export function AdminDashboard() {
         <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
+
             <p className="text-sm font-medium text-slate-500">
               Students
             </p>
@@ -949,19 +1141,24 @@ export function AdminDashboard() {
             <p className="mt-2 text-3xl font-bold">
               —
             </p>
+
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
+
             <p className="text-sm font-medium text-slate-500">
               Syllabus
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              {csvRows.length || "—"}
+              {csvRows.length ||
+                "—"}
             </p>
+
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
+
             <p className="text-sm font-medium text-slate-500">
               Current Affairs
             </p>
@@ -970,9 +1167,11 @@ export function AdminDashboard() {
               {currentAffairsRows.length ||
                 "—"}
             </p>
+
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
+
             <p className="text-sm font-medium text-slate-500">
               AI
             </p>
@@ -980,6 +1179,7 @@ export function AdminDashboard() {
             <p className="mt-2 text-3xl font-bold text-green-600">
               ON
             </p>
+
           </div>
 
         </div>
@@ -1033,7 +1233,7 @@ export function AdminDashboard() {
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Upload weekly current affairs and important exam-focused news using CSV.
+              Upload daily or weekly exam-focused current affairs using CSV.
             </p>
 
             <button
@@ -1117,6 +1317,7 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between border-b px-6 py-5">
 
                 <div>
+
                   <h2 className="text-xl font-bold">
                     📚 Syllabus Manager
                   </h2>
@@ -1124,6 +1325,7 @@ export function AdminDashboard() {
                   <p className="mt-1 text-sm text-slate-500">
                     Upload CSV to insert or update syllabus.
                   </p>
+
                 </div>
 
                 <button
@@ -1163,23 +1365,29 @@ export function AdminDashboard() {
                   />
 
                   {fileName && (
+
                     <p className="mt-3 text-sm font-medium text-blue-600">
                       Selected: {fileName}
                     </p>
+
                   )}
 
                 </div>
 
                 {error && (
+
                   <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
                     ❌ {error}
                   </div>
+
                 )}
 
                 {message && (
+
                   <div className="mt-5 rounded-xl bg-green-50 p-4 text-sm text-green-700">
-                    ✅ {message}
+                    {message}
                   </div>
+
                 )}
 
                 {csvRows.length > 0 && (
@@ -1189,13 +1397,15 @@ export function AdminDashboard() {
                     <div className="mb-3 flex items-center justify-between">
 
                       <div>
+
                         <h3 className="font-bold">
-                          CSV Preview
+                          CSV Ready
                         </h3>
 
                         <p className="text-sm text-slate-500">
                           {csvRows.length} rows ready.
                         </p>
+
                       </div>
 
                       <button
@@ -1206,7 +1416,7 @@ export function AdminDashboard() {
                         disabled={
                           loading
                         }
-                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
                       >
                         {loading
                           ? "Uploading..."
@@ -1218,18 +1428,6 @@ export function AdminDashboard() {
                   </div>
 
                 )}
-
-                <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
-
-                  <p className="text-sm font-semibold">
-                    Required CSV columns
-                  </p>
-
-                  <p className="mt-2 break-all font-mono text-xs text-slate-300">
-                    external_id, category, class_name, board, exam, subject, chapter_name, topic_name, key_points, order_no, is_active
-                  </p>
-
-                </div>
 
               </div>
 
@@ -1268,7 +1466,7 @@ export function AdminDashboard() {
 
           <div className="flex min-h-full items-center justify-center">
 
-            <div className="w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
+            <div className="my-6 w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
 
               {/* HEADER */}
 
@@ -1281,7 +1479,7 @@ export function AdminDashboard() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Upload weekly current affairs using CSV.
+                    Upload exam-focused current affairs directly to Supabase.
                   </p>
 
                 </div>
@@ -1305,7 +1503,7 @@ export function AdminDashboard() {
 
               <div className="p-6">
 
-                {/* UPLOAD */}
+                {/* UPLOAD AREA */}
 
                 <div className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 p-8 text-center">
 
@@ -1313,12 +1511,12 @@ export function AdminDashboard() {
                     📰
                   </div>
 
-                  <h3 className="mt-3 font-bold">
-                    Upload Current Affairs CSV
+                  <h3 className="mt-3 text-lg font-bold">
+                    Select Current Affairs CSV
                   </h3>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    Upload important weekly exam-focused current affairs.
+                    After selecting a valid CSV, preview and Upload button will appear.
                   </p>
 
                   <input
@@ -1335,8 +1533,8 @@ export function AdminDashboard() {
 
                   {currentAffairsFileName && (
 
-                    <p className="mt-3 text-sm font-medium text-blue-600">
-                      Selected:{" "}
+                    <p className="mt-4 font-medium text-blue-600">
+                      📄 Selected:{" "}
                       {
                         currentAffairsFileName
                       }
@@ -1350,7 +1548,7 @@ export function AdminDashboard() {
 
                 {currentAffairsError && (
 
-                  <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700">
+                  <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
                     ❌ {currentAffairsError}
                   </div>
 
@@ -1360,34 +1558,38 @@ export function AdminDashboard() {
 
                 {currentAffairsMessage && (
 
-                  <div className="mt-5 rounded-xl bg-green-50 p-4 text-sm font-medium text-green-700">
-                    ✅ {currentAffairsMessage}
+                  <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700">
+                    {currentAffairsMessage}
                   </div>
 
                 )}
 
-                {/* PREVIEW */}
+                {/* =====================================================
+                    PREVIEW + UPLOAD BUTTON
+                ===================================================== */}
 
                 {currentAffairsRows.length > 0 && (
 
                   <div className="mt-6">
 
-                    <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                       <div>
 
-                        <h3 className="font-bold">
+                        <h3 className="text-lg font-bold">
                           CSV Preview
                         </h3>
 
-                        <p className="text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-slate-500">
                           {
                             currentAffairsRows.length
                           }{" "}
-                          rows ready for upload.
+                          rows are ready for upload.
                         </p>
 
                       </div>
+
+                      {/* IMPORTANT UPLOAD BUTTON */}
 
                       <button
                         type="button"
@@ -1397,35 +1599,27 @@ export function AdminDashboard() {
                         disabled={
                           currentAffairsLoading
                         }
-                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                        className="rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {currentAffairsLoading
                           ? "Uploading..."
-                          : "Upload / Update"}
+                          : "🚀 Upload Current Affairs"}
                       </button>
 
                     </div>
 
                     {/* TABLE */}
 
-                    <div className="max-h-[420px] overflow-auto rounded-2xl border">
+                    <div className="max-h-[420px] overflow-auto rounded-2xl border border-slate-200">
 
-                      <table className="min-w-[1000px] w-full text-left text-sm">
+                      <table className="min-w-[1300px] w-full text-left text-sm">
 
                         <thead className="sticky top-0 bg-slate-100">
 
                           <tr>
 
                             <th className="px-4 py-3">
-                              ID
-                            </th>
-
-                            <th className="px-4 py-3">
-                              Title
-                            </th>
-
-                            <th className="px-4 py-3">
-                              Category
+                              #
                             </th>
 
                             <th className="px-4 py-3">
@@ -1433,15 +1627,27 @@ export function AdminDashboard() {
                             </th>
 
                             <th className="px-4 py-3">
-                              Summary
+                              Title
                             </th>
 
                             <th className="px-4 py-3">
-                              Source
+                              Why in News
                             </th>
 
                             <th className="px-4 py-3">
-                              Active
+                              Key Facts
+                            </th>
+
+                            <th className="px-4 py-3">
+                              Exam Point
+                            </th>
+
+                            <th className="px-4 py-3">
+                              Static GK
+                            </th>
+
+                            <th className="px-4 py-3">
+                              MCQs
                             </th>
 
                           </tr>
@@ -1458,54 +1664,73 @@ export function AdminDashboard() {
                             .map(
                               (
                                 row,
+                                index,
                               ) => (
 
                                 <tr
-                                  key={
-                                    row.external_id
-                                  }
-                                  className="border-t"
+                                  key={`${row.affair_date}-${row.serial_no}-${index}`}
+                                  className="border-t border-slate-200"
                                 >
 
-                                  <td className="px-4 py-3 font-mono text-xs">
+                                  <td className="px-4 py-3 font-bold">
                                     {
-                                      row.external_id
+                                      row.serial_no
                                     }
                                   </td>
 
-                                  <td className="px-4 py-3 font-semibold">
+                                  <td className="whitespace-nowrap px-4 py-3">
+                                    {
+                                      row.affair_date
+                                    }
+                                  </td>
+
+                                  <td className="min-w-[220px] px-4 py-3 font-semibold">
                                     {
                                       row.title
                                     }
                                   </td>
 
-                                  <td className="px-4 py-3">
+                                  <td className="min-w-[280px] px-4 py-3">
                                     {
-                                      row.category
+                                      row.why_in_news
+                                    }
+                                  </td>
+
+                                  <td className="min-w-[280px] px-4 py-3">
+                                    {
+                                      row.key_facts
+                                    }
+                                  </td>
+
+                                  <td className="min-w-[220px] px-4 py-3">
+                                    {
+                                      row.exam_point
+                                    }
+                                  </td>
+
+                                  <td className="min-w-[220px] px-4 py-3">
+                                    {
+                                      row.static_gk ||
+                                        "—"
                                     }
                                   </td>
 
                                   <td className="px-4 py-3">
-                                    {
-                                      row.date
-                                    }
-                                  </td>
 
-                                  <td className="max-w-md px-4 py-3">
-                                    {
-                                      row.summary
-                                    }
-                                  </td>
+                                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                                      {
+                                        row.mcqs
+                                          .length
+                                      }{" "}
+                                      MCQ
+                                      {row
+                                        .mcqs
+                                        .length !==
+                                      1
+                                        ? "s"
+                                        : ""}
+                                    </span>
 
-                                  <td className="px-4 py-3">
-                                    {row.source ||
-                                      "—"}
-                                  </td>
-
-                                  <td className="px-4 py-3">
-                                    {row.is_active
-                                      ? "Yes"
-                                      : "No"}
                                   </td>
 
                                 </tr>
@@ -1541,15 +1766,19 @@ export function AdminDashboard() {
                 <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
 
                   <p className="text-sm font-semibold">
-                    Required Current Affairs CSV columns
+                    Required CSV Columns
                   </p>
 
                   <p className="mt-2 break-all font-mono text-xs text-slate-300">
-                    external_id, title, summary, category, date, source, is_active
+                    affair_date, serial_no, title, why_in_news, key_facts, exam_point, static_gk, mcqs
                   </p>
 
                   <p className="mt-3 text-xs text-slate-400">
-                    Existing external_id = update | New external_id = insert
+                    affair_date format: YYYY-MM-DD
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    For no MCQs, use: []
                   </p>
 
                 </div>
@@ -1562,10 +1791,36 @@ export function AdminDashboard() {
                     Example CSV
                   </p>
 
-                  <pre className="mt-3 overflow-x-auto text-xs text-blue-800">
-{`external_id,title,summary,category,date,source,is_active
-CA001,New Education Policy Update,"Important education policy update for students",National,2026-08-30,PIB,true
-CA002,ISRO Space Mission,"Important space mission update",Science & Tech,2026-08-30,ISRO,true`}
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-blue-800">
+{`affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs
+2026-08-30,1,ISRO Space Mission,"ISRO announced a new space mission","Important mission facts","Remember mission name and objective","ISRO HQ: Bengaluru","[]"
+2026-08-30,2,New Government Scheme,"Government launched a new scheme","Beneficiaries and key features","Remember scheme and ministry","Important Government Schemes","[]"`}
+                  </pre>
+
+                </div>
+
+                {/* MCQ FORMAT */}
+
+                <div className="mt-4 rounded-2xl bg-amber-50 p-5">
+
+                  <p className="font-semibold text-amber-900">
+                    MCQ JSON Example
+                  </p>
+
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-amber-800">
+{`[
+  {
+    "question": "ISRO headquarters is located in?",
+    "options": [
+      "Delhi",
+      "Bengaluru",
+      "Mumbai",
+      "Chennai"
+    ],
+    "answer": "Bengaluru",
+    "explanation": "ISRO headquarters is located in Bengaluru."
+  }
+]`}
                   </pre>
 
                 </div>
@@ -1584,7 +1839,7 @@ CA002,ISRO Space Mission,"Important space mission update",Science & Tech,2026-08
                   disabled={
                     currentAffairsLoading
                   }
-                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50"
+                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   Close
                 </button>
@@ -1602,3 +1857,5 @@ CA002,ISRO Space Mission,"Important space mission update",Science & Tech,2026-08
     </div>
   );
 }
+
+export default AdminDashboard;
