@@ -52,7 +52,7 @@ export function StudentDashboard() {
   }
 
   function handleQuickRevision() {
-    navigate("/student/quick-revision");
+    alert(t("common.comingSoon"));
   }
 
   function handleDailyNewspaper() {
@@ -77,9 +77,8 @@ export function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI
@@ -91,7 +90,9 @@ export function StudentDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <LanguageToggle />
+            <div className="hidden md:block">
+              <LanguageToggle />
+            </div>
 
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-slate-800 dark:text-white">
@@ -103,7 +104,6 @@ export function StudentDashboard() {
               </p>
             </div>
 
-            {/* 3 DOT MENU */}
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -116,7 +116,11 @@ export function StudentDashboard() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                  <div className="mb-2 px-1 md:hidden">
+                    <LanguageToggle />
+                  </div>
+
                   <button
                     type="button"
                     onClick={handleSyllabus}
@@ -210,7 +214,6 @@ export function StudentDashboard() {
         </div>
       </header>
 
-      {/* MAIN */}
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -223,7 +226,6 @@ export function StudentDashboard() {
               t("common.student")}
           </p>
 
-          {/* PROFILE INFO */}
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <InfoCard
               label={t("dashboard.class")}
@@ -244,7 +246,6 @@ export function StudentDashboard() {
             />
           </div>
 
-          {/* FEATURES */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <DashboardCard
               icon="📰"
@@ -254,7 +255,7 @@ export function StudentDashboard() {
               )}
               action={t("dashboard.cards.newspaper.action")}
               badge={t("common.premium")}
-              badgeClass="bg-amber-500"
+              badgeClass="bg-amber-500 text-white"
               className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20"
               actionClass="text-amber-600 dark:text-amber-400"
               onClick={handleDailyNewspaper}
@@ -270,7 +271,7 @@ export function StudentDashboard() {
                 "dashboard.cards.currentAffairs.action",
               )}
               badge={t("common.free")}
-              badgeClass="bg-green-600"
+              badgeClass="bg-green-600 text-white"
               className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
               actionClass="text-green-600 dark:text-green-400"
               onClick={handleCurrentAffairs}
@@ -316,8 +317,8 @@ export function StudentDashboard() {
               description={t("dashboard.cards.videos.description")}
               action={t("common.comingSoon")}
               className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
-              actionClass="text-blue-600"
-              onClick={() => {}}
+              actionClass="text-blue-600 dark:text-blue-400"
+              onClick={() => alert(t("common.comingSoon"))}
             />
           </div>
 
@@ -394,7 +395,7 @@ function DashboardCard({
 
         {badge && (
           <span
-            className={`rounded-full px-2.5 py-1 text-[10px] font-bold text-white ${badgeClass}`}
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${badgeClass}`}
           >
             {badge}
           </span>
