@@ -1,32 +1,33 @@
-import { Link, Outlet } from "react-router-dom";
-import { Logo } from "../components/Logo";
+import { Outlet, Link } from "react-router-dom";
 import { LanguageToggle } from "../components/LanguageToggle";
-import { ThemeToggle } from "../components/ThemeToggle";
 
 export function RootLayout() {
   return (
-    <div className="min-h-svh flex flex-col">
-      <header className="border-b border-ink/10 dark:border-paper/10">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-          <Link to="/" aria-label="PadhAI home">
-            <Logo />
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+      {/* HEADER */}
+      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+          {/* LOGO */}
+          <Link
+            to="/"
+            className="text-xl font-bold text-blue-600 sm:text-2xl"
+          >
+            PadhAI
           </Link>
-          <div className="flex items-center gap-3">
+
+          {/* RIGHT SIDE */}
+          <div className="flex items-center">
             <LanguageToggle />
-            <ThemeToggle />
           </div>
         </div>
       </header>
 
-      <main className="flex-1">
+      {/* PAGE CONTENT */}
+      <main>
         <Outlet />
       </main>
-
-      <footer className="border-t border-ink/10 dark:border-paper/10">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 text-sm text-ink-soft dark:text-paper/60">
-          © {new Date().getFullYear()} PadhAI
-        </div>
-      </footer>
     </div>
   );
 }
+
+export default RootLayout;
