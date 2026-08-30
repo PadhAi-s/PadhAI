@@ -46,7 +46,8 @@ interface CurrentAffairRow {
 export function AdminDashboard() {
   const navigate = useNavigate();
 
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut } =
+    useAuth();
 
   const syllabusFileInputRef =
     useRef<HTMLInputElement>(null);
@@ -72,20 +73,30 @@ export function AdminDashboard() {
      SYLLABUS STATES
   ===================================================== */
 
-  const [csvRows, setCsvRows] =
-    useState<SyllabusRow[]>([]);
+  const [
+    csvRows,
+    setCsvRows,
+  ] = useState<SyllabusRow[]>([]);
 
-  const [fileName, setFileName] =
-    useState("");
+  const [
+    fileName,
+    setFileName,
+  ] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  const [message, setMessage] =
-    useState("");
+  const [
+    message,
+    setMessage,
+  ] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
   /* =====================================================
      CURRENT AFFAIRS STATES
@@ -144,7 +155,8 @@ export function AdminDashboard() {
       i < line.length;
       i++
     ) {
-      const char = line[i];
+      const char =
+        line[i];
 
       if (char === '"') {
         if (
@@ -182,7 +194,9 @@ export function AdminDashboard() {
     value: string,
   ): boolean {
     const normalized =
-      value.trim().toLowerCase();
+      value
+        .trim()
+        .toLowerCase();
 
     return ![
       "false",
@@ -208,9 +222,7 @@ export function AdminDashboard() {
   ===================================================== */
 
   function openSyllabusManager() {
-    setShowSyllabusManager(
-      true,
-    );
+    setShowSyllabusManager(true);
 
     setMessage("");
     setError("");
@@ -219,12 +231,9 @@ export function AdminDashboard() {
   function closeSyllabusManager() {
     if (loading) return;
 
-    setShowSyllabusManager(
-      false,
-    );
+    setShowSyllabusManager(false);
 
     setCsvRows([]);
-
     setFileName("");
 
     setMessage("");
@@ -339,7 +348,8 @@ export function AdminDashboard() {
           }
 
           if (
-            category !== "school" &&
+            category !==
+              "school" &&
             category !==
               "government_exam"
           ) {
@@ -365,7 +375,8 @@ export function AdminDashboard() {
           }
 
           if (
-            category === "school"
+            category ===
+            "school"
           ) {
             if (
               !row.class_name?.trim()
@@ -417,20 +428,19 @@ export function AdminDashboard() {
             external_id:
               externalId,
 
-            category:
-              category as
-                | "school"
-                | "government_exam",
+            category,
 
             class_name:
-              category === "school"
+              category ===
+              "school"
                 ? normalizeValue(
                     row.class_name,
                   )
                 : null,
 
             board:
-              category === "school"
+              category ===
+              "school"
                 ? normalizeValue(
                     row.board,
                   )
@@ -474,7 +484,9 @@ export function AdminDashboard() {
     const ids =
       new Set<string>();
 
-    for (const row of rows) {
+    for (
+      const row of rows
+    ) {
       if (
         ids.has(
           row.external_id,
@@ -659,10 +671,6 @@ export function AdminDashboard() {
     }
   }
 
-  /* =====================================================
-     PARSE CURRENT AFFAIRS CSV
-  ===================================================== */
-
   function parseCurrentAffairsCSV(
     text: string,
   ): CurrentAffairRow[] {
@@ -749,13 +757,13 @@ export function AdminDashboard() {
           const affairDate =
             row.affair_date?.trim();
 
-          const title =
-            row.title?.trim();
-
           const serialNo =
             Number(
               row.serial_no?.trim(),
             );
+
+          const title =
+            row.title?.trim();
 
           if (!affairDate) {
             throw new Error(
@@ -763,29 +771,13 @@ export function AdminDashboard() {
             );
           }
 
-          const parsedDate =
-            new Date(
-              `${affairDate}T00:00:00`,
-            );
-
-          if (
-            Number.isNaN(
-              parsedDate.getTime(),
-            )
-          ) {
-            throw new Error(
-              `Row ${rowNumber}: affair_date must be YYYY-MM-DD.`,
-            );
-          }
-
           if (
             !Number.isFinite(
               serialNo,
-            ) ||
-            serialNo < 1
+            )
           ) {
             throw new Error(
-              `Row ${rowNumber}: serial_no must be a valid number.`,
+              `Row ${rowNumber}: serial_no must be a number.`,
             );
           }
 
@@ -795,15 +787,17 @@ export function AdminDashboard() {
             );
           }
 
-          let mcqs: MCQ[] = [];
+          let parsedMcqs: MCQ[] =
+            [];
 
-          if (
-            row.mcqs?.trim()
-          ) {
+          const mcqsValue =
+            row.mcqs?.trim();
+
+          if (mcqsValue) {
             try {
               const parsed =
                 JSON.parse(
-                  row.mcqs,
+                  mcqsValue,
                 );
 
               if (
@@ -814,63 +808,11 @@ export function AdminDashboard() {
                 throw new Error();
               }
 
-              mcqs =
-                parsed.map(
-                  (
-                    mcq: unknown,
-                    mcqIndex: number,
-                  ) => {
-                    const item =
-                      mcq as Partial<MCQ>;
-
-                    if (
-                      !item.question ||
-                      !Array.isArray(
-                        item.options,
-                      ) ||
-                      !item.answer
-                    ) {
-                      throw new Error(
-                        `MCQ ${mcqIndex + 1} is invalid`,
-                      );
-                    }
-
-                    return {
-                      question:
-                        String(
-                          item.question,
-                        ),
-
-                      options:
-                        item.options.map(
-                          (option) =>
-                            String(
-                              option,
-                            ),
-                        ),
-
-                      answer:
-                        String(
-                          item.answer,
-                        ),
-
-                      explanation:
-                        item.explanation
-                          ? String(
-                              item.explanation,
-                            )
-                          : undefined,
-                    };
-                  },
-                );
-            } catch (error) {
-              const errorMessage =
-                error instanceof Error
-                  ? error.message
-                  : "Invalid JSON";
-
+              parsedMcqs =
+                parsed;
+            } catch {
               throw new Error(
-                `Row ${rowNumber}: mcqs must contain valid JSON. ${errorMessage}`,
+                `Row ${rowNumber}: mcqs must contain a valid JSON array.`,
               );
             }
           }
@@ -900,17 +842,14 @@ export function AdminDashboard() {
               row.static_gk?.trim() ||
               "",
 
-            mcqs,
+            mcqs:
+              parsedMcqs,
           });
         },
       );
 
     return rows;
   }
-
-  /* =====================================================
-     SELECT CURRENT AFFAIRS FILE
-  ===================================================== */
 
   async function handleCurrentAffairsCSVFile(
     event: React.ChangeEvent<HTMLInputElement>,
@@ -962,11 +901,11 @@ export function AdminDashboard() {
       );
 
       setCurrentAffairsMessage(
-        `✅ ${rows.length} current affair${
+        `${rows.length} current affair${
           rows.length === 1
             ? ""
             : "s"
-        } loaded successfully. Click Upload Current Affairs to submit.`,
+        } ready for upload.`,
       );
     } catch (err) {
       const errorMessage =
@@ -978,19 +917,15 @@ export function AdminDashboard() {
         errorMessage,
       );
 
-      setCurrentAffairsFileName(
-        "",
-      );
-
       setCurrentAffairsRows(
         [],
       );
+
+      setCurrentAffairsFileName(
+        "",
+      );
     }
   }
-
-  /* =====================================================
-     UPLOAD CURRENT AFFAIRS
-  ===================================================== */
 
   async function handleCurrentAffairsUpload() {
     setCurrentAffairsError(
@@ -1017,17 +952,15 @@ export function AdminDashboard() {
 
     try {
       const {
-        error: insertError,
+        error: uploadError,
       } = await supabase
-        .from(
-          "current_affairs",
-        )
+        .from("current_affairs")
         .insert(
           currentAffairsRows,
         );
 
-      if (insertError) {
-        throw insertError;
+      if (uploadError) {
+        throw uploadError;
       }
 
       setCurrentAffairsMessage(
@@ -1079,11 +1012,9 @@ export function AdminDashboard() {
       {/* HEADER */}
 
       <header className="border-b bg-white">
-
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
 
           <div>
-
             <h1 className="text-2xl font-bold">
               PadhAI Admin
             </h1>
@@ -1091,7 +1022,6 @@ export function AdminDashboard() {
             <p className="text-sm text-slate-500">
               Administration Dashboard
             </p>
-
           </div>
 
           <button
@@ -1103,7 +1033,6 @@ export function AdminDashboard() {
           </button>
 
         </div>
-
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8">
@@ -1133,7 +1062,6 @@ export function AdminDashboard() {
         <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
-
             <p className="text-sm font-medium text-slate-500">
               Students
             </p>
@@ -1141,24 +1069,19 @@ export function AdminDashboard() {
             <p className="mt-2 text-3xl font-bold">
               —
             </p>
-
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
-
             <p className="text-sm font-medium text-slate-500">
               Syllabus
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              {csvRows.length ||
-                "—"}
+              {csvRows.length || "—"}
             </p>
-
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
-
             <p className="text-sm font-medium text-slate-500">
               Current Affairs
             </p>
@@ -1167,11 +1090,9 @@ export function AdminDashboard() {
               {currentAffairsRows.length ||
                 "—"}
             </p>
-
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
-
             <p className="text-sm font-medium text-slate-500">
               AI
             </p>
@@ -1179,7 +1100,6 @@ export function AdminDashboard() {
             <p className="mt-2 text-3xl font-bold text-green-600">
               ON
             </p>
-
           </div>
 
         </div>
@@ -1233,7 +1153,7 @@ export function AdminDashboard() {
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Upload daily or weekly exam-focused current affairs using CSV.
+              Upload weekly current affairs and exam-focused news using CSV.
             </p>
 
             <button
@@ -1317,7 +1237,6 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between border-b px-6 py-5">
 
                 <div>
-
                   <h2 className="text-xl font-bold">
                     📚 Syllabus Manager
                   </h2>
@@ -1325,7 +1244,6 @@ export function AdminDashboard() {
                   <p className="mt-1 text-sm text-slate-500">
                     Upload CSV to insert or update syllabus.
                   </p>
-
                 </div>
 
                 <button
@@ -1365,69 +1283,59 @@ export function AdminDashboard() {
                   />
 
                   {fileName && (
-
                     <p className="mt-3 text-sm font-medium text-blue-600">
                       Selected: {fileName}
                     </p>
-
                   )}
 
                 </div>
 
                 {error && (
-
                   <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
                     ❌ {error}
                   </div>
-
                 )}
 
                 {message && (
-
                   <div className="mt-5 rounded-xl bg-green-50 p-4 text-sm text-green-700">
-                    {message}
+                    ✅ {message}
                   </div>
-
                 )}
 
                 {csvRows.length > 0 && (
 
-                  <div className="mt-6">
+                  <div className="mt-6 flex justify-center">
 
-                    <div className="mb-3 flex items-center justify-between">
-
-                      <div>
-
-                        <h3 className="font-bold">
-                          CSV Ready
-                        </h3>
-
-                        <p className="text-sm text-slate-500">
-                          {csvRows.length} rows ready.
-                        </p>
-
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={
-                          handleSyllabusUpload
-                        }
-                        disabled={
-                          loading
-                        }
-                        className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
-                      >
-                        {loading
-                          ? "Uploading..."
-                          : "Upload / Update"}
-                      </button>
-
-                    </div>
+                    <button
+                      type="button"
+                      onClick={
+                        handleSyllabusUpload
+                      }
+                      disabled={
+                        loading
+                      }
+                      className="rounded-xl bg-green-600 px-6 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                    >
+                      {loading
+                        ? "Uploading..."
+                        : `Upload ${csvRows.length} Rows`}
+                    </button>
 
                   </div>
 
                 )}
+
+                <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
+
+                  <p className="text-sm font-semibold">
+                    Required CSV columns
+                  </p>
+
+                  <p className="mt-2 break-all font-mono text-xs text-slate-300">
+                    external_id, category, class_name, board, exam, subject, chapter_name, topic_name, key_points, order_no, is_active
+                  </p>
+
+                </div>
 
               </div>
 
@@ -1466,7 +1374,7 @@ export function AdminDashboard() {
 
           <div className="flex min-h-full items-center justify-center">
 
-            <div className="my-6 w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
+            <div className="w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
 
               {/* HEADER */}
 
@@ -1475,11 +1383,11 @@ export function AdminDashboard() {
                 <div>
 
                   <h2 className="text-xl font-bold">
-                    📰 Current Affairs Manager
+                    📰 Current Affairs CSV Upload
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Upload exam-focused current affairs directly to Supabase.
+                    Upload daily Top 10 current affairs.
                   </p>
 
                 </div>
@@ -1503,7 +1411,7 @@ export function AdminDashboard() {
 
               <div className="p-6">
 
-                {/* UPLOAD AREA */}
+                {/* FILE UPLOAD */}
 
                 <div className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 p-8 text-center">
 
@@ -1511,12 +1419,12 @@ export function AdminDashboard() {
                     📰
                   </div>
 
-                  <h3 className="mt-3 text-lg font-bold">
-                    Select Current Affairs CSV
+                  <h3 className="mt-3 font-bold">
+                    Upload Current Affairs CSV
                   </h3>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    After selecting a valid CSV, preview and Upload button will appear.
+                    Select your current affairs CSV file.
                   </p>
 
                   <input
@@ -1533,8 +1441,8 @@ export function AdminDashboard() {
 
                   {currentAffairsFileName && (
 
-                    <p className="mt-4 font-medium text-blue-600">
-                      📄 Selected:{" "}
+                    <p className="mt-3 text-sm font-medium text-blue-600">
+                      Selected:{" "}
                       {
                         currentAffairsFileName
                       }
@@ -1542,13 +1450,35 @@ export function AdminDashboard() {
 
                   )}
 
+                  {/* IMPORTANT UPLOAD BUTTON */}
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleCurrentAffairsUpload
+                    }
+                    disabled={
+                      currentAffairsLoading ||
+                      currentAffairsRows.length ===
+                        0
+                    }
+                    className="mt-6 rounded-xl bg-green-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {currentAffairsLoading
+                      ? "Uploading..."
+                      : currentAffairsRows.length >
+                        0
+                        ? `Upload ${currentAffairsRows.length} Current Affairs`
+                        : "Select a valid CSV first"}
+                  </button>
+
                 </div>
 
                 {/* ERROR */}
 
                 {currentAffairsError && (
 
-                  <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                  <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700">
                     ❌ {currentAffairsError}
                   </div>
 
@@ -1558,72 +1488,44 @@ export function AdminDashboard() {
 
                 {currentAffairsMessage && (
 
-                  <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700">
+                  <div className="mt-5 rounded-xl bg-green-50 p-4 text-sm font-medium text-green-700">
                     {currentAffairsMessage}
                   </div>
 
                 )}
 
-                {/* =====================================================
-                    PREVIEW + UPLOAD BUTTON
-                ===================================================== */}
+                {/* PREVIEW */}
 
-                {currentAffairsRows.length > 0 && (
+                {currentAffairsRows.length >
+                  0 && (
 
                   <div className="mt-6">
 
-                    <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="font-bold">
+                      CSV Preview
+                    </h3>
 
-                      <div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {
+                        currentAffairsRows.length
+                      }{" "}
+                      rows ready for upload.
+                    </p>
 
-                        <h3 className="text-lg font-bold">
-                          CSV Preview
-                        </h3>
+                    <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border">
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          {
-                            currentAffairsRows.length
-                          }{" "}
-                          rows are ready for upload.
-                        </p>
-
-                      </div>
-
-                      {/* IMPORTANT UPLOAD BUTTON */}
-
-                      <button
-                        type="button"
-                        onClick={
-                          handleCurrentAffairsUpload
-                        }
-                        disabled={
-                          currentAffairsLoading
-                        }
-                        className="rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {currentAffairsLoading
-                          ? "Uploading..."
-                          : "🚀 Upload Current Affairs"}
-                      </button>
-
-                    </div>
-
-                    {/* TABLE */}
-
-                    <div className="max-h-[420px] overflow-auto rounded-2xl border border-slate-200">
-
-                      <table className="min-w-[1300px] w-full text-left text-sm">
+                      <table className="min-w-[1200px] w-full text-left text-sm">
 
                         <thead className="sticky top-0 bg-slate-100">
 
                           <tr>
 
                             <th className="px-4 py-3">
-                              #
+                              Date
                             </th>
 
                             <th className="px-4 py-3">
-                              Date
+                              #
                             </th>
 
                             <th className="px-4 py-3">
@@ -1632,18 +1534,6 @@ export function AdminDashboard() {
 
                             <th className="px-4 py-3">
                               Why in News
-                            </th>
-
-                            <th className="px-4 py-3">
-                              Key Facts
-                            </th>
-
-                            <th className="px-4 py-3">
-                              Exam Point
-                            </th>
-
-                            <th className="px-4 py-3">
-                              Static GK
                             </th>
 
                             <th className="px-4 py-3">
@@ -1669,68 +1559,38 @@ export function AdminDashboard() {
 
                                 <tr
                                   key={`${row.affair_date}-${row.serial_no}-${index}`}
-                                  className="border-t border-slate-200"
+                                  className="border-t"
                                 >
 
-                                  <td className="px-4 py-3 font-bold">
-                                    {
-                                      row.serial_no
-                                    }
-                                  </td>
-
-                                  <td className="whitespace-nowrap px-4 py-3">
+                                  <td className="px-4 py-3">
                                     {
                                       row.affair_date
                                     }
                                   </td>
 
-                                  <td className="min-w-[220px] px-4 py-3 font-semibold">
+                                  <td className="px-4 py-3">
+                                    {
+                                      row.serial_no
+                                    }
+                                  </td>
+
+                                  <td className="px-4 py-3 font-semibold">
                                     {
                                       row.title
                                     }
                                   </td>
 
-                                  <td className="min-w-[280px] px-4 py-3">
+                                  <td className="max-w-md px-4 py-3">
                                     {
                                       row.why_in_news
                                     }
                                   </td>
 
-                                  <td className="min-w-[280px] px-4 py-3">
-                                    {
-                                      row.key_facts
-                                    }
-                                  </td>
-
-                                  <td className="min-w-[220px] px-4 py-3">
-                                    {
-                                      row.exam_point
-                                    }
-                                  </td>
-
-                                  <td className="min-w-[220px] px-4 py-3">
-                                    {
-                                      row.static_gk ||
-                                        "—"
-                                    }
-                                  </td>
-
                                   <td className="px-4 py-3">
-
-                                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                                      {
-                                        row.mcqs
-                                          .length
-                                      }{" "}
-                                      MCQ
-                                      {row
-                                        .mcqs
-                                        .length !==
-                                      1
-                                        ? "s"
-                                        : ""}
-                                    </span>
-
+                                    {
+                                      row.mcqs
+                                        .length
+                                    }
                                   </td>
 
                                 </tr>
@@ -1744,19 +1604,6 @@ export function AdminDashboard() {
 
                     </div>
 
-                    {currentAffairsRows.length >
-                      100 && (
-
-                      <p className="mt-2 text-xs text-slate-500">
-                        Showing first 100 rows. All{" "}
-                        {
-                          currentAffairsRows.length
-                        }{" "}
-                        rows will be uploaded.
-                      </p>
-
-                    )}
-
                   </div>
 
                 )}
@@ -1766,7 +1613,7 @@ export function AdminDashboard() {
                 <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
 
                   <p className="text-sm font-semibold">
-                    Required CSV Columns
+                    Required CSV columns
                   </p>
 
                   <p className="mt-2 break-all font-mono text-xs text-slate-300">
@@ -1774,54 +1621,12 @@ export function AdminDashboard() {
                   </p>
 
                   <p className="mt-3 text-xs text-slate-400">
-                    affair_date format: YYYY-MM-DD
+                    The mcqs column must contain a valid JSON array.
                   </p>
 
-                  <p className="mt-1 text-xs text-slate-400">
-                    For no MCQs, use: []
+                  <p className="mt-3 text-xs text-slate-400">
+                    Example: []
                   </p>
-
-                </div>
-
-                {/* EXAMPLE */}
-
-                <div className="mt-4 rounded-2xl bg-blue-50 p-5">
-
-                  <p className="font-semibold text-blue-900">
-                    Example CSV
-                  </p>
-
-                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-blue-800">
-{`affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs
-2026-08-30,1,ISRO Space Mission,"ISRO announced a new space mission","Important mission facts","Remember mission name and objective","ISRO HQ: Bengaluru","[]"
-2026-08-30,2,New Government Scheme,"Government launched a new scheme","Beneficiaries and key features","Remember scheme and ministry","Important Government Schemes","[]"`}
-                  </pre>
-
-                </div>
-
-                {/* MCQ FORMAT */}
-
-                <div className="mt-4 rounded-2xl bg-amber-50 p-5">
-
-                  <p className="font-semibold text-amber-900">
-                    MCQ JSON Example
-                  </p>
-
-                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-amber-800">
-{`[
-  {
-    "question": "ISRO headquarters is located in?",
-    "options": [
-      "Delhi",
-      "Bengaluru",
-      "Mumbai",
-      "Chennai"
-    ],
-    "answer": "Bengaluru",
-    "explanation": "ISRO headquarters is located in Bengaluru."
-  }
-]`}
-                  </pre>
 
                 </div>
 
@@ -1839,7 +1644,7 @@ export function AdminDashboard() {
                   disabled={
                     currentAffairsLoading
                   }
-                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50"
                 >
                   Close
                 </button>
