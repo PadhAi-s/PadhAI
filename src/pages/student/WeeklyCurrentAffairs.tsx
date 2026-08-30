@@ -1,4 +1,3 @@
-```tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -853,5 +852,4 @@ function MCQCard({
   );
 }
 
-export default WeeklyCurrentAffairs;
-```
+export default WeeklyCurrentAffair
