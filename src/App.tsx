@@ -17,7 +17,7 @@ import { DailyNewspaper } from "./pages/student/DailyNewspaper";
 
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
-import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
+import { AdminCurrentAffairs } from "./pages/admin/CurrentAffairs";
 
 import { NotFound } from "./pages/NotFound";
 
