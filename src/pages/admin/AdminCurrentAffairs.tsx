@@ -1,369 +1,386 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
-interface CurrentAffair {
-  id?: string;
-  affair_date: string;
+interface MCQ {
   question: string;
+  options: string[];
   answer: string;
   explanation: string;
-  order_no: number;
-  published: boolean;
 }
 
-const emptyAffair = (
-  date: string,
-  orderNo: number,
-): CurrentAffair => ({
-  affair_date: date,
-  question: "",
-  answer: "",
-  explanation: "",
-  order_no: orderNo,
-  published: false,
-});
+interface CurrentAffair {
+  serial_no: number;
+  title: string;
+  why_in_news: string;
+  key_facts: string;
+  exam_point: string;
+  static_gk: string;
+  mcqs: MCQ[];
+}
+
+function createEmptyAffair(serial: number): CurrentAffair {
+  return {
+    serial_no: serial,
+    title: "",
+    why_in_news: "",
+    key_facts: "",
+    exam_point: "",
+    static_gk: "",
+    mcqs: [
+      {
+        question: "",
+        options: ["", "", "", ""],
+        answer: "",
+        explanation: "",
+      },
+    ],
+  };
+}
 
 export function AdminCurrentAffairs() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
-  const [selectedDate, setSelectedDate] = useState(
+  const [affairDate, setAffairDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
 
-  const [affairs, setAffairs] = useState<CurrentAffair[]>([]);
+  const [affairs, setAffairs] = useState<CurrentAffair[]>(
+    Array.from({ length: 10 }, (_, index) =>
+      createEmptyAffair(index + 1),
+    ),
+  );
+
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadAffairs();
-  }, [selectedDate]);
-
-  async function loadAffairs() {
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    try {
-      const { data, error: fetchError } = await supabase
-        .from("daily_current_affairs")
-        .select(
-          "id,affair_date,question,answer,explanation,order_no,published",
-        )
-        .eq("affair_date", selectedDate)
-        .order("order_no", {
-          ascending: true,
-        });
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      if (data && data.length > 0) {
-        setAffairs(data as CurrentAffair[]);
-      } else {
-        setAffairs(
-          Array.from(
-            { length: 10 },
-            (_, index) =>
-              emptyAffair(selectedDate, index + 1),
-          ),
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Current affairs loading error:",
-        err,
-      );
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Current affairs load nahi ho paye.",
-      );
-
-      setAffairs([]);
-    } finally {
-      setLoading(false);
-    }
+  async function handleLogout() {
+    await signOut();
+    navigate("/admin/login");
   }
 
   function updateAffair(
     index: number,
     field: keyof CurrentAffair,
-    value: string | boolean,
+    value: string,
   ) {
-    setAffairs((current) =>
-      current.map((affair, affairIndex) => {
-        if (affairIndex !== index) {
+    setAffairs((previous) =>
+      previous.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item,
+      ),
+    );
+  }
+
+  function updateMCQ(
+    affairIndex: number,
+    mcqIndex: number,
+    field: keyof MCQ,
+    value: string,
+  ) {
+    setAffairs((previous) =>
+      previous.map((affair, index) => {
+        if (index !== affairIndex) {
           return affair;
         }
 
+        const updatedMCQs = affair.mcqs.map(
+          (mcq, currentMCQIndex) => {
+            if (currentMCQIndex !== mcqIndex) {
+              return mcq;
+            }
+
+            return {
+              ...mcq,
+              [field]: value,
+            };
+          },
+        );
+
         return {
           ...affair,
-          [field]: value,
+          mcqs: updatedMCQs,
         };
       }),
     );
   }
 
-  function addAffair() {
-    if (affairs.length >= 10) {
-      setError("Maximum 10 current affairs allowed.");
-      return;
-    }
+  function updateMCQOption(
+    affairIndex: number,
+    mcqIndex: number,
+    optionIndex: number,
+    value: string,
+  ) {
+    setAffairs((previous) =>
+      previous.map((affair, index) => {
+        if (index !== affairIndex) {
+          return affair;
+        }
 
-    setError("");
+        const updatedMCQs = affair.mcqs.map(
+          (mcq, currentMCQIndex) => {
+            if (currentMCQIndex !== mcqIndex) {
+              return mcq;
+            }
 
-    setAffairs((current) => [
-      ...current,
-      emptyAffair(
-        selectedDate,
-        current.length + 1,
-      ),
-    ]);
-  }
+            const updatedOptions = [...mcq.options];
 
-  function removeAffair(index: number) {
-    setAffairs((current) =>
-      current
-        .filter((_, affairIndex) => affairIndex !== index)
-        .map((affair, affairIndex) => ({
+            updatedOptions[optionIndex] = value;
+
+            return {
+              ...mcq,
+              options: updatedOptions,
+            };
+          },
+        );
+
+        return {
           ...affair,
-          order_no: affairIndex + 1,
-        })),
+          mcqs: updatedMCQs,
+        };
+      }),
     );
   }
 
-  async function saveAffairs() {
-    setError("");
-    setMessage("");
+  function addMCQ(affairIndex: number) {
+    setAffairs((previous) =>
+      previous.map((affair, index) => {
+        if (index !== affairIndex) {
+          return affair;
+        }
 
-    if (!user) {
-      setError("Admin session not found.");
-      return;
-    }
+        return {
+          ...affair,
+          mcqs: [
+            ...affair.mcqs,
+            {
+              question: "",
+              options: ["", "", "", ""],
+              answer: "",
+              explanation: "",
+            },
+          ],
+        };
+      }),
+    );
+  }
 
-    if (affairs.length === 0) {
-      setError("At least one current affair is required.");
-      return;
+  function removeMCQ(
+    affairIndex: number,
+    mcqIndex: number,
+  ) {
+    setAffairs((previous) =>
+      previous.map((affair, index) => {
+        if (index !== affairIndex) {
+          return affair;
+        }
+
+        if (affair.mcqs.length <= 1) {
+          return affair;
+        }
+
+        return {
+          ...affair,
+          mcqs: affair.mcqs.filter(
+            (_, index) => index !== mcqIndex,
+          ),
+        };
+      }),
+    );
+  }
+
+  function validate(): string | null {
+    if (!affairDate) {
+      return "Please select current affairs date.";
     }
 
     for (let i = 0; i < affairs.length; i++) {
       const affair = affairs[i];
 
-      if (!affair.question.trim()) {
-        setError(
-          `Top ${i + 1}: Question is required.`,
-        );
-        return;
+      if (!affair.title.trim()) {
+        return `Top ${i + 1}: title is required.`;
       }
 
-      if (!affair.answer.trim()) {
-        setError(
-          `Top ${i + 1}: Answer is required.`,
-        );
-        return;
+      if (!affair.why_in_news.trim()) {
+        return `Top ${i + 1}: Why in News is required.`;
+      }
+
+      if (!affair.key_facts.trim()) {
+        return `Top ${i + 1}: Key Facts is required.`;
+      }
+
+      if (!affair.exam_point.trim()) {
+        return `Top ${i + 1}: Exam Point is required.`;
+      }
+
+      for (
+        let mcqIndex = 0;
+        mcqIndex < affair.mcqs.length;
+        mcqIndex++
+      ) {
+        const mcq = affair.mcqs[mcqIndex];
+
+        if (!mcq.question.trim()) {
+          return `Top ${i + 1}, MCQ ${
+            mcqIndex + 1
+          }: question is required.`;
+        }
+
+        if (
+          mcq.options.some(
+            (option) => !option.trim(),
+          )
+        ) {
+          return `Top ${i + 1}, MCQ ${
+            mcqIndex + 1
+          }: all 4 options are required.`;
+        }
+
+        if (!mcq.answer.trim()) {
+          return `Top ${i + 1}, MCQ ${
+            mcqIndex + 1
+          }: answer is required.`;
+        }
       }
     }
 
-    setSaving(true);
-
-    try {
-      const rows = affairs.map((affair, index) => ({
-        ...(affair.id
-          ? { id: affair.id }
-          : {}),
-        affair_date: selectedDate,
-        question: affair.question.trim(),
-        answer: affair.answer.trim(),
-        explanation:
-          affair.explanation.trim() || null,
-        order_no: index + 1,
-        published: affair.published,
-      }));
-
-      const { data, error: upsertError } =
-        await supabase
-          .from("daily_current_affairs")
-          .upsert(rows, {
-            onConflict:
-              "affair_date,order_no",
-          })
-          .select(
-            "id,affair_date,question,answer,explanation,order_no,published",
-          );
-
-      if (upsertError) {
-        throw upsertError;
-      }
-
-      setAffairs(
-        (data || []) as CurrentAffair[],
-      );
-
-      setMessage(
-        `${affairs.length} current affair${
-          affairs.length === 1 ? "" : "s"
-        } saved successfully.`,
-      );
-    } catch (err) {
-      console.error(
-        "Current affairs save error:",
-        err,
-      );
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Current affairs save nahi ho paye.",
-      );
-    } finally {
-      setSaving(false);
-    }
+    return null;
   }
 
-  async function publishAll() {
+  async function handleUpload() {
     setError("");
     setMessage("");
 
-    if (!affairs.length) {
-      setError("No current affairs available.");
+    const validationError = validate();
+
+    if (validationError) {
+      setError(validationError);
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
       return;
     }
 
-    for (const affair of affairs) {
-      if (
-        !affair.question.trim() ||
-        !affair.answer.trim()
-      ) {
-        setError(
-          "Publish karne se pehle sabhi questions aur answers fill karo.",
-        );
-        return;
-      }
+    if (!user) {
+      setError("Admin session not found. Please login again.");
+      return;
     }
 
-    setSaving(true);
+    setLoading(true);
 
     try {
-      const { data, error: publishError } =
-        await supabase
-          .from("daily_current_affairs")
-          .update({
-            published: true,
-          })
-          .eq("affair_date", selectedDate)
-          .select(
-            "id,affair_date,question,answer,explanation,order_no,published",
-          );
+      const rows = affairs.map((affair) => ({
+        affair_date: affairDate,
+        serial_no: affair.serial_no,
+        title: affair.title.trim(),
+        why_in_news: affair.why_in_news.trim(),
+        key_facts: affair.key_facts.trim(),
+        exam_point: affair.exam_point.trim(),
+        static_gk: affair.static_gk.trim() || null,
+        mcqs: affair.mcqs.map((mcq) => ({
+          question: mcq.question.trim(),
+          options: mcq.options.map((option) =>
+            option.trim(),
+          ),
+          answer: mcq.answer.trim(),
+          explanation: mcq.explanation.trim(),
+        })),
+      }));
 
-      if (publishError) {
-        throw publishError;
+      const { error: insertError } = await supabase
+        .from("current_affairs")
+        .insert(rows);
+
+      if (insertError) {
+        throw insertError;
       }
 
-      setAffairs(
-        (data || []) as CurrentAffair[],
+      setMessage(
+        `Successfully uploaded Top 10 Current Affairs for ${affairDate}.`,
       );
 
-      setMessage(
-        `Current Affairs for ${selectedDate} published successfully.`,
-      );
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     } catch (err) {
       console.error(
-        "Current affairs publish error:",
+        "Current affairs upload error:",
         err,
       );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Publish nahi ho paya.",
+          : "Current affairs upload failed.",
       );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   }
 
-  async function unpublishAll() {
-    setError("");
+  function resetForm() {
+    setAffairs(
+      Array.from({ length: 10 }, (_, index) =>
+        createEmptyAffair(index + 1),
+      ),
+    );
+
     setMessage("");
-    setSaving(true);
-
-    try {
-      const { data, error: updateError } =
-        await supabase
-          .from("daily_current_affairs")
-          .update({
-            published: false,
-          })
-          .eq("affair_date", selectedDate)
-          .select(
-            "id,affair_date,question,answer,explanation,order_no,published",
-          );
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setAffairs(
-        (data || []) as CurrentAffair[],
-      );
-
-      setMessage(
-        `Current Affairs for ${selectedDate} unpublished.`,
-      );
-    } catch (err) {
-      console.error(
-        "Current affairs unpublish error:",
-        err,
-      );
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unpublish nahi ho paya.",
-      );
-    } finally {
-      setSaving(false);
-    }
+    setError("");
   }
-
-  const publishedCount = affairs.filter(
-    (affair) => affair.published,
-  ).length;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* HEADER */}
-      <header className="border-b bg-white">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div>
-            <h1 className="text-2xl font-bold text-blue-600">
+            <h1 className="text-2xl font-bold text-slate-900">
               PadhAI Admin
             </h1>
 
             <p className="text-sm text-slate-500">
-              Daily Current Affairs
+              Current Affairs Manager
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              navigate("/admin/dashboard")
-            }
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100"
-          >
-            ← Dashboard
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/admin/dashboard")
+              }
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100"
+            >
+              ← Dashboard
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
+      {/* CONTENT */}
       <main className="mx-auto max-w-7xl px-4 py-8">
         {/* ADMIN INFO */}
         <div className="mb-6 rounded-2xl bg-slate-900 p-6 text-white">
@@ -371,303 +388,416 @@ export function AdminCurrentAffairs() {
             Welcome Admin
           </p>
 
-          <h2 className="mt-1 text-2xl font-bold">
+          <h2 className="mt-1 text-xl font-bold">
             {profile?.full_name ||
               user?.email ||
               "Administrator"}
           </h2>
 
           <p className="mt-2 text-sm text-slate-400">
-            Manage Daily Current Affairs — Top 10.
+            Upload daily Top 10 current affairs for students.
           </p>
         </div>
 
         {/* TITLE */}
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-4xl">
-              📰
-            </div>
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold">
+            📰 Daily Top 10 Current Affairs
+          </h2>
 
-            <h2 className="mt-3 text-2xl font-bold">
-              Daily Current Affairs — Top 10
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Add, save and publish today's
-              important current affairs.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700">
-              Select Date
-            </label>
-
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(event) =>
-                setSelectedDate(event.target.value)
-              }
-              className="mt-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-        </div>
-
-        {/* STATS */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Questions
-            </p>
-
-            <p className="mt-1 text-3xl font-bold">
-              {affairs.length}/10
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Published
-            </p>
-
-            <p className="mt-1 text-3xl font-bold text-green-600">
-              {publishedCount}
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Date
-            </p>
-
-            <p className="mt-1 text-lg font-bold">
-              {selectedDate}
-            </p>
-          </div>
+          <p className="mt-2 text-sm text-slate-500">
+            Add today's important current affairs with
+            exam-focused MCQs.
+          </p>
         </div>
 
         {/* MESSAGES */}
         {error && (
-          <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            ❌ {error}
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
+            <p className="font-bold">
+              ❌ Upload Failed
+            </p>
+
+            <p className="mt-2 text-sm">
+              {error}
+            </p>
           </div>
         )}
 
         {message && (
-          <div className="mb-5 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-            ✅ {message}
-          </div>
-        )}
+          <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5 text-green-700">
+            <p className="font-bold">
+              ✅ Success
+            </p>
 
-        {/* LOADING */}
-        {loading ? (
-          <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-            <p className="text-sm text-slate-500">
-              Current Affairs loading...
+            <p className="mt-2 text-sm">
+              {message}
             </p>
           </div>
-        ) : (
-          <>
-            {/* ACTION BAR */}
-            <div className="mb-5 flex flex-wrap items-center gap-3">
-              {affairs.length < 10 && (
-                <button
-                  type="button"
-                  onClick={addAffair}
-                  className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  + Add Current Affair
-                </button>
-              )}
+        )}
 
-              <button
-                type="button"
-                onClick={saveAffairs}
-                disabled={saving}
-                className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving
-                  ? "Saving..."
-                  : "Save / Update"}
-              </button>
+        {/* DATE */}
+        <div className="mb-8 rounded-2xl bg-white p-6 shadow-sm">
+          <label className="block text-sm font-bold text-slate-700">
+            Current Affairs Date
+          </label>
 
-              <button
-                type="button"
-                onClick={publishAll}
-                disabled={saving}
-                className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Publish All
-              </button>
+          <input
+            type="date"
+            value={affairDate}
+            onChange={(event) =>
+              setAffairDate(event.target.value)
+            }
+            className="mt-2 w-full max-w-xs rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+          />
 
-              <button
-                type="button"
-                onClick={unpublishAll}
-                disabled={saving}
-                className="rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Unpublish
-              </button>
-            </div>
+          <p className="mt-2 text-xs text-slate-500">
+            All 10 current affairs will be saved with this
+            date.
+          </p>
+        </div>
 
-            {/* AFFAIRS */}
-            <div className="space-y-5">
-              {affairs.map(
-                (affair, index) => (
-                  <div
-                    key={
-                      affair.id ||
-                      `new-${index}`
-                    }
-                    className="rounded-2xl bg-white p-6 shadow-sm"
-                  >
-                    {/* CARD HEADER */}
-                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
-                          {index + 1}
-                        </span>
+        {/* TOP 10 */}
+        <div className="space-y-8">
+          {affairs.map((affair, affairIndex) => (
+            <section
+              key={affair.serial_no}
+              className="rounded-3xl bg-white p-6 shadow-sm"
+            >
+              {/* CARD HEADER */}
+              <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4">
+                <div>
+                  <span className="inline-flex rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
+                    TOP {affair.serial_no}
+                  </span>
 
-                        <div>
-                          <h3 className="font-bold">
-                            Current Affair #{index + 1}
-                          </h3>
+                  <h3 className="mt-2 text-xl font-bold">
+                    Current Affair #{affair.serial_no}
+                  </h3>
+                </div>
+              </div>
 
-                          <p className="text-xs text-slate-500">
-                            Order {index + 1}
-                          </p>
-                        </div>
-                      </div>
+              {/* TITLE */}
+              <div>
+                <label className="text-sm font-bold">
+                  Title *
+                </label>
 
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${
-                            affair.published
-                              ? "bg-green-100 text-green-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {affair.published
-                            ? "PUBLISHED"
-                            : "DRAFT"}
-                        </span>
+                <input
+                  type="text"
+                  value={affair.title}
+                  onChange={(event) =>
+                    updateAffair(
+                      affairIndex,
+                      "title",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Example: RBI announces new monetary policy..."
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                />
+              </div>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeAffair(index)
-                          }
-                          className="rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
+              {/* WHY IN NEWS */}
+              <div className="mt-5">
+                <label className="text-sm font-bold">
+                  Why in News *
+                </label>
 
-                    {/* QUESTION */}
-                    <div>
-                      <label className="text-sm font-semibold text-slate-700">
-                        Question / Headline
-                      </label>
+                <textarea
+                  rows={4}
+                  value={affair.why_in_news}
+                  onChange={(event) =>
+                    updateAffair(
+                      affairIndex,
+                      "why_in_news",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Explain why this topic is in news..."
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                />
+              </div>
 
-                      <textarea
-                        value={affair.question}
-                        onChange={(event) =>
-                          updateAffair(
-                            index,
-                            "question",
-                            event.target.value,
-                          )
-                        }
-                        rows={3}
-                        placeholder="Example: RBI ne August 2026 mein repo rate ko lekar kya decision liya?"
-                        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      />
-                    </div>
+              {/* KEY FACTS */}
+              <div className="mt-5">
+                <label className="text-sm font-bold">
+                  Key Facts *
+                </label>
 
-                    {/* ANSWER */}
-                    <div className="mt-4">
-                      <label className="text-sm font-semibold text-slate-700">
-                        Answer
-                      </label>
+                <textarea
+                  rows={5}
+                  value={affair.key_facts}
+                  onChange={(event) =>
+                    updateAffair(
+                      affairIndex,
+                      "key_facts",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Important facts, dates, numbers, places, persons..."
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                />
+              </div>
 
-                      <textarea
-                        value={affair.answer}
-                        onChange={(event) =>
-                          updateAffair(
-                            index,
-                            "answer",
-                            event.target.value,
-                          )
-                        }
-                        rows={2}
-                        placeholder="Enter correct answer"
-                        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      />
-                    </div>
+              {/* EXAM POINT */}
+              <div className="mt-5">
+                <label className="text-sm font-bold">
+                  Exam Point *
+                </label>
 
-                    {/* EXPLANATION */}
-                    <div className="mt-4">
-                      <label className="text-sm font-semibold text-slate-700">
-                        Explanation
-                        <span className="ml-1 font-normal text-slate-400">
-                          (Optional)
-                        </span>
-                      </label>
+                <textarea
+                  rows={4}
+                  value={affair.exam_point}
+                  onChange={(event) =>
+                    updateAffair(
+                      affairIndex,
+                      "exam_point",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="What should UPSC/SSC/Banking/State exam students remember?"
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                />
+              </div>
 
-                      <textarea
-                        value={
-                          affair.explanation
-                        }
-                        onChange={(event) =>
-                          updateAffair(
-                            index,
-                            "explanation",
-                            event.target.value,
-                          )
-                        }
-                        rows={3}
-                        placeholder="Short explanation for students..."
-                        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      />
-                    </div>
+              {/* STATIC GK */}
+              <div className="mt-5">
+                <label className="text-sm font-bold">
+                  Static GK
+                </label>
+
+                <textarea
+                  rows={3}
+                  value={affair.static_gk}
+                  onChange={(event) =>
+                    updateAffair(
+                      affairIndex,
+                      "static_gk",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Related static GK..."
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* MCQS */}
+              <div className="mt-8 rounded-2xl bg-slate-50 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-lg font-bold">
+                      📝 MCQs
+                    </h4>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Add one or more exam-style MCQs.
+                    </p>
                   </div>
-                ),
-              )}
-            </div>
 
-            {/* EMPTY */}
-            {affairs.length === 0 && (
-              <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-                <div className="text-4xl">
-                  📰
+                  <button
+                    type="button"
+                    onClick={() =>
+                      addMCQ(affairIndex)
+                    }
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    + Add MCQ
+                  </button>
                 </div>
 
-                <h3 className="mt-3 font-bold">
-                  No Current Affairs
-                </h3>
+                <div className="mt-5 space-y-5">
+                  {affair.mcqs.map(
+                    (mcq, mcqIndex) => (
+                      <div
+                        key={mcqIndex}
+                        className="rounded-2xl border border-slate-200 bg-white p-5"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <h5 className="font-bold">
+                            MCQ {mcqIndex + 1}
+                          </h5>
 
-                <p className="mt-2 text-sm text-slate-500">
-                  Add current affairs for
-                  {selectedDate}.
-                </p>
+                          {affair.mcqs.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeMCQ(
+                                  affairIndex,
+                                  mcqIndex,
+                                )
+                              }
+                              className="text-sm font-semibold text-red-600 hover:text-red-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
 
-                <button
-                  type="button"
-                  onClick={addAffair}
-                  className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-                >
-                  + Add First Affair
-                </button>
+                        {/* QUESTION */}
+                        <label className="text-sm font-semibold">
+                          Question *
+                        </label>
+
+                        <textarea
+                          rows={3}
+                          value={mcq.question}
+                          onChange={(event) =>
+                            updateMCQ(
+                              affairIndex,
+                              mcqIndex,
+                              "question",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Enter MCQ question..."
+                          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                        />
+
+                        {/* OPTIONS */}
+                        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                          {mcq.options.map(
+                            (option, optionIndex) => (
+                              <div key={optionIndex}>
+                                <label className="text-sm font-semibold">
+                                  Option{" "}
+                                  {String.fromCharCode(
+                                    65 + optionIndex,
+                                  )}{" "}
+                                  *
+                                </label>
+
+                                <input
+                                  type="text"
+                                  value={option}
+                                  onChange={(event) =>
+                                    updateMCQOption(
+                                      affairIndex,
+                                      mcqIndex,
+                                      optionIndex,
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder={`Option ${String.fromCharCode(
+                                    65 + optionIndex,
+                                  )}`}
+                                  className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                                />
+                              </div>
+                            ),
+                          )}
+                        </div>
+
+                        {/* ANSWER */}
+                        <div className="mt-5">
+                          <label className="text-sm font-semibold">
+                            Correct Answer *
+                          </label>
+
+                          <select
+                            value={mcq.answer}
+                            onChange={(event) =>
+                              updateMCQ(
+                                affairIndex,
+                                mcqIndex,
+                                "answer",
+                                event.target.value,
+                              )
+                            }
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-500"
+                          >
+                            <option value="">
+                              Select correct option
+                            </option>
+
+                            <option value="A">
+                              A
+                            </option>
+
+                            <option value="B">
+                              B
+                            </option>
+
+                            <option value="C">
+                              C
+                            </option>
+
+                            <option value="D">
+                              D
+                            </option>
+                          </select>
+                        </div>
+
+                        {/* EXPLANATION */}
+                        <div className="mt-5">
+                          <label className="text-sm font-semibold">
+                            Explanation
+                          </label>
+
+                          <textarea
+                            rows={3}
+                            value={mcq.explanation}
+                            onChange={(event) =>
+                              updateMCQ(
+                                affairIndex,
+                                mcqIndex,
+                                "explanation",
+                                event.target.value,
+                              )
+                            }
+                            placeholder="Explain the correct answer..."
+                            className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
               </div>
-            )}
-          </>
-        )}
+            </section>
+          ))}
+        </div>
+
+        {/* ACTIONS */}
+        <div className="mt-8 flex flex-col gap-3 rounded-3xl bg-white p-6 shadow-sm sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={resetForm}
+            disabled={loading}
+            className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Reset Form
+          </button>
+
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={loading}
+            className="rounded-xl bg-green-600 px-8 py-3 text-sm font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading
+              ? "Uploading..."
+              : "🚀 Publish Top 10 Current Affairs"}
+          </button>
+        </div>
+
+        {/* DATABASE INFO */}
+        <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
+          <p className="text-sm font-bold">
+            Database
+          </p>
+
+          <p className="mt-2 font-mono text-xs text-slate-300">
+            public.current_affairs
+          </p>
+
+          <p className="mt-3 text-xs text-slate-400">
+            10 rows will be inserted with the selected
+            affair_date. MCQs are stored in the mcqs JSONB
+            column.
+          </p>
+        </div>
       </main>
     </div>
   );
 }
-
-export default AdminCurrentAffairs;
