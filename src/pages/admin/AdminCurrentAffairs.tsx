@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Papa from "papaparse";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
