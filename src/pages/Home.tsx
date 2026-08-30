@@ -28,13 +28,13 @@ export function Home() {
       </div>
 
       <dl className="mt-20 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-        {PILLAR_KEYS.map((key, i) => (
+        {PILLAR_KEYS.map((key, index) => (
           <div
             key={key}
             className="flex gap-3 border-t border-ink/10 pt-4 dark:border-paper/10"
           >
             <dt className="shrink-0 pt-0.5 font-mono text-sm text-turmeric-dark dark:text-turmeric">
-              {String(i + 1).padStart(2, "0")}
+              {String(index + 1).padStart(2, "0")}
             </dt>
 
             <dd className="text-ink-soft dark:text-paper/75">
