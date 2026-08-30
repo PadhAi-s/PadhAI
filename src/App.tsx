@@ -1,5 +1,8 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 
 import { ThemeProvider } from "./context/ThemeContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -18,6 +21,7 @@ import { DailyNewspaper } from "./pages/student/DailyNewspaper";
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
+
 import { NotFound } from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,22 +33,16 @@ export default function App() {
         <HashRouter>
           <Routes>
             <Route element={<RootLayout />}>
+              {/* HOME */}
+              <Route index element={<Home />} />
 
-              {/* ==================== HOME ==================== */}
-
-              <Route
-                index
-                element={<Home />}
-              />
-
-              {/* ==================== STUDENT ==================== */}
-
+              {/* STUDENT LOGIN */}
               <Route
                 path="student/login"
                 element={<StudentLogin />}
               />
 
-              {/* Protected Student Routes */}
+              {/* PROTECTED STUDENT ROUTES */}
               <Route
                 element={
                   <ProtectedRoute allowedRole="student" />
@@ -81,14 +79,13 @@ export default function App() {
                 />
               </Route>
 
-              {/* ==================== ADMIN ==================== */}
-
+              {/* ADMIN LOGIN */}
               <Route
                 path="admin/login"
                 element={<AdminLogin />}
               />
 
-              {/* Protected Admin Routes */}
+              {/* PROTECTED ADMIN ROUTES */}
               <Route
                 element={
                   <ProtectedRoute allowedRole="admin" />
@@ -105,13 +102,11 @@ export default function App() {
                 />
               </Route>
 
-              {/* ==================== 404 ==================== */}
-
+              {/* 404 */}
               <Route
                 path="*"
                 element={<NotFound />}
               />
-
             </Route>
           </Routes>
         </HashRouter>
