@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 interface CurrentAffair {
   id: string;
@@ -14,6 +14,19 @@ interface CurrentAffair {
   static_gk: string;
   category: string | null;
   mcqs: unknown[];
+}
+
+interface CurrentAffairRow {
+  id: string;
+  affair_date: string | null;
+  serial_no: number | string | null;
+  title: string | null;
+  why_in_news: string | null;
+  key_facts: string | null;
+  exam_point: string | null;
+  static_gk: string | null;
+  category: string | null;
+  mcqs: unknown[] | null;
 }
 
 const categories = [
@@ -70,20 +83,18 @@ const categoryInfo: Record<
   },
 };
 
-export default function CurrentAffairs() {
+export function WeeklyCurrentAffairs() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   const [records, setRecords] = useState<CurrentAffair[]>([]);
-  const [selectedCategory, setSelectedCategory] =
-    useState("All");
-
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    loadCurrentAffairs();
+    void loadCurrentAffairs();
   }, []);
 
   async function loadCurrentAffairs() {
@@ -118,10 +129,12 @@ export default function CurrentAffairs() {
         throw fetchError;
       }
 
-      setRecords(
-        (data ?? []).map((row) => ({
+      const rows = (data ?? []) as CurrentAffairRow[];
+
+      const formattedRecords: CurrentAffair[] = rows.map(
+        (row: CurrentAffairRow): CurrentAffair => ({
           id: row.id,
-          affair_date: row.affair_date,
+          affair_date: row.affair_date ?? "",
           serial_no: Number(row.serial_no ?? 1),
           title: row.title ?? "",
           why_in_news: row.why_in_news ?? "",
@@ -129,11 +142,11 @@ export default function CurrentAffairs() {
           exam_point: row.exam_point ?? "",
           static_gk: row.static_gk ?? "",
           category: row.category ?? null,
-          mcqs: Array.isArray(row.mcqs)
-            ? row.mcqs
-            : [],
-        })),
+          mcqs: Array.isArray(row.mcqs) ? row.mcqs : [],
+        }),
       );
+
+      setRecords(formattedRecords);
     } catch (err) {
       setError(
         err instanceof Error
@@ -163,17 +176,11 @@ export default function CurrentAffairs() {
 
       const searchMatch =
         !search.trim() ||
-        searchText.includes(
-          search.trim().toLowerCase(),
-        );
+        searchText.includes(search.trim().toLowerCase());
 
       return categoryMatch && searchMatch;
     });
-  }, [
-    records,
-    selectedCategory,
-    search,
-  ]);
+  }, [records, selectedCategory, search]);
 
   function getCategoryCount(category: string) {
     if (category === "All") {
@@ -186,12 +193,9 @@ export default function CurrentAffairs() {
   }
 
   function getCategoryLabel(category: string) {
-    return t(
-      `currentAffairs.categories.${category}`,
-      {
-        defaultValue: category,
-      },
-    );
+    return t(`currentAffairs.categories.${category}`, {
+      defaultValue: category,
+    });
   }
 
   function getCategoryTitle(category: string) {
@@ -263,14 +267,12 @@ export default function CurrentAffairs() {
       );
     }
 
-    return categoryInfo[category]?.description || "";
+    return categoryInfo[category]?.description ?? "";
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-white">
       <main className="mx-auto max-w-7xl px-4 py-8">
-        {/* PAGE HEADER */}
-
         <div className="mb-6">
           <p className="text-sm font-bold uppercase tracking-wide text-blue-600">
             {t("currentAffairs.label")}
@@ -285,14 +287,12 @@ export default function CurrentAffairs() {
           </p>
         </div>
 
-        {/* SEARCH + FILTERS */}
-
         <div className="rounded-2xl border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <input
             type="text"
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
+            onChange={(event) =>
+              setSearch(event.target.value)
             }
             placeholder={t(
               "currentAffairs.searchPlaceholder",
@@ -324,15 +324,11 @@ export default function CurrentAffairs() {
           </div>
         </div>
 
-        {/* LOADING */}
-
         {loading && (
           <div className="py-16 text-center text-slate-500">
             {t("currentAffairs.loading")}
           </div>
         )}
-
-        {/* ERROR */}
 
         {!loading && error && (
           <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
@@ -340,121 +336,85 @@ export default function CurrentAffairs() {
           </div>
         )}
 
-        {/* ALL VIEW */}
+        {!loading && !error && (
+          <section className="mt-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                {selectedCategory === "All" ? (
+                  <>
+                    <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
+                      {t("currentAffairs.allCategories")}
+                    </p>
 
-        {!loading &&
-          !error &&
-          selectedCategory === "All" && (
-            <section className="mt-8">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                    {t("currentAffairs.allCategories")}
-                  </p>
+                    <h2 className="mt-1 text-2xl font-bold">
+                      {t("currentAffairs.mixedTitle")}
+                    </h2>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
+                      {getCategoryLabel(selectedCategory)}
+                    </p>
 
-                  <h2 className="mt-1 text-2xl font-bold">
-                    {t("currentAffairs.mixedTitle")}
-                  </h2>
-                </div>
+                    <h2 className="mt-1 text-2xl font-bold">
+                      {getCategoryTitle(selectedCategory)}
+                    </h2>
 
-                <p className="text-sm text-slate-500">
-                  {filteredRecords.length}{" "}
-                  {t("currentAffairs.topics")}
-                </p>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      {getCategoryDescription(
+                        selectedCategory,
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
 
-              {filteredRecords.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredRecords.map(
-                    (record) => (
-                      <AffairCard
-                        key={record.id}
-                        record={record}
-                        onClick={() =>
-                          navigate(
-                            `/current-affairs/${record.id}`,
-                          )
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              )}
-            </section>
-          )}
+              <p className="text-sm text-slate-500">
+                {filteredRecords.length}{" "}
+                {t("currentAffairs.topics")}
+              </p>
+            </div>
 
-        {/* CATEGORY VIEW */}
-
-        {!loading &&
-          !error &&
-          selectedCategory !== "All" && (
-            <section className="mt-8">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                    {getCategoryLabel(selectedCategory)}
-                  </p>
-
-                  <h2 className="mt-1 text-2xl font-bold">
-                    {getCategoryTitle(selectedCategory)}
-                  </h2>
-
-                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                    {getCategoryDescription(
-                      selectedCategory,
-                    )}
-                  </p>
-                </div>
-
-                <p className="text-sm text-slate-500">
-                  {filteredRecords.length}{" "}
-                  {t("currentAffairs.topics")}
-                </p>
+            {filteredRecords.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {filteredRecords.map((record) => (
+                  <AffairCard
+                    key={record.id}
+                    record={record}
+                    onClick={() =>
+                      navigate(
+                        `/current-affairs/${record.id}`,
+                      )
+                    }
+                  />
+                ))}
               </div>
-
-              {filteredRecords.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredRecords.map(
-                    (record) => (
-                      <AffairCard
-                        key={record.id}
-                        record={record}
-                        onClick={() =>
-                          navigate(
-                            `/current-affairs/${record.id}`,
-                          )
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              )}
-            </section>
-          )}
+            )}
+          </section>
+        )}
       </main>
     </div>
   );
 }
 
+interface AffairCardProps {
+  record: CurrentAffair;
+  onClick: () => void;
+}
+
 function AffairCard({
   record,
   onClick,
-}: {
-  record: CurrentAffair;
-  onClick: () => void;
-}) {
+}: AffairCardProps) {
   const { t } = useTranslation();
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-start justify-between gap-3">
         <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-          {record.category ||
-            t("currentAffairs.label")}
+          {record.category || t("currentAffairs.label")}
         </span>
 
         <span className="text-xs text-slate-400">
@@ -493,9 +453,7 @@ function EmptyState() {
 
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
-      <div className="text-4xl">
-        📰
-      </div>
+      <div className="text-4xl">📰</div>
 
       <h3 className="mt-4 text-lg font-bold">
         {t("currentAffairs.emptyTitle")}
@@ -507,3 +465,5 @@ function EmptyState() {
     </div>
   );
 }
+
+export default WeeklyCurrentAffairs;
