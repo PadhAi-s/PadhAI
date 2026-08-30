@@ -20,47 +20,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Node.js 24
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
-      # Install dependencies
-      # npm install is intentional because package.json
-      # and package-lock.json are currently out of sync.
       - name: Install dependencies
         run: npm install
 
-      # Build React/Vite app
       - name: Build PadhAI
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
-      # GitHub Pages
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
-      # Upload dist
       - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
   deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-    needs: build
 
     steps:
       - name: Deploy to GitHub Pages
