@@ -1,35 +1,42 @@
 import { useTranslation } from "react-i18next";
-import type { SupportedLanguage } from "../utils/i18n";
 
-export function LanguageToggle() {
-  const { i18n, t } = useTranslation();
-  const current = i18n.language as SupportedLanguage;
+export default function LanguageToggle() {
+  const { i18n } = useTranslation();
 
-  function select(lang: SupportedLanguage) {
-    if (lang !== current) i18n.changeLanguage(lang);
+  const currentLanguage = i18n.language?.startsWith("hi")
+    ? "hi"
+    : "en";
+
+  function changeLanguage(language: "hi" | "en") {
+    i18n.changeLanguage(language);
+    localStorage.setItem("padhai-language", language);
   }
 
   return (
-    <div
-      role="group"
-      aria-label={t("nav.language")}
-      className="inline-flex rounded-full border border-ink/15 dark:border-paper/20 p-0.5 text-sm"
-    >
-      {(["hi", "en"] as const).map((lang) => (
-        <button
-          key={lang}
-          type="button"
-          onClick={() => select(lang)}
-          aria-pressed={current === lang}
-          className={`rounded-full px-3 py-1 transition-colors ${
-            current === lang
-              ? "bg-turmeric text-ink font-medium"
-              : "text-ink-soft dark:text-paper/70 hover:text-ink dark:hover:text-paper"
-          }`}
-        >
-          {lang === "hi" ? "हिंदी" : "English"}
-        </button>
-      ))}
+    <div className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 p-1 shadow-sm">
+      <button
+        type="button"
+        onClick={() => changeLanguage("hi")}
+        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+          currentLanguage === "hi"
+            ? "bg-white text-slate-900 shadow"
+            : "text-slate-600 hover:text-slate-900"
+        }`}
+      >
+        हिंदी
+      </button>
+
+      <button
+        type="button"
+        onClick={() => changeLanguage("en")}
+        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+          currentLanguage === "en"
+            ? "bg-white text-slate-900 shadow"
+            : "text-slate-600 hover:text-slate-900"
+        }`}
+      >
+        English
+      </button>
     </div>
   );
 }
