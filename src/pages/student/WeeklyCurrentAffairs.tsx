@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../lib/supabase";
 
 interface CurrentAffair {
@@ -71,6 +72,7 @@ const categoryInfo: Record<
 
 export default function CurrentAffairs() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [records, setRecords] = useState<CurrentAffair[]>([]);
   const [selectedCategory, setSelectedCategory] =
@@ -136,7 +138,7 @@ export default function CurrentAffairs() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to load current affairs.",
+          : t("currentAffairs.loadError"),
       );
     } finally {
       setLoading(false);
@@ -183,36 +185,119 @@ export default function CurrentAffairs() {
     ).length;
   }
 
+  function getCategoryLabel(category: string) {
+    return t(
+      `currentAffairs.categories.${category}`,
+      {
+        defaultValue: category,
+      },
+    );
+  }
+
+  function getCategoryTitle(category: string) {
+    if (category === "National") {
+      return t("currentAffairs.categoryTitles.national");
+    }
+
+    if (category === "International") {
+      return t(
+        "currentAffairs.categoryTitles.international",
+      );
+    }
+
+    if (category === "Science & Tech") {
+      return t(
+        "currentAffairs.categoryTitles.scienceTech",
+      );
+    }
+
+    if (category === "Economy") {
+      return t("currentAffairs.categoryTitles.economy");
+    }
+
+    if (category === "Sports") {
+      return t("currentAffairs.categoryTitles.sports");
+    }
+
+    if (category === "Awards") {
+      return t("currentAffairs.categoryTitles.awards");
+    }
+
+    return category;
+  }
+
+  function getCategoryDescription(category: string) {
+    if (category === "National") {
+      return t(
+        "currentAffairs.categoryDescriptions.national",
+      );
+    }
+
+    if (category === "International") {
+      return t(
+        "currentAffairs.categoryDescriptions.international",
+      );
+    }
+
+    if (category === "Science & Tech") {
+      return t(
+        "currentAffairs.categoryDescriptions.scienceTech",
+      );
+    }
+
+    if (category === "Economy") {
+      return t(
+        "currentAffairs.categoryDescriptions.economy",
+      );
+    }
+
+    if (category === "Sports") {
+      return t(
+        "currentAffairs.categoryDescriptions.sports",
+      );
+    }
+
+    if (category === "Awards") {
+      return t(
+        "currentAffairs.categoryDescriptions.awards",
+      );
+    }
+
+    return categoryInfo[category]?.description || "";
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
+    <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-white">
       <main className="mx-auto max-w-7xl px-4 py-8">
         {/* PAGE HEADER */}
 
         <div className="mb-6">
           <p className="text-sm font-bold uppercase tracking-wide text-blue-600">
-            Current Affairs
+            {t("currentAffairs.label")}
           </p>
 
           <h1 className="mt-2 text-3xl font-bold">
-            Daily Current Affairs
+            {t("currentAffairs.title")}
           </h1>
 
-          <p className="mt-2 text-slate-500">
-            Important current affairs for competitive exams.
+          <p className="mt-2 text-slate-500 dark:text-slate-400">
+            {t("currentAffairs.subtitle")}
           </p>
         </div>
 
         {/* SEARCH + FILTERS */}
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <input
             type="text"
             value={search}
             onChange={(e) =>
               setSearch(e.target.value)
             }
-            placeholder="Search current affairs..."
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
+            placeholder={t(
+              "currentAffairs.searchPlaceholder",
+            )}
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           />
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -226,10 +311,10 @@ export default function CurrentAffairs() {
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                   selectedCategory === category
                     ? "bg-blue-600 text-white shadow"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 }`}
               >
-                {category}
+                {getCategoryLabel(category)}
 
                 <span className="ml-1 opacity-70">
                   ({getCategoryCount(category)})
@@ -243,14 +328,14 @@ export default function CurrentAffairs() {
 
         {loading && (
           <div className="py-16 text-center text-slate-500">
-            Loading current affairs...
+            {t("currentAffairs.loading")}
           </div>
         )}
 
         {/* ERROR */}
 
         {!loading && error && (
-          <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">
+          <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
             ❌ {error}
           </div>
         )}
@@ -264,16 +349,17 @@ export default function CurrentAffairs() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                    All Categories
+                    {t("currentAffairs.allCategories")}
                   </p>
 
                   <h2 className="mt-1 text-2xl font-bold">
-                    Mixed Current Affairs
+                    {t("currentAffairs.mixedTitle")}
                   </h2>
                 </div>
 
                 <p className="text-sm text-slate-500">
-                  {filteredRecords.length} topics
+                  {filteredRecords.length}{" "}
+                  {t("currentAffairs.topics")}
                 </p>
               </div>
 
@@ -308,24 +394,23 @@ export default function CurrentAffairs() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                    {selectedCategory}
+                    {getCategoryLabel(selectedCategory)}
                   </p>
 
                   <h2 className="mt-1 text-2xl font-bold">
-                    {categoryInfo[selectedCategory]?.title ||
-                      selectedCategory}
+                    {getCategoryTitle(selectedCategory)}
                   </h2>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    {
-                      categoryInfo[selectedCategory]
-                        ?.description
-                    }
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    {getCategoryDescription(
+                      selectedCategory,
+                    )}
                   </p>
                 </div>
 
                 <p className="text-sm text-slate-500">
-                  {filteredRecords.length} topics
+                  {filteredRecords.length}{" "}
+                  {t("currentAffairs.topics")}
                 </p>
               </div>
 
@@ -362,11 +447,14 @@ function AffairCard({
   record: CurrentAffair;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-start justify-between gap-3">
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-          {record.category || "Current Affairs"}
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+          {record.category ||
+            t("currentAffairs.label")}
         </span>
 
         <span className="text-xs text-slate-400">
@@ -378,21 +466,22 @@ function AffairCard({
         {record.title}
       </h3>
 
-      <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500">
+      <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
         {record.why_in_news}
       </p>
 
       <div className="mt-5 flex items-center justify-between">
         <span className="text-xs text-slate-400">
-          {record.mcqs.length} MCQs
+          {record.mcqs.length}{" "}
+          {t("currentAffairs.mcqs")}
         </span>
 
         <button
           type="button"
           onClick={onClick}
-          className="font-semibold text-blue-700 hover:text-blue-900"
+          className="font-semibold text-blue-700 hover:text-blue-900 dark:text-blue-400"
         >
-          Read More →
+          {t("currentAffairs.readMore")} →
         </button>
       </div>
     </article>
@@ -400,18 +489,20 @@ function AffairCard({
 }
 
 function EmptyState() {
+  const { t } = useTranslation();
+
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
       <div className="text-4xl">
         📰
       </div>
 
       <h3 className="mt-4 text-lg font-bold">
-        No current affairs found
+        {t("currentAffairs.emptyTitle")}
       </h3>
 
-      <p className="mt-2 text-sm text-slate-500">
-        Try another category or search term.
+      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+        {t("currentAffairs.emptyDescription")}
       </p>
     </div>
   );
