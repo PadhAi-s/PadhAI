@@ -10,50 +10,49 @@ const resources = {
       common: {
         student: "Student",
         logout: "Logout",
-        notSet: "Not Set",
-        premium: "PREMIUM",
-        free: "FREE",
-        external: "EXTERNAL",
+        notSet: "Not set",
+        premium: "Premium",
+        free: "Free",
+        external: "External",
         comingSoon: "Coming Soon",
       },
 
       home: {
         heroTitle:
-          "Learn smarter. Prepare better.",
+          "Your smarter way to prepare for competitive exams.",
         heroSubtitle:
-          "Your complete learning platform for competitive exam preparation.",
+          "Learn with structured study material, AI assistance, current affairs and powerful learning tools.",
         ctaStudent: "Student Login",
 
         pillars: {
           syllabus:
-            "Structured syllabus for focused preparation.",
+            "Structured syllabus and focused study resources.",
           ai:
-            "Ask PadhAI and get help with your studies.",
+            "Ask PadhAI AI whenever you need help.",
           video:
-            "Learn with useful videos and learning resources.",
+            "Useful learning content and study resources.",
           progress:
-            "Track your progress and improve every day.",
+            "Stay focused and keep improving every day.",
         },
       },
 
       studentLogin: {
         login: "Student Login",
         loginSubtitle:
-          "Login to continue your learning journey",
+          "Sign in to continue your learning journey",
         email: "Email",
         password: "Password",
         loginButton: "Login",
         noAccount: "Don't have an account?",
         createAccount: "Create Account",
-        emailPlaceholder: "Enter your email",
-        passwordPlaceholder: "Enter your password",
+        loggingIn: "Logging in...",
         loginError:
-          "Unable to login. Please try again.",
+          "Unable to login. Please check your credentials.",
       },
 
       dashboard: {
         subtitle:
-          "Your personal learning dashboard",
+          "Your learning dashboard",
 
         welcome:
           "Welcome back",
@@ -64,26 +63,26 @@ const resources = {
 
         openMenu: "Open menu",
 
-        editProfile: "Edit Profile",
+        editProfile:
+          "Edit Profile",
 
         menu: {
           syllabus: "Syllabus",
           syllabusDesc:
-            "View your complete syllabus",
+            "View your subjects and syllabus",
 
-          profile: "My Profile",
+          profile: "Profile",
           profileDesc:
-            "View and update your profile",
+            "View and edit your profile",
 
           lightMode: "Light Mode",
           darkMode: "Dark Mode",
 
           changeAppearance:
-            "Change application appearance",
+            "Change app appearance",
 
           settings: "Settings",
-          comingSoon:
-            "This feature is coming soon",
+          comingSoon: "Coming soon",
         },
 
         cards: {
@@ -91,41 +90,41 @@ const resources = {
             title: "Daily Newspaper",
             description:
               "Read important news and daily updates.",
-            action: "Open Newspaper →",
+            action: "Open Newspaper",
           },
 
           currentAffairs: {
             title: "Current Affairs",
             description:
-              "Stay updated with important current affairs.",
-            action: "Explore Current Affairs →",
+              "Important current affairs for competitive exams.",
+            action: "Explore Current Affairs",
           },
 
           revision: {
             title: "Quick Revision",
             description:
               "Revise important topics quickly.",
-            action: "Start Revision →",
+            action: "Start Revision",
           },
 
           ask: {
             title: "Ask PadhAI",
             description:
-              "Ask questions and get learning help.",
-            action: "Ask Now →",
+              "Ask questions and get AI-powered help.",
+            action: "Ask Now",
           },
 
           vocab: {
             title: "Vocab Bhaiya",
             description:
-              "Improve your vocabulary and English.",
-            action: "Visit Website →",
+              "Improve your vocabulary with useful resources.",
+            action: "Open Vocab Bhaiya",
           },
 
           videos: {
             title: "Learning Videos",
             description:
-              "Watch useful educational videos.",
+              "Watch useful educational and learning videos.",
           },
         },
       },
@@ -154,9 +153,11 @@ const resources = {
         mixedTitle:
           "Mixed Current Affairs",
 
-        topics: "topics",
+        topics:
+          "topics",
 
-        mcqs: "MCQs",
+        mcqs:
+          "MCQs",
 
         readMore:
           "Read More",
@@ -200,7 +201,7 @@ const resources = {
 
         categoryDescriptions: {
           national:
-            "Important national events and government-related developments from this week.",
+            "Important national events and government-related developments.",
 
           international:
             "Major international events, global developments and important world news.",
@@ -225,79 +226,83 @@ const resources = {
     translation: {
       common: {
         student: "छात्र",
-        logout: "लॉगआउट",
+        logout: "लॉग आउट",
         notSet: "सेट नहीं है",
         premium: "प्रीमियम",
-        free: "फ्री",
+        free: "मुफ्त",
         external: "बाहरी",
         comingSoon: "जल्द आ रहा है",
       },
 
       home: {
         heroTitle:
-          "स्मार्ट तरीके से पढ़ें। बेहतर तैयारी करें।",
+          "प्रतियोगी परीक्षाओं की तैयारी का स्मार्ट तरीका।",
 
         heroSubtitle:
-          "प्रतियोगी परीक्षाओं की तैयारी के लिए आपका संपूर्ण लर्निंग प्लेटफॉर्म।",
+          "स्ट्रक्चर्ड स्टडी मटेरियल, AI सहायता, करेंट अफेयर्स और उपयोगी लर्निंग टूल्स के साथ पढ़ाई करें।",
 
         ctaStudent:
           "स्टूडेंट लॉगिन",
 
         pillars: {
           syllabus:
-            "बेहतर तैयारी के लिए व्यवस्थित सिलेबस।",
+            "स्ट्रक्चर्ड सिलेबस और फोकस्ड स्टडी रिसोर्सेज।",
 
           ai:
-            "PadhAI से सवाल पूछें और पढ़ाई में मदद पाएं।",
+            "जब भी मदद चाहिए PadhAI AI से पूछें।",
 
           video:
-            "उपयोगी वीडियो और लर्निंग रिसोर्स के साथ सीखें।",
+            "उपयोगी लर्निंग कंटेंट और स्टडी रिसोर्सेज।",
 
           progress:
-            "अपनी प्रगति ट्रैक करें और हर दिन बेहतर बनें।",
+            "फोकस बनाए रखें और हर दिन बेहतर बनें।",
         },
       },
 
       studentLogin: {
-        login: "छात्र लॉगिन",
+        login:
+          "स्टूडेंट लॉगिन",
 
         loginSubtitle:
-          "अपनी पढ़ाई जारी रखने के लिए लॉगिन करें",
+          "अपनी पढ़ाई जारी रखने के लिए साइन इन करें",
 
-        email: "ईमेल",
+        email:
+          "ईमेल",
 
-        password: "पासवर्ड",
+        password:
+          "पासवर्ड",
 
-        loginButton: "लॉगिन करें",
+        loginButton:
+          "लॉगिन करें",
 
         noAccount:
-          "अकाउंट नहीं है?",
+          "क्या आपका अकाउंट नहीं है?",
 
         createAccount:
           "अकाउंट बनाएं",
 
-        emailPlaceholder:
-          "अपना ईमेल दर्ज करें",
-
-        passwordPlaceholder:
-          "अपना पासवर्ड दर्ज करें",
+        loggingIn:
+          "लॉगिन हो रहा है...",
 
         loginError:
-          "लॉगिन नहीं हो सका। कृपया दोबारा प्रयास करें।",
+          "लॉगिन नहीं हो पाया। कृपया अपनी जानकारी जांचें।",
       },
 
       dashboard: {
         subtitle:
-          "आपका व्यक्तिगत लर्निंग डैशबोर्ड",
+          "आपका लर्निंग डैशबोर्ड",
 
         welcome:
           "वापस स्वागत है",
 
-        class: "कक्षा",
+        class:
+          "कक्षा",
 
-        board: "बोर्ड",
+        board:
+          "बोर्ड",
 
-        exam: "परीक्षा",
+        exam:
+          "परीक्षा",
 
         openMenu:
           "मेनू खोलें",
@@ -306,16 +311,17 @@ const resources = {
           "प्रोफाइल एडिट करें",
 
         menu: {
-          syllabus: "सिलेबस",
+          syllabus:
+            "सिलेबस",
 
           syllabusDesc:
-            "अपना पूरा सिलेबस देखें",
+            "अपने विषय और सिलेबस देखें",
 
           profile:
-            "मेरी प्रोफाइल",
+            "प्रोफाइल",
 
           profileDesc:
-            "अपनी प्रोफाइल देखें और अपडेट करें",
+            "अपनी प्रोफाइल देखें और एडिट करें",
 
           lightMode:
             "लाइट मोड",
@@ -330,7 +336,7 @@ const resources = {
             "सेटिंग्स",
 
           comingSoon:
-            "यह फीचर जल्द आ रहा है",
+            "जल्द आ रहा है",
         },
 
         cards: {
@@ -342,18 +348,18 @@ const resources = {
               "महत्वपूर्ण समाचार और दैनिक अपडेट पढ़ें।",
 
             action:
-              "न्यूज़पेपर खोलें →",
+              "न्यूज़पेपर खोलें",
           },
 
           currentAffairs: {
             title:
-              "करंट अफेयर्स",
+              "करेंट अफेयर्स",
 
             description:
-              "महत्वपूर्ण करंट अफेयर्स से अपडेट रहें।",
+              "प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण करेंट अफेयर्स।",
 
             action:
-              "करंट अफेयर्स देखें →",
+              "करेंट अफेयर्स देखें",
           },
 
           revision: {
@@ -361,21 +367,21 @@ const resources = {
               "क्विक रिवीजन",
 
             description:
-              "महत्वपूर्ण टॉपिक जल्दी रिवाइज करें।",
+              "महत्वपूर्ण टॉपिक्स का जल्दी रिवीजन करें।",
 
             action:
-              "रिवीजन शुरू करें →",
+              "रिवीजन शुरू करें",
           },
 
           ask: {
             title:
-              "PadhAI से पूछें",
+              "Ask PadhAI",
 
             description:
-              "सवाल पूछें और पढ़ाई में मदद पाएं।",
+              "सवाल पूछें और AI की मदद प्राप्त करें।",
 
             action:
-              "अभी पूछें →",
+              "अभी पूछें",
           },
 
           vocab: {
@@ -383,10 +389,10 @@ const resources = {
               "Vocab Bhaiya",
 
             description:
-              "अपनी Vocabulary और English बेहतर करें।",
+              "उपयोगी रिसोर्सेज के साथ अपनी शब्दावली बेहतर बनाएं।",
 
             action:
-              "वेबसाइट देखें →",
+              "Vocab Bhaiya खोलें",
           },
 
           videos: {
@@ -394,35 +400,35 @@ const resources = {
               "लर्निंग वीडियो",
 
             description:
-              "उपयोगी शैक्षणिक वीडियो देखें।",
+              "उपयोगी एजुकेशनल और लर्निंग वीडियो देखें।",
           },
         },
       },
 
       currentAffairs: {
         label:
-          "करंट अफेयर्स",
+          "करेंट अफेयर्स",
 
         title:
-          "दैनिक करंट अफेयर्स",
+          "डेली करेंट अफेयर्स",
 
         subtitle:
-          "प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण करंट अफेयर्स।",
+          "प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण करेंट अफेयर्स।",
 
         searchPlaceholder:
-          "करंट अफेयर्स खोजें...",
+          "करेंट अफेयर्स खोजें...",
 
         loading:
-          "करंट अफेयर्स लोड हो रहे हैं...",
+          "करेंट अफेयर्स लोड हो रहे हैं...",
 
         loadError:
-          "करंट अफेयर्स लोड नहीं हो सके।",
+          "करेंट अफेयर्स लोड नहीं हो पाए।",
 
         allCategories:
-          "सभी कैटेगरी",
+          "सभी श्रेणियां",
 
         mixedTitle:
-          "मिक्स्ड करंट अफेयर्स",
+          "सभी करेंट अफेयर्स",
 
         topics:
           "टॉपिक्स",
@@ -434,7 +440,7 @@ const resources = {
           "और पढ़ें",
 
         emptyTitle:
-          "कोई करंट अफेयर्स नहीं मिला",
+          "कोई करेंट अफेयर्स नहीं मिला",
 
         emptyDescription:
           "दूसरी कैटेगरी या सर्च शब्द आज़माएं।",
@@ -444,7 +450,7 @@ const resources = {
           National: "राष्ट्रीय",
           International: "अंतरराष्ट्रीय",
           "Science & Tech":
-            "विज्ञान और टेक्नोलॉजी",
+            "विज्ञान और तकनीक",
           Economy: "अर्थव्यवस्था",
           Sports: "खेल",
           Awards: "पुरस्कार",
@@ -458,7 +464,7 @@ const resources = {
             "अंतरराष्ट्रीय मामले",
 
           scienceTech:
-            "विज्ञान और टेक्नोलॉजी",
+            "विज्ञान और तकनीक",
 
           economy:
             "अर्थव्यवस्था और बिजनेस",
@@ -472,22 +478,22 @@ const resources = {
 
         categoryDescriptions: {
           national:
-            "इस सप्ताह की महत्वपूर्ण राष्ट्रीय घटनाएं और सरकारी विकास।",
+            "महत्वपूर्ण राष्ट्रीय घटनाएं और सरकारी विकास।",
 
           international:
-            "प्रमुख अंतरराष्ट्रीय घटनाएं और दुनिया की महत्वपूर्ण खबरें।",
+            "प्रमुख अंतरराष्ट्रीय घटनाएं और विश्व से जुड़ी महत्वपूर्ण खबरें।",
 
           scienceTech:
-            "विज्ञान, टेक्नोलॉजी, अंतरिक्ष और इनोवेशन के महत्वपूर्ण विकास।",
+            "विज्ञान, तकनीक, अंतरिक्ष और इनोवेशन से जुड़े महत्वपूर्ण विकास।",
 
           economy:
-            "महत्वपूर्ण आर्थिक विकास, बिजनेस समाचार और वित्तीय अपडेट।",
+            "महत्वपूर्ण आर्थिक विकास और बिजनेस अपडेट।",
 
           sports:
-            "महत्वपूर्ण खेल आयोजन, टूर्नामेंट और उपलब्धियां।",
+            "महत्वपूर्ण खेल प्रतियोगिताएं और उपलब्धियां।",
 
           awards:
-            "समाचारों में महत्वपूर्ण नियुक्तियां, पुरस्कार और सम्मान।",
+            "महत्वपूर्ण नियुक्तियां, पुरस्कार और समाचारों में रहने वाली हस्तियां।",
         },
       },
     },
@@ -498,35 +504,35 @@ const resources = {
       common: {
         student: "Student",
         logout: "Logout",
-        notSet: "Set Nahi Hai",
-        premium: "PREMIUM",
-        free: "FREE",
-        external: "EXTERNAL",
-        comingSoon: "Jaldi Aa Raha Hai",
+        notSet: "Set nahi hai",
+        premium: "Premium",
+        free: "Free",
+        external: "External",
+        comingSoon: "Coming Soon",
       },
 
       home: {
         heroTitle:
-          "Smart Padho. Better Prepare Karo.",
+          "Competitive exams ki preparation ka smarter way.",
 
         heroSubtitle:
-          "Competitive exams ki preparation ke liye aapka complete learning platform.",
+          "Structured study material, AI help, current affairs aur powerful learning tools ke saath padho.",
 
         ctaStudent:
           "Student Login",
 
         pillars: {
           syllabus:
-            "Focused preparation ke liye structured syllabus.",
+            "Structured syllabus aur focused study resources.",
 
           ai:
-            "PadhAI se questions pucho aur study help pao.",
+            "Jab bhi help chahiye PadhAI AI se poocho.",
 
           video:
-            "Useful videos aur learning resources ke saath padho.",
+            "Useful learning content aur study resources.",
 
           progress:
-            "Apni progress track karo aur har din improve karo.",
+            "Focused raho aur har din improve karo.",
         },
       },
 
@@ -535,7 +541,7 @@ const resources = {
           "Student Login",
 
         loginSubtitle:
-          "Apni padhai continue karne ke liye login karein",
+          "Apni learning journey continue karne ke liye sign in karo",
 
         email:
           "Email",
@@ -544,30 +550,27 @@ const resources = {
           "Password",
 
         loginButton:
-          "Login Karein",
+          "Login",
 
         noAccount:
           "Account nahi hai?",
 
         createAccount:
-          "Account Banayein",
+          "Account Banao",
 
-        emailPlaceholder:
-          "Apna email enter karein",
-
-        passwordPlaceholder:
-          "Apna password enter karein",
+        loggingIn:
+          "Login ho raha hai...",
 
         loginError:
-          "Login nahi ho saka. Kripya dobara try karein.",
+          "Login nahi ho paya. Apni details check karo.",
       },
 
       dashboard: {
         subtitle:
-          "Aapka personal learning dashboard",
+          "Tumhara learning dashboard",
 
         welcome:
-          "Welcome Back",
+          "Welcome back",
 
         class:
           "Class",
@@ -579,23 +582,23 @@ const resources = {
           "Exam",
 
         openMenu:
-          "Menu Kholein",
+          "Menu kholo",
 
         editProfile:
-          "Profile Edit Karein",
+          "Profile Edit Karo",
 
         menu: {
           syllabus:
             "Syllabus",
 
           syllabusDesc:
-            "Apna complete syllabus dekhein",
+            "Apne subjects aur syllabus dekho",
 
           profile:
-            "Meri Profile",
+            "Profile",
 
           profileDesc:
-            "Apni profile dekhein aur update karein",
+            "Apni profile dekho aur edit karo",
 
           lightMode:
             "Light Mode",
@@ -604,13 +607,13 @@ const resources = {
             "Dark Mode",
 
           changeAppearance:
-            "App ka appearance badlein",
+            "App ka appearance badlo",
 
           settings:
             "Settings",
 
           comingSoon:
-            "Ye feature jaldi aa raha hai",
+            "Coming Soon",
         },
 
         cards: {
@@ -619,10 +622,10 @@ const resources = {
               "Daily Newspaper",
 
             description:
-              "Important news aur daily updates padhein.",
+              "Important news aur daily updates padho.",
 
             action:
-              "Newspaper Kholein →",
+              "Newspaper Open Karo",
           },
 
           currentAffairs: {
@@ -630,10 +633,10 @@ const resources = {
               "Current Affairs",
 
             description:
-              "Important current affairs se updated rahein.",
+              "Competitive exams ke liye important current affairs.",
 
             action:
-              "Current Affairs Dekhein →",
+              "Current Affairs Explore Karo",
           },
 
           revision: {
@@ -641,10 +644,10 @@ const resources = {
               "Quick Revision",
 
             description:
-              "Important topics jaldi revise karein.",
+              "Important topics ko jaldi revise karo.",
 
             action:
-              "Revision Start Karein →",
+              "Revision Start Karo",
           },
 
           ask: {
@@ -652,10 +655,10 @@ const resources = {
               "Ask PadhAI",
 
             description:
-              "Questions pucho aur learning help pao.",
+              "Questions poocho aur AI-powered help pao.",
 
             action:
-              "Abhi Pucho →",
+              "Abhi Poocho",
           },
 
           vocab: {
@@ -663,10 +666,10 @@ const resources = {
               "Vocab Bhaiya",
 
             description:
-              "Apni vocabulary aur English improve karo.",
+              "Useful resources ke saath vocabulary improve karo.",
 
             action:
-              "Website Visit Karein →",
+              "Vocab Bhaiya Open Karo",
           },
 
           videos: {
@@ -674,7 +677,7 @@ const resources = {
               "Learning Videos",
 
             description:
-              "Useful educational videos dekhein.",
+              "Useful educational aur learning videos dekho.",
           },
         },
       },
@@ -690,13 +693,13 @@ const resources = {
           "Competitive exams ke liye important current affairs.",
 
         searchPlaceholder:
-          "Current affairs search karein...",
+          "Current affairs search karo...",
 
         loading:
           "Current affairs load ho rahe hain...",
 
         loadError:
-          "Current affairs load nahi ho sake.",
+          "Current affairs load nahi ho paaye.",
 
         allCategories:
           "All Categories",
@@ -711,16 +714,16 @@ const resources = {
           "MCQs",
 
         readMore:
-          "Aur Padhein",
+          "Aur Padho",
 
         emptyTitle:
-          "Koi current affairs nahi mila",
+          "Koi current affair nahi mila",
 
         emptyDescription:
-          "Dusri category ya search term try karein.",
+          "Dusri category ya search term try karo.",
 
         categories: {
-          All: "Sabhi",
+          All: "All",
           National: "National",
           International: "International",
           "Science & Tech":
@@ -752,7 +755,7 @@ const resources = {
 
         categoryDescriptions: {
           national:
-            "Is week ke important national events aur government developments.",
+            "Important national events aur government related developments.",
 
           international:
             "Major international events aur important world news.",
@@ -764,10 +767,10 @@ const resources = {
             "Important economic developments aur business updates.",
 
           sports:
-            "Important sports events, tournaments aur achievements.",
+            "Important sports events aur major achievements.",
 
           awards:
-            "Important appointments, awards aur honours.",
+            "Important appointments, awards aur news mein rehne wali personalities.",
         },
       },
     },
@@ -780,12 +783,6 @@ i18n.use(initReactI18next).init({
   lng: savedLanguage,
 
   fallbackLng: "en",
-
-  supportedLngs: [
-    "en",
-    "hi",
-    "hinglish",
-  ],
 
   interpolation: {
     escapeValue: false,
