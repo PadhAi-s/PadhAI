@@ -5,6 +5,8 @@ import {
 } from "@tanstack/react-query";
 
 import { ThemeProvider } from "./context/ThemeContext";
+import { AuthProvider } from "./context/AuthContext";
+
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
 
@@ -28,92 +30,91 @@ const queryClient = new QueryClient();
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <HashRouter>
-          <Routes>
-            <Route element={<RootLayout />}>
-              {/* HOME */}
-              <Route
-                index
-                element={<Home />}
-              />
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <HashRouter>
+            <Routes>
+              <Route element={<RootLayout />}>
+                {/* HOME */}
+                <Route index element={<Home />} />
 
-              {/* STUDENT LOGIN */}
-              <Route
-                path="student/login"
-                element={<StudentLogin />}
-              />
-
-              {/* STUDENT PROTECTED ROUTES */}
-              <Route
-                element={
-                  <ProtectedRoute allowedRole="student" />
-                }
-              >
+                {/* STUDENT LOGIN */}
                 <Route
-                  path="student/dashboard"
-                  element={<StudentDashboard />}
+                  path="student/login"
+                  element={<StudentLogin />}
                 />
 
+                {/* STUDENT PROTECTED ROUTES */}
                 <Route
-                  path="student/profile"
-                  element={<StudentProfile />}
+                  element={
+                    <ProtectedRoute allowedRole="student" />
+                  }
+                >
+                  <Route
+                    path="student/dashboard"
+                    element={<StudentDashboard />}
+                  />
+
+                  <Route
+                    path="student/profile"
+                    element={<StudentProfile />}
+                  />
+
+                  <Route
+                    path="student/syllabus"
+                    element={<StudentSyllabus />}
+                  />
+
+                  <Route
+                    path="student/ask"
+                    element={<AskPadhAI />}
+                  />
+
+                  <Route
+                    path="student/current-affairs"
+                    element={<WeeklyCurrentAffairs />}
+                  />
+
+                  <Route
+                    path="student/daily-newspaper"
+                    element={<DailyNewspaper />}
+                  />
+                </Route>
+
+                {/* ADMIN LOGIN */}
+                <Route
+                  path="admin/login"
+                  element={<AdminLogin />}
                 />
 
+                {/* ADMIN PROTECTED ROUTES */}
                 <Route
-                  path="student/syllabus"
-                  element={<StudentSyllabus />}
-                />
+                  element={
+                    <ProtectedRoute allowedRole="admin" />
+                  }
+                >
+                  <Route
+                    path="admin/dashboard"
+                    element={<AdminDashboard />}
+                  />
 
-                <Route
-                  path="student/ask"
-                  element={<AskPadhAI />}
-                />
+                  <Route
+                    path="admin/current-affairs"
+                    element={<AdminCurrentAffairs />}
+                  />
+                </Route>
 
+                {/* 404 */}
                 <Route
-                  path="student/current-affairs"
-                  element={<WeeklyCurrentAffairs />}
-                />
-
-                <Route
-                  path="student/daily-newspaper"
-                  element={<DailyNewspaper />}
+                  path="*"
+                  element={<NotFound />}
                 />
               </Route>
-
-              {/* ADMIN LOGIN */}
-              <Route
-                path="admin/login"
-                element={<AdminLogin />}
-              />
-
-              {/* ADMIN PROTECTED ROUTES */}
-              <Route
-                element={
-                  <ProtectedRoute allowedRole="admin" />
-                }
-              >
-                <Route
-                  path="admin/dashboard"
-                  element={<AdminDashboard />}
-                />
-
-                <Route
-                  path="admin/current-affairs"
-                  element={<AdminCurrentAffairs />}
-                />
-              </Route>
-
-              {/* NOT FOUND */}
-              <Route
-                path="*"
-                element={<NotFound />}
-              />
-            </Route>
-          </Routes>
-        </HashRouter>
-      </QueryClientProvider>
-    </ThemeProvider>
+            </Routes>
+          </HashRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
