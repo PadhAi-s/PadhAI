@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+
+/* =========================
+   TYPES
+========================= */
+
+type Difficulty = "Easy" | "Medium" | "Hard";
 
 interface FlashCard {
   id: string;
@@ -11,7 +17,7 @@ interface FlashCard {
   answer_hi: string;
   explanation_en: string;
   explanation_hi: string;
-  difficulty: string;
+  difficulty: Difficulty;
 }
 
 interface QuizOption {
@@ -34,14 +40,23 @@ interface RevisionData {
   quiz: QuizQuestion[];
 }
 
-type Difficulty = "Easy" | "Medium" | "Hard";
-type RevisionMode = "flashcards" | "quiz";
+interface GenerateRevisionResponse {
+  success?: boolean;
+  data?: RevisionData;
+  cards?: FlashCard[];
+  quiz?: QuizQuestion[];
+  error?: string;
+}
+
+/* =========================
+   COMPONENT
+========================= */
 
 export function QuickRevision() {
   const navigate = useNavigate();
 
   const [subject, setSubject] =
-    useState("");
+    useState("General Knowledge");
 
   const [topic, setTopic] =
     useState("");
@@ -52,59 +67,61 @@ export function QuickRevision() {
   const [cardCount, setCardCount] =
     useState(10);
 
-  const [mode, setMode] =
-    useState<RevisionMode>("flashcards");
-
   const [loading, setLoading] =
     useState(false);
 
   const [error, setError] =
     useState("");
 
-  const [revisionData, setRevisionData] =
+  const [revision, setRevision] =
     useState<RevisionData | null>(null);
 
-  const [flashcardIndex, setFlashcardIndex] =
+  const [activeTab, setActiveTab] =
+    useState<"cards" | "quiz">("cards");
+
+  /* FLASHCARD */
+
+  const [currentCard, setCurrentCard] =
     useState(0);
 
-  const [cardFlipped, setCardFlipped] =
+  const [showAnswer, setShowAnswer] =
     useState(false);
 
-  const [quizIndex, setQuizIndex] =
+  /* QUIZ */
+
+  const [currentQuiz, setCurrentQuiz] =
     useState(0);
 
-  const [selectedAnswer, setSelectedAnswer] =
-    useState<number | null>(null);
+  const [selectedAnswers, setSelectedAnswers] =
+    useState<Record<number, number>>({});
 
-  const [quizScore, setQuizScore] =
-    useState(0);
-
-  const [quizFinished, setQuizFinished] =
+  const [showQuizResult, setShowQuizResult] =
     useState(false);
 
-  async function generateRevision() {
+  /* =========================
+     GENERATE REVISION
+  ========================= */
+
+  async function handleGenerate() {
     const cleanTopic = topic.trim();
 
     if (!cleanTopic) {
       setError(
-        "Please enter a topic first. / कृपया पहले कोई टॉपिक लिखें।",
+        "Please enter a topic / कृपया एक टॉपिक लिखें।",
       );
-
       return;
     }
 
     setLoading(true);
     setError("");
+    setRevision(null);
 
-    setRevisionData(null);
+    setCurrentCard(0);
+    setShowAnswer(false);
 
-    setFlashcardIndex(0);
-    setCardFlipped(false);
-
-    setQuizIndex(0);
-    setSelectedAnswer(null);
-    setQuizScore(0);
-    setQuizFinished(false);
+    setCurrentQuiz(0);
+    setSelectedAnswers({});
+    setShowQuizResult(false);
 
     try {
       const { data, error: functionError } =
@@ -112,248 +129,298 @@ export function QuickRevision() {
           "generate-revision",
           {
             body: {
-              subject:
-                subject.trim() ||
-                "General Knowledge",
-
+              subject,
               topic: cleanTopic,
-
               difficulty,
-
               cardCount,
             },
           },
         );
 
       if (functionError) {
-        throw functionError;
+        throw new Error(
+          functionError.message ||
+            "Unable to contact AI service.",
+        );
       }
 
-      if (!data) {
+      const response =
+        data as GenerateRevisionResponse;
+
+      if (response?.success === false) {
         throw new Error(
-          "No data received from AI.",
+          response.error ||
+            "AI could not generate revision.",
+        );
+      }
+
+      /*
+       Supports both:
+
+       {
+         success: true,
+         data: {
+           cards: [],
+           quiz: []
+         }
+       }
+
+       AND
+
+       {
+         cards: [],
+         quiz: []
+       }
+      */
+
+      const result: RevisionData | undefined =
+        response.data ??
+        (Array.isArray(response.cards) &&
+        Array.isArray(response.quiz)
+          ? {
+              cards: response.cards,
+              quiz: response.quiz,
+            }
+          : undefined);
+
+      if (
+        !result ||
+        !Array.isArray(result.cards) ||
+        !Array.isArray(result.quiz)
+      ) {
+        console.error(
+          "Invalid revision response:",
+          data,
+        );
+
+        throw new Error(
+          "Invalid AI response. Please try again.",
         );
       }
 
       if (
-        !Array.isArray(data.cards) ||
-        !Array.isArray(data.quiz)
+        result.cards.length === 0 ||
+        result.quiz.length === 0
       ) {
         throw new Error(
-          "Invalid AI response received.",
+          "AI returned empty revision content.",
         );
       }
 
-      if (
-        data.cards.length === 0 &&
-        data.quiz.length === 0
-      ) {
-        throw new Error(
-          "AI did not generate revision content.",
-        );
-      }
-
-      setRevisionData({
-        cards: data.cards,
-        quiz: data.quiz,
-      });
+      setRevision(result);
+      setActiveTab("cards");
     } catch (err) {
       console.error(
-        "Quick revision error:",
+        "Quick Revision error:",
         err,
       );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to generate revision. Please try again.",
+          : "Something went wrong. Please try again.",
       );
     } finally {
       setLoading(false);
     }
   }
 
-  function resetRevision() {
-    setRevisionData(null);
-    setError("");
+  /* =========================
+     FLASHCARD CONTROLS
+  ========================= */
 
-    setFlashcardIndex(0);
-    setCardFlipped(false);
+  function handlePreviousCard() {
+    if (!revision) return;
 
-    setQuizIndex(0);
-    setSelectedAnswer(null);
-    setQuizScore(0);
-    setQuizFinished(false);
-  }
+    setShowAnswer(false);
 
-  function goToNextFlashcard() {
-    if (!revisionData) {
-      return;
-    }
-
-    if (
-      flashcardIndex <
-      revisionData.cards.length - 1
-    ) {
-      setFlashcardIndex(
-        (current) => current + 1,
-      );
-
-      setCardFlipped(false);
-    }
-  }
-
-  function goToPreviousFlashcard() {
-    if (flashcardIndex > 0) {
-      setFlashcardIndex(
-        (current) => current - 1,
-      );
-
-      setCardFlipped(false);
-    }
-  }
-
-  function selectAnswer(answerIndex: number) {
-    if (selectedAnswer !== null) {
-      return;
-    }
-
-    if (!revisionData) {
-      return;
-    }
-
-    const currentQuestion =
-      revisionData.quiz[quizIndex];
-
-    if (!currentQuestion) {
-      return;
-    }
-
-    setSelectedAnswer(answerIndex);
-
-    if (
-      answerIndex ===
-      currentQuestion.correctAnswer
-    ) {
-      setQuizScore(
-        (current) => current + 1,
-      );
-    }
-  }
-
-  function goToNextQuestion() {
-    if (!revisionData) {
-      return;
-    }
-
-    if (selectedAnswer === null) {
-      return;
-    }
-
-    const isLastQuestion =
-      quizIndex >=
-      revisionData.quiz.length - 1;
-
-    if (isLastQuestion) {
-      setQuizFinished(true);
-
-      return;
-    }
-
-    setQuizIndex(
-      (current) => current + 1,
+    setCurrentCard((previous) =>
+      previous === 0
+        ? revision.cards.length - 1
+        : previous - 1,
     );
+  }
 
-    setSelectedAnswer(null);
+  function handleNextCard() {
+    if (!revision) return;
+
+    setShowAnswer(false);
+
+    setCurrentCard((previous) =>
+      previous === revision.cards.length - 1
+        ? 0
+        : previous + 1,
+    );
+  }
+
+  /* =========================
+     QUIZ CONTROLS
+  ========================= */
+
+  function selectAnswer(
+    questionIndex: number,
+    answerIndex: number,
+  ) {
+    if (showQuizResult) return;
+
+    setSelectedAnswers((previous) => ({
+      ...previous,
+      [questionIndex]: answerIndex,
+    }));
+  }
+
+  function handlePreviousQuestion() {
+    setCurrentQuiz((previous) =>
+      previous === 0
+        ? 0
+        : previous - 1,
+    );
+  }
+
+  function handleNextQuestion() {
+    if (!revision) return;
+
+    setCurrentQuiz((previous) =>
+      previous === revision.quiz.length - 1
+        ? previous
+        : previous + 1,
+    );
+  }
+
+  function handleSubmitQuiz() {
+    if (!revision) return;
+
+    if (
+      Object.keys(selectedAnswers).length <
+      revision.quiz.length
+    ) {
+      const unanswered =
+        revision.quiz.findIndex(
+          (_, index) =>
+            selectedAnswers[index] === undefined,
+        );
+
+      if (unanswered !== -1) {
+        setCurrentQuiz(unanswered);
+
+        setError(
+          `Please answer all questions. Question ${
+            unanswered + 1
+          } is unanswered. / कृपया सभी प्रश्नों के उत्तर दें।`,
+        );
+
+        return;
+      }
+    }
+
+    setError("");
+    setShowQuizResult(true);
   }
 
   function restartQuiz() {
-    setQuizIndex(0);
-    setSelectedAnswer(null);
-    setQuizScore(0);
-    setQuizFinished(false);
+    setCurrentQuiz(0);
+    setSelectedAnswers({});
+    setShowQuizResult(false);
+    setError("");
   }
 
-  const currentCard =
-    revisionData?.cards[flashcardIndex];
+  /* =========================
+     SCORE
+  ========================= */
 
-  const currentQuestion =
-    revisionData?.quiz[quizIndex];
+  const quizScore = useMemo(() => {
+    if (!revision) return 0;
+
+    return revision.quiz.reduce(
+      (score, question, index) => {
+        return selectedAnswers[index] ===
+          question.correctAnswer
+          ? score + 1
+          : score;
+      },
+      0,
+    );
+  }, [revision, selectedAnswers]);
+
+  const scorePercentage = useMemo(() => {
+    if (!revision || revision.quiz.length === 0) {
+      return 0;
+    }
+
+    return Math.round(
+      (quizScore / revision.quiz.length) * 100,
+    );
+  }, [quizScore, revision]);
+
+  const answeredCount =
+    Object.keys(selectedAnswers).length;
+
+  /* =========================
+     CURRENT CONTENT
+  ========================= */
+
+  const card =
+    revision?.cards[currentCard];
+
+  const quizQuestion =
+    revision?.quiz[currentQuiz];
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {/* TOP BAR */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/40 to-blue-50 text-slate-900 dark:from-slate-950 dark:via-purple-950/20 dark:to-slate-950 dark:text-white">
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+        {/* BACK */}
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/student/dashboard")
-              }
-              className="mb-4 text-sm font-semibold text-blue-600 transition hover:text-blue-800 dark:text-blue-400"
-            >
-              ← Back to Dashboard
-            </button>
+        <button
+          type="button"
+          onClick={() =>
+            navigate("/student/dashboard")
+          }
+          className="mb-6 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          ← Back to Dashboard
+        </button>
 
-            <h1 className="text-3xl font-bold sm:text-4xl">
-              ⚡ Quick Revision
-            </h1>
+        {/* HERO */}
 
-            <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-400">
-              AI will generate bilingual
-              flashcards and MCQ questions
-              from any topic you choose.
-            </p>
+        <section className="overflow-hidden rounded-3xl border border-purple-200 bg-white shadow-sm dark:border-purple-900/50 dark:bg-slate-900">
+          <div className="bg-gradient-to-r from-purple-600 via-violet-600 to-blue-600 px-6 py-8 text-white sm:px-10 sm:py-10">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
+                ⚡ AI Powered Revision
+              </div>
 
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">
-              किसी भी टॉपिक से तुरंत
-              Hindi + English revision
-              तैयार करें।
-            </p>
+              <h1 className="mt-5 text-3xl font-bold sm:text-4xl">
+                Quick Revision
+              </h1>
+
+              <p className="mt-3 text-base leading-7 text-purple-100 sm:text-lg">
+                Enter any topic and let AI generate
+                bilingual flashcards and MCQ questions.
+              </p>
+
+              <p className="mt-2 text-sm text-purple-200">
+                किसी भी टॉपिक का तेज़ और स्मार्ट
+                रिवीजन करें।
+              </p>
+            </div>
           </div>
 
-          {revisionData && (
-            <button
-              type="button"
-              onClick={resetRevision}
-              className="rounded-xl border border-purple-300 px-4 py-2 font-semibold text-purple-700 transition hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950/30"
-            >
-              ✨ New Topic
-            </button>
-          )}
-        </div>
+          {/* FORM */}
 
-        {/* GENERATOR FORM */}
-
-        {!revisionData && (
-          <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100 text-2xl dark:bg-purple-950/50">
-                🤖
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold">
-                  Generate AI Revision
-                </h2>
-
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Enter any subject and topic.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+          <div className="p-5 sm:p-8">
+            <div className="grid gap-5 md:grid-cols-2">
               {/* SUBJECT */}
 
               <div>
                 <label
                   htmlFor="subject"
-                  className="mb-2 block text-sm font-semibold"
+                  className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
                 >
-                  Subject / विषय
+                  📚 Subject / विषय
                 </label>
 
                 <input
@@ -364,39 +431,8 @@ export function QuickRevision() {
                       event.target.value,
                     )
                   }
-                  placeholder="Example: History, Science, GK"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-900"
-                />
-              </div>
-
-              {/* TOPIC */}
-
-              <div>
-                <label
-                  htmlFor="topic"
-                  className="mb-2 block text-sm font-semibold"
-                >
-                  Topic / टॉपिक *
-                </label>
-
-                <input
-                  id="topic"
-                  value={topic}
-                  onChange={(event) =>
-                    setTopic(
-                      event.target.value,
-                    )
-                  }
-                  onKeyDown={(event) => {
-                    if (
-                      event.key === "Enter" &&
-                      !loading
-                    ) {
-                      void generateRevision();
-                    }
-                  }}
-                  placeholder="Example: Mughal Empire, Photosynthesis"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-900"
+                  placeholder="Example: Science, History, Geography"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-900/30"
                 />
               </div>
 
@@ -405,9 +441,9 @@ export function QuickRevision() {
               <div>
                 <label
                   htmlFor="difficulty"
-                  className="mb-2 block text-sm font-semibold"
+                  className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
                 >
-                  Difficulty / कठिनाई
+                  🎯 Difficulty / कठिनाई
                 </label>
 
                 <select
@@ -419,7 +455,7 @@ export function QuickRevision() {
                         .value as Difficulty,
                     )
                   }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-purple-500 dark:border-slate-700 dark:bg-slate-800"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-900/30"
                 >
                   <option value="Easy">
                     Easy / आसान
@@ -434,449 +470,612 @@ export function QuickRevision() {
                   </option>
                 </select>
               </div>
+            </div>
 
-              {/* COUNT */}
+            {/* TOPIC */}
 
-              <div>
-                <label
-                  htmlFor="cardCount"
-                  className="mb-2 block text-sm font-semibold"
-                >
-                  Questions / प्रश्न
-                </label>
+            <div className="mt-5">
+              <label
+                htmlFor="topic"
+                className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
+              >
+                🧠 Topic / टॉपिक
+              </label>
 
-                <select
-                  id="cardCount"
-                  value={cardCount}
-                  onChange={(event) =>
-                    setCardCount(
-                      Number(
-                        event.target.value,
-                      ),
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-purple-500 dark:border-slate-700 dark:bg-slate-800"
-                >
-                  <option value={5}>
-                    5
-                  </option>
+              <textarea
+                id="topic"
+                value={topic}
+                onChange={(event) =>
+                  setTopic(event.target.value)
+                }
+                rows={3}
+                placeholder="Example: Indian Constitution Fundamental Rights / भारतीय संविधान के मौलिक अधिकार"
+                className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-900/30"
+              />
+            </div>
 
-                  <option value={10}>
-                    10
-                  </option>
+            {/* CARD COUNT */}
 
-                  <option value={15}>
-                    15
-                  </option>
+            <div className="mt-5">
+              <label
+                htmlFor="cardCount"
+                className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
+              >
+                🔢 Number of Cards / कार्ड की संख्या
+              </label>
 
-                  <option value={20}>
-                    20
-                  </option>
-                </select>
-              </div>
+              <select
+                id="cardCount"
+                value={cardCount}
+                onChange={(event) =>
+                  setCardCount(
+                    Number(event.target.value),
+                  )
+                }
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-purple-500 dark:border-slate-700 dark:bg-slate-800"
+              >
+                <option value={5}>
+                  5 Cards
+                </option>
+
+                <option value={10}>
+                  10 Cards
+                </option>
+
+                <option value={15}>
+                  15 Cards
+                </option>
+
+                <option value={20}>
+                  20 Cards
+                </option>
+              </select>
             </div>
 
             {/* ERROR */}
 
             {error && (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
                 ❌ {error}
               </div>
             )}
 
-            {/* GENERATE */}
+            {/* BUTTON */}
 
             <button
               type="button"
-              onClick={() =>
-                void generateRevision()
-              }
               disabled={loading}
-              className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl bg-purple-600 px-6 py-4 font-bold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleGenerate}
+              className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4 font-bold text-white shadow-lg transition hover:scale-[1.01] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
                   <span className="animate-spin">
-                    ⚙️
+                    ⏳
                   </span>
 
-                  AI is preparing your revision...
+                  AI is generating your revision...
                 </>
               ) : (
                 <>
-                  ⚡ Generate Quick Revision
+                  ⚡ Generate AI Revision
                 </>
               )}
             </button>
+          </div>
+        </section>
 
-            <p className="mt-4 text-center text-xs text-slate-400">
-              🃏 Bilingual Flashcards +
-              📝 AI MCQ Quiz
-            </p>
-          </section>
-        )}
+        {/* RESULTS */}
 
-        {/* REVISION CONTENT */}
+        {revision && (
+          <section className="mt-8">
+            {/* TABS */}
 
-        {revisionData && (
-          <>
-            {/* MODE SWITCHER */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("cards");
+                    setError("");
+                  }}
+                  className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition ${
+                    activeTab === "cards"
+                      ? "bg-purple-600 text-white shadow"
+                      : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  🧠 Flashcards (
+                  {revision.cards.length})
+                </button>
 
-            <div className="mt-8 flex rounded-2xl bg-slate-200 p-1 dark:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("quiz");
+                    setError("");
+                  }}
+                  className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition ${
+                    activeTab === "quiz"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  📝 Quiz ({revision.quiz.length})
+                </button>
+              </div>
+
               <button
                 type="button"
-                onClick={() =>
-                  setMode("flashcards")
-                }
-                className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                  mode === "flashcards"
-                    ? "bg-white text-purple-700 shadow-sm dark:bg-slate-900 dark:text-purple-300"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
+                onClick={handleGenerate}
+                disabled={loading}
+                className="rounded-xl border border-purple-200 bg-white px-4 py-3 text-sm font-bold text-purple-600 transition hover:bg-purple-50 disabled:opacity-50 dark:border-purple-900 dark:bg-slate-900 dark:text-purple-300 dark:hover:bg-purple-950/30"
               >
-                🃏 Flashcards
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setMode("quiz")
-                }
-                className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                  mode === "quiz"
-                    ? "bg-white text-purple-700 shadow-sm dark:bg-slate-900 dark:text-purple-300"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                🧠 MCQ Quiz
+                🔄 Generate Again
               </button>
             </div>
 
-            {/* FLASHCARDS */}
+            {/* =====================
+                FLASHCARDS
+            ===================== */}
 
-            {mode === "flashcards" &&
-              currentCard && (
-                <section className="mt-8">
+            {activeTab === "cards" &&
+              card && (
+                <div className="mt-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-purple-600">
-                        Flashcard{" "}
-                        {flashcardIndex + 1} /{" "}
-                        {revisionData.cards.length}
-                      </p>
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                      Card {currentCard + 1} of{" "}
+                      {revision.cards.length}
+                    </p>
 
-                      <p className="mt-1 text-sm text-slate-500">
-                        {currentCard.topic}
-                      </p>
-                    </div>
-
-                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
-                      {currentCard.difficulty}
+                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                      {card.difficulty}
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCardFlipped(
-                        (current) =>
-                          !current,
-                      )
-                    }
-                    className="min-h-[420px] w-full rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 via-white to-violet-50 p-6 text-left shadow-sm transition hover:shadow-lg dark:border-purple-900/50 dark:from-purple-950/30 dark:via-slate-900 dark:to-violet-950/20 sm:p-10"
-                  >
-                    {!cardFlipped ? (
-                      <div className="flex min-h-[350px] flex-col justify-center">
-                        <p className="text-sm font-bold uppercase tracking-widest text-purple-500">
-                          Question / प्रश्न
-                        </p>
+                  {/* CARD */}
 
-                        <h2 className="mt-5 text-2xl font-bold leading-relaxed sm:text-3xl">
-                          {currentCard.question_en}
-                        </h2>
+                  <div className="overflow-hidden rounded-3xl border border-purple-200 bg-white shadow-lg dark:border-purple-900/50 dark:bg-slate-900">
+                    <div className="bg-gradient-to-r from-purple-600 to-violet-600 px-6 py-4 text-white">
+                      <p className="text-xs font-bold uppercase tracking-wider text-purple-200">
+                        Topic
+                      </p>
 
-                        <p className="mt-6 text-xl leading-relaxed text-slate-600 dark:text-slate-300">
-                          {currentCard.question_hi}
-                        </p>
+                      <p className="mt-1 font-semibold">
+                        {card.topic}
+                      </p>
+                    </div>
 
-                        <p className="mt-10 text-sm font-semibold text-purple-600">
-                          👆 Tap card to reveal answer
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex min-h-[350px] flex-col justify-center">
-                        <p className="text-sm font-bold uppercase tracking-widest text-green-600">
-                          Answer / उत्तर
-                        </p>
+                    <div className="min-h-[360px] p-6 sm:p-10">
+                      {!showAnswer ? (
+                        <div>
+                          <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                            QUESTION / प्रश्न
+                          </span>
 
-                        <h2 className="mt-5 text-2xl font-bold leading-relaxed sm:text-3xl">
-                          {currentCard.answer_en}
-                        </h2>
+                          <h2 className="mt-6 text-2xl font-bold leading-relaxed sm:text-3xl">
+                            {card.question_en}
+                          </h2>
 
-                        <p className="mt-5 text-xl leading-relaxed text-slate-600 dark:text-slate-300">
-                          {currentCard.answer_hi}
-                        </p>
-
-                        <div className="mt-8 border-t border-purple-200 pt-6 dark:border-purple-900">
-                          <p className="font-bold">
-                            Explanation /
-                            व्याख्या
+                          <p className="mt-5 text-xl font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+                            {card.question_hi}
                           </p>
 
-                          <p className="mt-3 leading-7 text-slate-600 dark:text-slate-300">
-                            {
-                              currentCard.explanation_en
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowAnswer(true)
                             }
-                          </p>
-
-                          <p className="mt-3 leading-7 text-slate-600 dark:text-slate-300">
-                            {
-                              currentCard.explanation_hi
-                            }
-                          </p>
+                            className="mt-10 rounded-xl bg-purple-600 px-6 py-3 font-bold text-white transition hover:bg-purple-700"
+                          >
+                            👀 Show Answer / उत्तर देखें
+                          </button>
                         </div>
-                      </div>
-                    )}
-                  </button>
+                      ) : (
+                        <div>
+                          <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+                            ANSWER / उत्तर
+                          </span>
 
-                  <div className="mt-6 flex items-center justify-between gap-4">
+                          <h2 className="mt-6 text-2xl font-bold leading-relaxed sm:text-3xl">
+                            {card.answer_en}
+                          </h2>
+
+                          <p className="mt-4 text-xl font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+                            {card.answer_hi}
+                          </p>
+
+                          <div className="mt-8 rounded-2xl bg-slate-50 p-5 dark:bg-slate-800">
+                            <h3 className="font-bold text-purple-700 dark:text-purple-300">
+                              💡 Explanation / व्याख्या
+                            </h3>
+
+                            <p className="mt-3 leading-7 text-slate-600 dark:text-slate-300">
+                              {card.explanation_en}
+                            </p>
+
+                            <p className="mt-3 leading-7 text-slate-600 dark:text-slate-300">
+                              {card.explanation_hi}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowAnswer(false)
+                            }
+                            className="mt-6 rounded-xl border border-purple-300 px-5 py-3 font-bold text-purple-600 transition hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950/30"
+                          >
+                            🔄 Show Question
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CARD NAVIGATION */}
+
+                  <div className="mt-5 flex items-center justify-between gap-4">
                     <button
                       type="button"
-                      onClick={
-                        goToPreviousFlashcard
-                      }
-                      disabled={
-                        flashcardIndex === 0
-                      }
-                      className="rounded-xl border border-slate-300 px-5 py-3 font-semibold transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
+                      onClick={handlePreviousCard}
+                      className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                       ← Previous
                     </button>
 
+                    <div className="flex gap-1">
+                      {revision.cards.map(
+                        (_, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => {
+                              setCurrentCard(index);
+                              setShowAnswer(false);
+                            }}
+                            aria-label={`Go to card ${
+                              index + 1
+                            }`}
+                            className={`h-2.5 w-2.5 rounded-full transition ${
+                              currentCard === index
+                                ? "scale-125 bg-purple-600"
+                                : "bg-slate-300 dark:bg-slate-700"
+                            }`}
+                          />
+                        ),
+                      )}
+                    </div>
+
                     <button
                       type="button"
-                      onClick={
-                        goToNextFlashcard
-                      }
-                      disabled={
-                        flashcardIndex ===
-                        revisionData.cards.length -
-                          1
-                      }
-                      className="rounded-xl bg-purple-600 px-5 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={handleNextCard}
+                      className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white transition hover:bg-purple-700"
                     >
                       Next →
                     </button>
                   </div>
-                </section>
+                </div>
               )}
 
-            {/* QUIZ */}
+            {/* =====================
+                QUIZ
+            ===================== */}
 
-            {mode === "quiz" &&
-              currentQuestion &&
-              !quizFinished && (
-                <section className="mt-8 rounded-3xl border border-blue-200 bg-white p-6 shadow-sm dark:border-blue-900/50 dark:bg-slate-900 sm:p-8">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-bold text-blue-600">
-                        Question {quizIndex + 1} /{" "}
-                        {
-                          revisionData.quiz
-                            .length
-                        }
-                      </p>
+            {activeTab === "quiz" &&
+              quizQuestion && (
+                <div className="mt-6">
+                  {!showQuizResult ? (
+                    <>
+                      {/* QUIZ PROGRESS */}
 
-                      <p className="mt-1 text-xs text-slate-500">
-                        Score: {quizScore}
-                      </p>
-                    </div>
+                      <div className="mb-5 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm dark:border-blue-900/50 dark:bg-slate-900">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-bold">
+                              📝 Question{" "}
+                              {currentQuiz + 1} of{" "}
+                              {revision.quiz.length}
+                            </p>
 
-                    <div className="text-3xl">
-                      🧠
-                    </div>
-                  </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {answeredCount} answered
+                            </p>
+                          </div>
 
-                  <h2 className="mt-8 text-xl font-bold leading-relaxed sm:text-2xl">
-                    {
-                      currentQuestion.question_en
-                    }
-                  </h2>
+                          <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                            {Math.round(
+                              (answeredCount /
+                                revision.quiz
+                                  .length) *
+                                100,
+                            )}
+                            %
+                          </div>
+                        </div>
 
-                  <p className="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-300">
-                    {
-                      currentQuestion.question_hi
-                    }
-                  </p>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                          <div
+                            className="h-full rounded-full bg-blue-600 transition-all"
+                            style={{
+                              width: `${
+                                (answeredCount /
+                                  revision.quiz
+                                    .length) *
+                                100
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
 
-                  <div className="mt-8 space-y-3">
-                    {currentQuestion.options.map(
-                      (
-                        option,
-                        optionIndex,
-                      ) => {
-                        const isSelected =
-                          selectedAnswer ===
-                          optionIndex;
+                      {/* QUESTION */}
 
-                        const isCorrect =
-                          optionIndex ===
-                          currentQuestion.correctAnswer;
+                      <div className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm dark:border-blue-900/50 dark:bg-slate-900 sm:p-8">
+                        <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                          MCQ QUESTION
+                        </span>
 
-                        let optionClass =
-                          "border-slate-200 hover:border-blue-400 dark:border-slate-700";
+                        <h2 className="mt-5 text-xl font-bold leading-relaxed sm:text-2xl">
+                          {quizQuestion.question_en}
+                        </h2>
 
-                        if (
-                          selectedAnswer !==
-                          null
-                        ) {
-                          if (isCorrect) {
-                            optionClass =
-                              "border-green-500 bg-green-50 dark:border-green-700 dark:bg-green-950/30";
-                          } else if (
-                            isSelected
-                          ) {
-                            optionClass =
-                              "border-red-500 bg-red-50 dark:border-red-700 dark:bg-red-950/30";
-                          }
-                        }
+                        <p className="mt-3 text-lg font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
+                          {quizQuestion.question_hi}
+                        </p>
 
-                        return (
+                        {/* OPTIONS */}
+
+                        <div className="mt-7 space-y-3">
+                          {quizQuestion.options.map(
+                            (option, index) => {
+                              const isSelected =
+                                selectedAnswers[
+                                  currentQuiz
+                                ] === index;
+
+                              return (
+                                <button
+                                  key={index}
+                                  type="button"
+                                  onClick={() =>
+                                    selectAnswer(
+                                      currentQuiz,
+                                      index,
+                                    )
+                                  }
+                                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                                    isSelected
+                                      ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100 dark:border-blue-500 dark:bg-blue-950/30 dark:ring-blue-900/30"
+                                      : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800"
+                                  }`}
+                                >
+                                  <div className="flex gap-4">
+                                    <span
+                                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                                        isSelected
+                                          ? "bg-blue-600 text-white"
+                                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                                      }`}
+                                    >
+                                      {String.fromCharCode(
+                                        65 + index,
+                                      )}
+                                    </span>
+
+                                    <div>
+                                      <p className="font-semibold">
+                                        {option.en}
+                                      </p>
+
+                                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                        {option.hi}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            },
+                          )}
+                        </div>
+
+                        {/* QUIZ NAV */}
+
+                        <div className="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
                           <button
-                            key={
-                              optionIndex
-                            }
                             type="button"
                             disabled={
-                              selectedAnswer !==
-                              null
+                              currentQuiz === 0
                             }
-                            onClick={() =>
-                              selectAnswer(
-                                optionIndex,
-                              )
+                            onClick={
+                              handlePreviousQuestion
                             }
-                            className={`w-full rounded-2xl border p-4 text-left transition ${optionClass}`}
+                            className="rounded-xl border border-slate-200 px-5 py-3 font-bold disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700"
                           >
-                            <div className="flex gap-4">
-                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 font-bold dark:bg-slate-800">
-                                {String.fromCharCode(
-                                  65 +
-                                    optionIndex,
-                                )}
-                              </span>
-
-                              <div>
-                                <p className="font-semibold">
-                                  {option.en}
-                                </p>
-
-                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                  {option.hi}
-                                </p>
-                              </div>
-                            </div>
+                            ← Previous
                           </button>
-                        );
-                      },
-                    )}
-                  </div>
 
-                  {selectedAnswer !== null && (
-                    <div className="mt-8 rounded-2xl bg-slate-50 p-5 dark:bg-slate-800">
-                      <p className="font-bold">
-                        📖 Explanation /
-                        व्याख्या
-                      </p>
+                          {currentQuiz ===
+                          revision.quiz.length -
+                            1 ? (
+                            <button
+                              type="button"
+                              onClick={
+                                handleSubmitQuiz
+                              }
+                              className="rounded-xl bg-green-600 px-6 py-3 font-bold text-white transition hover:bg-green-700"
+                            >
+                              ✅ Submit Quiz
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={
+                                handleNextQuestion
+                              }
+                              className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-700"
+                            >
+                              Next →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* =====================
+                       QUIZ RESULT
+                    ===================== */
 
-                      <p className="mt-3 leading-7 text-slate-600 dark:text-slate-300">
-                        {
-                          currentQuestion.explanation_en
-                        }
-                      </p>
+                    <div>
+                      <div className="rounded-3xl border border-green-200 bg-white p-8 text-center shadow-lg dark:border-green-900/50 dark:bg-slate-900">
+                        <div className="text-6xl">
+                          🏆
+                        </div>
 
-                      <p className="mt-3 leading-7 text-slate-600 dark:text-slate-300">
-                        {
-                          currentQuestion.explanation_hi
-                        }
-                      </p>
+                        <h2 className="mt-5 text-3xl font-bold">
+                          Quiz Completed!
+                        </h2>
 
-                      <button
-                        type="button"
-                        onClick={
-                          goToNextQuestion
-                        }
-                        className="mt-6 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700"
-                      >
-                        {quizIndex ===
-                        revisionData.quiz
-                          .length -
-                          1
-                          ? "Finish Quiz 🏆"
-                          : "Next Question →"}
-                      </button>
+                        <p className="mt-2 text-slate-500 dark:text-slate-400">
+                          आपका क्विज़ पूरा हो गया।
+                        </p>
+
+                        <div className="mx-auto mt-8 flex h-40 w-40 flex-col items-center justify-center rounded-full border-8 border-green-100 bg-green-50 dark:border-green-950 dark:bg-green-950/20">
+                          <span className="text-4xl font-black text-green-600">
+                            {scorePercentage}%
+                          </span>
+
+                          <span className="mt-1 text-sm font-bold text-green-700 dark:text-green-300">
+                            Score
+                          </span>
+                        </div>
+
+                        <p className="mt-6 text-xl font-bold">
+                          {quizScore} /{" "}
+                          {revision.quiz.length} Correct
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={restartQuiz}
+                          className="mt-7 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-700"
+                        >
+                          🔄 Try Again
+                        </button>
+                      </div>
+
+                      {/* REVIEW */}
+
+                      <div className="mt-8">
+                        <h3 className="text-xl font-bold">
+                          📋 Answer Review
+                        </h3>
+
+                        <div className="mt-4 space-y-4">
+                          {revision.quiz.map(
+                            (
+                              question,
+                              questionIndex,
+                            ) => {
+                              const selected =
+                                selectedAnswers[
+                                  questionIndex
+                                ];
+
+                              const isCorrect =
+                                selected ===
+                                question.correctAnswer;
+
+                              return (
+                                <div
+                                  key={
+                                    question.id
+                                  }
+                                  className={`rounded-2xl border p-5 ${
+                                    isCorrect
+                                      ? "border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-950/20"
+                                      : "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/20"
+                                  }`}
+                                >
+                                  <div className="flex gap-3">
+                                    <span className="text-xl">
+                                      {isCorrect
+                                        ? "✅"
+                                        : "❌"}
+                                    </span>
+
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-bold">
+                                        Q
+                                        {questionIndex +
+                                          1}
+                                        .{" "}
+                                        {
+                                          question.question_en
+                                        }
+                                      </p>
+
+                                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                        {
+                                          question.question_hi
+                                        }
+                                      </p>
+
+                                      <div className="mt-4 text-sm">
+                                        <p>
+                                          <span className="font-bold">
+                                            Your Answer:
+                                          </span>{" "}
+                                          {selected !==
+                                          undefined
+                                            ? question
+                                                .options[
+                                                selected
+                                              ]?.en
+                                            : "Not answered"}
+                                        </p>
+
+                                        <p className="mt-2 font-bold text-green-700 dark:text-green-300">
+                                          Correct Answer:{" "}
+                                          {
+                                            question.options[
+                                              question
+                                                .correctAnswer
+                                            ]?.en
+                                          }
+                                        </p>
+                                      </div>
+
+                                      <div className="mt-4 rounded-xl bg-white/70 p-4 dark:bg-slate-900/60">
+                                        <p className="font-bold">
+                                          💡 Explanation
+                                        </p>
+
+                                        <p className="mt-2 text-sm leading-6">
+                                          {
+                                            question.explanation_en
+                                          }
+                                        </p>
+
+                                        <p className="mt-2 text-sm leading-6">
+                                          {
+                                            question.explanation_hi
+                                          }
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            },
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
-                </section>
+                </div>
               )}
-
-            {/* QUIZ RESULT */}
-
-            {mode === "quiz" &&
-              quizFinished && (
-                <section className="mt-8 rounded-3xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-8 text-center shadow-sm dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20">
-                  <div className="text-6xl">
-                    🏆
-                  </div>
-
-                  <h2 className="mt-5 text-3xl font-bold">
-                    Quiz Completed!
-                  </h2>
-
-                  <p className="mt-2 text-slate-600 dark:text-slate-300">
-                    Quiz पूरा हो गया।
-                  </p>
-
-                  <div className="mx-auto mt-8 max-w-sm rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
-                    <p className="text-sm text-slate-500">
-                      Your Score / आपका स्कोर
-                    </p>
-
-                    <p className="mt-2 text-5xl font-bold text-green-600">
-                      {quizScore} /{" "}
-                      {
-                        revisionData.quiz
-                          .length
-                      }
-                    </p>
-                  </div>
-
-                  <div className="mt-8 flex flex-wrap justify-center gap-4">
-                    <button
-                      type="button"
-                      onClick={
-                        restartQuiz
-                      }
-                      className="rounded-xl border border-green-600 px-5 py-3 font-bold text-green-700 transition hover:bg-green-100 dark:text-green-400"
-                    >
-                      🔄 Retry Quiz
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setMode(
-                          "flashcards",
-                        )
-                      }
-                      className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white transition hover:bg-purple-700"
-                    >
-                      🃏 Study Flashcards
-                    </button>
-                  </div>
-                </section>
-              )}
-          </>
+          </section>
         )}
       </main>
     </div>
