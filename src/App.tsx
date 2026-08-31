@@ -19,8 +19,7 @@ import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
 import { DailyNewspaper } from "./pages/student/DailyNewspaper";
 import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
-import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
-
+import WeeklyCurrentAffairs from "./pages/student/WeeklyCurrentAffairs";
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
