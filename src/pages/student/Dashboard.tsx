@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { LanguageToggle } from "../../components/LanguageToggle";
 
 export function StudentDashboard() {
   const navigate = useNavigate();
@@ -14,6 +13,7 @@ export function StudentDashboard() {
   const { theme, toggleTheme } = useTheme();
 
   const [menuOpen, setMenuOpen] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,7 +26,10 @@ export function StudentDashboard() {
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside,
+    );
 
     return () => {
       document.removeEventListener(
@@ -38,17 +41,21 @@ export function StudentDashboard() {
 
   async function handleLogout() {
     setMenuOpen(false);
+
     await signOut();
+
     navigate("/student/login");
   }
 
   function handleProfile() {
     setMenuOpen(false);
+
     navigate("/student/profile");
   }
 
   function handleSyllabus() {
     setMenuOpen(false);
+
     navigate("/student/syllabus");
   }
 
@@ -78,177 +85,164 @@ export function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* HEADER */}
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-600">
-              PadhAI
-            </h1>
-
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {t("dashboard.subtitle")}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <LanguageToggle />
-
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                {profile?.full_name || t("common.student")}
-              </p>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {user?.email || ""}
-              </p>
-            </div>
-
-            {/* MENU */}
-            <div
-              className="relative"
-              ref={menuRef}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  setMenuOpen((open) => !open)
-                }
-                aria-label={t("dashboard.openMenu")}
-                aria-expanded={menuOpen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-xl font-bold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              >
-                ⋮
-              </button>
-
-              {menuOpen && (
-                <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                  <button
-                    type="button"
-                    onClick={handleSyllabus}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    <span className="text-lg">📚</span>
-
-                    <span>
-                      <span className="block">
-                        {t("dashboard.menu.syllabus")}
-                      </span>
-
-                      <span className="text-xs font-normal text-slate-400">
-                        {t("dashboard.menu.syllabusDesc")}
-                      </span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleProfile}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    <span className="text-lg">👤</span>
-
-                    <span>
-                      <span className="block">
-                        {t("dashboard.menu.profile")}
-                      </span>
-
-                      <span className="text-xs font-normal text-slate-400">
-                        {t("dashboard.menu.profileDesc")}
-                      </span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={toggleTheme}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    <span className="text-lg">
-                      {theme === "dark" ? "☀️" : "🌙"}
-                    </span>
-
-                    <span>
-                      <span className="block">
-                        {theme === "dark"
-                          ? t("dashboard.menu.lightMode")
-                          : t("dashboard.menu.darkMode")}
-                      </span>
-
-                      <span className="text-xs font-normal text-slate-400">
-                        {t("dashboard.menu.changeAppearance")}
-                      </span>
-                    </span>
-                  </button>
-
-                  <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
-                  >
-                    <span className="text-lg">🚪</span>
-
-                    <span>
-                      {t("common.logout")}
-                    </span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN */}
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {t("dashboard.welcome")} 👋
-          </h2>
+          {/* WELCOME + USER MENU */}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                {t("dashboard.welcome")} 👋
+              </h2>
 
-          <p className="mt-2 text-slate-600 dark:text-slate-400">
-            {profile?.full_name ||
-              user?.email ||
-              t("common.student")}
-          </p>
+              <p className="mt-2 text-slate-600 dark:text-slate-400">
+                {profile?.full_name ||
+                  user?.email ||
+                  t("common.student")}
+              </p>
+            </div>
 
-          {/* PROFILE INFO */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <InfoCard
-              label={t("dashboard.class")}
-              value={
-                profile?.class_name ||
-                t("common.notSet")
-              }
-              className="bg-blue-50 dark:bg-blue-950/40"
-            />
+            {/* USER + MENU */}
+            <div className="flex items-center gap-3">
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                  {profile?.full_name ||
+                    t("common.student")}
+                </p>
 
-            <InfoCard
-              label={t("dashboard.board")}
-              value={
-                profile?.board ||
-                t("common.notSet")
-              }
-              className="bg-green-50 dark:bg-green-950/40"
-            />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {user?.email || ""}
+                </p>
+              </div>
 
-            <InfoCard
-              label={t("dashboard.exam")}
-              value={
-                profile?.exam ||
-                t("common.notSet")
-              }
-              className="bg-purple-50 dark:bg-purple-950/40"
-            />
+              <div
+                className="relative"
+                ref={menuRef}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMenuOpen((open) => !open)
+                  }
+                  aria-label={t("dashboard.openMenu")}
+                  aria-expanded={menuOpen}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-xl font-bold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  ⋮
+                </button>
+
+                {menuOpen && (
+                  <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                    {/* SYLLABUS */}
+                    <button
+                      type="button"
+                      onClick={handleSyllabus}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <span className="text-lg">
+                        📚
+                      </span>
+
+                      <span>
+                        <span className="block">
+                          {t(
+                            "dashboard.menu.syllabus",
+                          )}
+                        </span>
+
+                        <span className="text-xs font-normal text-slate-400">
+                          {t(
+                            "dashboard.menu.syllabusDesc",
+                          )}
+                        </span>
+                      </span>
+                    </button>
+
+                    {/* PROFILE */}
+                    <button
+                      type="button"
+                      onClick={handleProfile}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <span className="text-lg">
+                        👤
+                      </span>
+
+                      <span>
+                        <span className="block">
+                          {t(
+                            "dashboard.menu.profile",
+                          )}
+                        </span>
+
+                        <span className="text-xs font-normal text-slate-400">
+                          {t(
+                            "dashboard.menu.profileDesc",
+                          )}
+                        </span>
+                      </span>
+                    </button>
+
+                    {/* THEME */}
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <span className="text-lg">
+                        {theme === "dark"
+                          ? "☀️"
+                          : "🌙"}
+                      </span>
+
+                      <span>
+                        <span className="block">
+                          {theme === "dark"
+                            ? t(
+                                "dashboard.menu.lightMode",
+                              )
+                            : t(
+                                "dashboard.menu.darkMode",
+                              )}
+                        </span>
+
+                        <span className="text-xs font-normal text-slate-400">
+                          {t(
+                            "dashboard.menu.changeAppearance",
+                          )}
+                        </span>
+                      </span>
+                    </button>
+
+                    <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
+
+                    {/* LOGOUT */}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      <span className="text-lg">
+                        🚪
+                      </span>
+
+                      <span>
+                        {t("common.logout")}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* DASHBOARD CARDS */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* DAILY NEWSPAPER */}
             <DashboardCard
               icon="📰"
-              title={t("dashboard.cards.newspaper.title")}
+              title={t(
+                "dashboard.cards.newspaper.title",
+              )}
               description={t(
                 "dashboard.cards.newspaper.description",
               )}
@@ -262,6 +256,7 @@ export function StudentDashboard() {
               onClick={handleDailyNewspaper}
             />
 
+            {/* CURRENT AFFAIRS */}
             <DashboardCard
               icon="🗞️"
               title={t(
@@ -297,9 +292,12 @@ export function StudentDashboard() {
               onClick={handleQuickRevision}
             />
 
+            {/* ASK PADHAI */}
             <DashboardCard
               icon="🤖"
-              title={t("dashboard.cards.ask.title")}
+              title={t(
+                "dashboard.cards.ask.title",
+              )}
               description={t(
                 "dashboard.cards.ask.description",
               )}
@@ -311,9 +309,12 @@ export function StudentDashboard() {
               onClick={handleAskPadhAI}
             />
 
+            {/* VOCAB BHAIYA */}
             <DashboardCard
               icon="🔤"
-              title={t("dashboard.cards.vocab.title")}
+              title={t(
+                "dashboard.cards.vocab.title",
+              )}
               description={t(
                 "dashboard.cards.vocab.description",
               )}
@@ -327,9 +328,12 @@ export function StudentDashboard() {
               onClick={handleVocabBhaiya}
             />
 
+            {/* VIDEOS */}
             <DashboardCard
               icon="🎥"
-              title={t("dashboard.cards.videos.title")}
+              title={t(
+                "dashboard.cards.videos.title",
+              )}
               description={t(
                 "dashboard.cards.videos.description",
               )}
@@ -342,6 +346,7 @@ export function StudentDashboard() {
             />
           </div>
 
+          {/* EDIT PROFILE */}
           <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
             <button
               type="button"
@@ -353,32 +358,6 @@ export function StudentDashboard() {
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-interface InfoCardProps {
-  label: string;
-  value: string;
-  className: string;
-}
-
-function InfoCard({
-  label,
-  value,
-  className,
-}: InfoCardProps) {
-  return (
-    <div
-      className={`rounded-2xl p-5 ${className}`}
-    >
-      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-        {value}
-      </p>
     </div>
   );
 }
