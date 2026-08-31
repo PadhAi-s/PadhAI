@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { LanguageToggle } from "../../components/LanguageToggle";
@@ -28,10 +29,7 @@ export function StudentDashboard() {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside,
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -49,10 +47,6 @@ export function StudentDashboard() {
   function handleSyllabus() {
     setMenuOpen(false);
     navigate("/student/syllabus");
-  }
-
-  function handleQuickRevision() {
-    alert(t("common.comingSoon"));
   }
 
   function handleDailyNewspaper() {
@@ -75,10 +69,15 @@ export function StudentDashboard() {
     );
   }
 
+  function handleQuickRevision() {
+    alert(t("common.comingSoon"));
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+      {/* HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
               PadhAI
@@ -90,9 +89,7 @@ export function StudentDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden md:block">
-              <LanguageToggle />
-            </div>
+            <LanguageToggle />
 
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-slate-800 dark:text-white">
@@ -100,14 +97,20 @@ export function StudentDashboard() {
               </p>
 
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {user?.email}
+                {user?.email || ""}
               </p>
             </div>
 
-            <div className="relative" ref={menuRef}>
+            {/* MENU */}
+            <div
+              className="relative"
+              ref={menuRef}
+            >
               <button
                 type="button"
-                onClick={() => setMenuOpen((open) => !open)}
+                onClick={() =>
+                  setMenuOpen((open) => !open)
+                }
                 aria-label={t("dashboard.openMenu")}
                 aria-expanded={menuOpen}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-xl font-bold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
@@ -116,17 +119,15 @@ export function StudentDashboard() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                  <div className="mb-2 px-1 md:hidden">
-                    <LanguageToggle />
-                  </div>
-
+                <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
                   <button
                     type="button"
                     onClick={handleSyllabus}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    <span className="text-lg">📚</span>
+                    <span className="text-lg">
+                      📚
+                    </span>
 
                     <span>
                       <span className="block">
@@ -144,7 +145,9 @@ export function StudentDashboard() {
                     onClick={handleProfile}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    <span className="text-lg">👤</span>
+                    <span className="text-lg">
+                      👤
+                    </span>
 
                     <span>
                       <span className="block">
@@ -163,7 +166,9 @@ export function StudentDashboard() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span className="text-lg">
-                      {theme === "dark" ? "☀️" : "🌙"}
+                      {theme === "dark"
+                        ? "☀️"
+                        : "🌙"}
                     </span>
 
                     <span>
@@ -179,24 +184,6 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    <span className="text-lg">⚙️</span>
-
-                    <span>
-                      <span className="block">
-                        {t("dashboard.menu.settings")}
-                      </span>
-
-                      <span className="text-xs font-normal text-slate-400">
-                        {t("dashboard.menu.comingSoon")}
-                      </span>
-                    </span>
-                  </button>
-
                   <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
 
                   <button
@@ -204,8 +191,13 @@ export function StudentDashboard() {
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
-                    <span className="text-lg">🚪</span>
-                    <span>{t("common.logout")}</span>
+                    <span className="text-lg">
+                      🚪
+                    </span>
+
+                    <span>
+                      {t("common.logout")}
+                    </span>
                   </button>
                 </div>
               )}
@@ -214,6 +206,7 @@ export function StudentDashboard() {
         </div>
       </header>
 
+      {/* MAIN */}
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -226,26 +219,37 @@ export function StudentDashboard() {
               t("common.student")}
           </p>
 
+          {/* PROFILE INFO */}
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <InfoCard
               label={t("dashboard.class")}
-              value={profile?.class_name || t("common.notSet")}
+              value={
+                profile?.class_name ||
+                t("common.notSet")
+              }
               className="bg-blue-50 dark:bg-blue-950/40"
             />
 
             <InfoCard
               label={t("dashboard.board")}
-              value={profile?.board || t("common.notSet")}
+              value={
+                profile?.board ||
+                t("common.notSet")
+              }
               className="bg-green-50 dark:bg-green-950/40"
             />
 
             <InfoCard
               label={t("dashboard.exam")}
-              value={profile?.exam || t("common.notSet")}
+              value={
+                profile?.exam ||
+                t("common.notSet")
+              }
               className="bg-purple-50 dark:bg-purple-950/40"
             />
           </div>
 
+          {/* DASHBOARD CARDS */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <DashboardCard
               icon="📰"
@@ -253,9 +257,11 @@ export function StudentDashboard() {
               description={t(
                 "dashboard.cards.newspaper.description",
               )}
-              action={t("dashboard.cards.newspaper.action")}
+              action={t(
+                "dashboard.cards.newspaper.action",
+              )}
               badge={t("common.premium")}
-              badgeClass="bg-amber-500 text-white"
+              badgeClass="bg-amber-500"
               className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20"
               actionClass="text-amber-600 dark:text-amber-400"
               onClick={handleDailyNewspaper}
@@ -263,7 +269,9 @@ export function StudentDashboard() {
 
             <DashboardCard
               icon="🗞️"
-              title={t("dashboard.cards.currentAffairs.title")}
+              title={t(
+                "dashboard.cards.currentAffairs.title",
+              )}
               description={t(
                 "dashboard.cards.currentAffairs.description",
               )}
@@ -271,7 +279,7 @@ export function StudentDashboard() {
                 "dashboard.cards.currentAffairs.action",
               )}
               badge={t("common.free")}
-              badgeClass="bg-green-600 text-white"
+              badgeClass="bg-green-600"
               className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
               actionClass="text-green-600 dark:text-green-400"
               onClick={handleCurrentAffairs}
@@ -279,11 +287,15 @@ export function StudentDashboard() {
 
             <DashboardCard
               icon="⚡"
-              title={t("dashboard.cards.revision.title")}
+              title={t(
+                "dashboard.cards.revision.title",
+              )}
               description={t(
                 "dashboard.cards.revision.description",
               )}
-              action={t("dashboard.cards.revision.action")}
+              action={t(
+                "dashboard.cards.revision.action",
+              )}
               className="border-purple-200 bg-gradient-to-br from-purple-50 to-violet-50 dark:border-purple-900/50 dark:from-purple-950/30 dark:to-violet-950/20"
               actionClass="text-purple-600 dark:text-purple-400"
               onClick={handleQuickRevision}
@@ -292,8 +304,12 @@ export function StudentDashboard() {
             <DashboardCard
               icon="🤖"
               title={t("dashboard.cards.ask.title")}
-              description={t("dashboard.cards.ask.description")}
-              action={t("dashboard.cards.ask.action")}
+              description={t(
+                "dashboard.cards.ask.description",
+              )}
+              action={t(
+                "dashboard.cards.ask.action",
+              )}
               className="border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:to-cyan-950/20"
               actionClass="text-blue-600 dark:text-blue-400"
               onClick={handleAskPadhAI}
@@ -302,10 +318,14 @@ export function StudentDashboard() {
             <DashboardCard
               icon="🔤"
               title={t("dashboard.cards.vocab.title")}
-              description={t("dashboard.cards.vocab.description")}
-              action={t("dashboard.cards.vocab.action")}
+              description={t(
+                "dashboard.cards.vocab.description",
+              )}
+              action={t(
+                "dashboard.cards.vocab.action",
+              )}
               badge={t("common.external")}
-              badgeClass="bg-transparent text-indigo-600 dark:text-indigo-400"
+              badgeClass="bg-indigo-600"
               className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 dark:border-indigo-900/50 dark:from-indigo-950/30 dark:to-blue-950/20"
               actionClass="text-indigo-600 dark:text-indigo-400"
               onClick={handleVocabBhaiya}
@@ -314,11 +334,15 @@ export function StudentDashboard() {
             <DashboardCard
               icon="🎥"
               title={t("dashboard.cards.videos.title")}
-              description={t("dashboard.cards.videos.description")}
+              description={t(
+                "dashboard.cards.videos.description",
+              )}
               action={t("common.comingSoon")}
               className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
               actionClass="text-blue-600 dark:text-blue-400"
-              onClick={() => alert(t("common.comingSoon"))}
+              onClick={() =>
+                alert(t("common.comingSoon"))
+              }
             />
           </div>
 
@@ -349,7 +373,9 @@ function InfoCard({
   className,
 }: InfoCardProps) {
   return (
-    <div className={`rounded-2xl p-5 ${className}`}>
+    <div
+      className={`rounded-2xl p-5 ${className}`}
+    >
       <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
         {label}
       </p>
@@ -391,11 +417,13 @@ function DashboardCard({
       className={`relative rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md ${className}`}
     >
       <div className="flex items-center justify-between">
-        <div className="text-3xl">{icon}</div>
+        <div className="text-3xl">
+          {icon}
+        </div>
 
         {badge && (
           <span
-            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${badgeClass}`}
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold text-white ${badgeClass}`}
           >
             {badge}
           </span>
