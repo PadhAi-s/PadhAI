@@ -19,6 +19,7 @@ import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
 import { DailyNewspaper } from "./pages/student/DailyNewspaper";
 import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
+import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
 
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
@@ -71,11 +72,19 @@ export default function App() {
                     element={<AskPadhAI />}
                   />
 
+                  {/* CURRENT AFFAIRS LIST */}
                   <Route
                     path="student/current-affairs"
                     element={<WeeklyCurrentAffairs />}
                   />
 
+                  {/* CURRENT AFFAIR DETAIL / READ MORE */}
+                  <Route
+                    path="student/current-affairs/:id"
+                    element={<CurrentAffairDetail />}
+                  />
+
+                  {/* DAILY NEWSPAPER */}
                   <Route
                     path="student/daily-newspaper"
                     element={<DailyNewspaper />}
