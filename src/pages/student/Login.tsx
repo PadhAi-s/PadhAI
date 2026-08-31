@@ -5,24 +5,26 @@ import { supabase } from "../../lib/supabase";
 
 export function StudentLogin() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [isSignup, setIsSignup] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const navigate = useNavigate();
-
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   async function redirectStudent(userId: string) {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("full_name, class_name, board, exam")
-      .eq("id", userId)
-      .maybeSingle();
+    const { data: profile, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select(
+          "full_name, class_name, board, exam",
+        )
+        .eq("id", userId)
+        .maybeSingle();
 
     if (profileError) {
       throw profileError;
@@ -41,24 +43,36 @@ export function StudentLogin() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
+
+    if (loading) {
+      return;
+    }
 
     setError("");
     setMessage("");
 
     if (!email.trim() || !password) {
-      setError(t("studentLogin.errors.emailPasswordRequired"));
+      setError(
+        "Please enter email and password. / कृपया ईमेल और पासवर्ड दर्ज करें।",
+      );
       return;
     }
 
     if (isSignup && !fullName.trim()) {
-      setError(t("studentLogin.errors.fullNameRequired"));
+      setError(
+        "Please enter your full name. / कृपया अपना पूरा नाम दर्ज करें।",
+      );
       return;
     }
 
     if (password.length < 6) {
-      setError(t("studentLogin.errors.passwordLength"));
+      setError(
+        "Password must be at least 6 characters. / पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।",
+      );
       return;
     }
 
@@ -83,21 +97,24 @@ export function StudentLogin() {
 
         if (!data.user) {
           throw new Error(
-            t("studentLogin.errors.accountCreateFailed"),
+            "Unable to create account. Please try again.",
           );
         }
 
         if (!data.session) {
-          setMessage(t("studentLogin.messages.confirmEmail"));
+          setMessage(
+            "Please check your email and confirm your account before logging in. / कृपया अपना ईमेल चेक करके अकाउंट कन्फर्म करें।",
+          );
           return;
         }
 
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            full_name: fullName.trim(),
-          })
-          .eq("id", data.user.id);
+        const { error: profileError } =
+          await supabase
+            .from("profiles")
+            .update({
+              full_name: fullName.trim(),
+            })
+            .eq("id", data.user.id);
 
         if (profileError) {
           console.error(
@@ -120,17 +137,19 @@ export function StudentLogin() {
 
         if (!data.user) {
           throw new Error(
-            t("studentLogin.errors.loginFailed"),
+            "Login failed. Please try again.",
           );
         }
 
         await redirectStudent(data.user.id);
       }
     } catch (err) {
+      console.error("Student login error:", err);
+
       const errorMessage =
         err instanceof Error
           ? err.message
-          : t("studentLogin.errors.generic");
+          : "Something went wrong. Please try again.";
 
       setError(errorMessage);
     } finally {
@@ -139,36 +158,45 @@ export function StudentLogin() {
   }
 
   function toggleMode() {
+    if (loading) {
+      return;
+    }
+
     setIsSignup((previous) => !previous);
     setError("");
     setMessage("");
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900 sm:p-8">
+        {/* HEADER */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-lg">
             P
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             {isSignup
               ? t("studentLogin.createAccount")
               : t("studentLogin.login")}
           </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             {isSignup
               ? t("studentLogin.createSubtitle")
               : t("studentLogin.loginSubtitle")}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          {/* FULL NAME */}
           {isSignup && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                 {t("studentLogin.fullName")}
               </label>
 
@@ -178,15 +206,19 @@ export function StudentLogin() {
                 onChange={(event) =>
                   setFullName(event.target.value)
                 }
-                placeholder={t("studentLogin.fullNamePlaceholder")}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                placeholder={t(
+                  "studentLogin.fullNamePlaceholder",
+                )}
+                disabled={loading}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 autoComplete="name"
               />
             </div>
           )}
 
+          {/* EMAIL */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
               {t("studentLogin.email")}
             </label>
 
@@ -197,13 +229,15 @@ export function StudentLogin() {
                 setEmail(event.target.value)
               }
               placeholder="student@example.com"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              disabled={loading}
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               autoComplete="email"
             />
           </div>
 
+          {/* PASSWORD */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
               {t("studentLogin.password")}
             </label>
 
@@ -213,8 +247,11 @@ export function StudentLogin() {
               onChange={(event) =>
                 setPassword(event.target.value)
               }
-              placeholder={t("studentLogin.passwordPlaceholder")}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              placeholder={t(
+                "studentLogin.passwordPlaceholder",
+              )}
+              disabled={loading}
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               autoComplete={
                 isSignup
                   ? "new-password"
@@ -223,32 +260,46 @@ export function StudentLogin() {
             />
           </div>
 
+          {/* ERROR */}
           {error && (
-            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+              ⚠️ {error}
             </div>
           )}
 
+          {/* MESSAGE */}
           {message && (
-            <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">
-              {message}
+            <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300">
+              ✅ {message}
             </div>
           )}
 
+          {/* SUBMIT */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
+            {loading && (
+              <span className="text-base">
+                ⏳
+              </span>
+            )}
+
             {loading
-              ? t("studentLogin.pleaseWait")
+              ? "Please wait... / कृपया प्रतीक्षा करें..."
               : isSignup
-                ? t("studentLogin.createAccountButton")
-                : t("studentLogin.loginButton")}
+                ? t(
+                    "studentLogin.createAccountButton",
+                  )
+                : t(
+                    "studentLogin.loginButton",
+                  )}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-600">
+        {/* TOGGLE */}
+        <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
           {isSignup
             ? t("studentLogin.alreadyAccount")
             : t("studentLogin.noAccount")}
@@ -256,11 +307,14 @@ export function StudentLogin() {
           <button
             type="button"
             onClick={toggleMode}
-            className="ml-1 font-semibold text-blue-600 hover:underline"
+            disabled={loading}
+            className="ml-1 font-semibold text-blue-600 transition hover:underline disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSignup
               ? t("studentLogin.login")
-              : t("studentLogin.createAccount")}
+              : t(
+                  "studentLogin.createAccount",
+                )}
           </button>
         </div>
       </div>
