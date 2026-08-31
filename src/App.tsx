@@ -33,15 +33,23 @@ export default function App() {
         <HashRouter>
           <Routes>
             <Route element={<RootLayout />}>
-              <Route index element={<Home />} />
+              {/* HOME */}
+              <Route
+                index
+                element={<Home />}
+              />
 
+              {/* STUDENT LOGIN */}
               <Route
                 path="student/login"
                 element={<StudentLogin />}
               />
 
+              {/* STUDENT PROTECTED ROUTES */}
               <Route
-                element={<ProtectedRoute allowedRole="student" />}
+                element={
+                  <ProtectedRoute allowedRole="student" />
+                }
               >
                 <Route
                   path="student/dashboard"
@@ -74,13 +82,17 @@ export default function App() {
                 />
               </Route>
 
+              {/* ADMIN LOGIN */}
               <Route
                 path="admin/login"
                 element={<AdminLogin />}
               />
 
+              {/* ADMIN PROTECTED ROUTES */}
               <Route
-                element={<ProtectedRoute allowedRole="admin" />}
+                element={
+                  <ProtectedRoute allowedRole="admin" />
+                }
               >
                 <Route
                   path="admin/dashboard"
@@ -93,7 +105,11 @@ export default function App() {
                 />
               </Route>
 
-              <Route path="*" element={<NotFound />} />
+              {/* NOT FOUND */}
+              <Route
+                path="*"
+                element={<NotFound />}
+              />
             </Route>
           </Routes>
         </HashRouter>
