@@ -12,14 +12,20 @@ import { RootLayout } from "./layouts/RootLayout";
 
 import { Home } from "./pages/Home";
 
+/* STUDENT */
 import { StudentLogin } from "./pages/student/Login";
 import { StudentDashboard } from "./pages/student/Dashboard";
 import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
 import { DailyNewspaper } from "./pages/student/DailyNewspaper";
+
 import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
-import WeeklyCurrentAffairs from "./pages/student/WeeklyCurrentAffairs";
+import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
+
+import { QuickRevision } from "./pages/student/QuickRevision";
+
+/* ADMIN */
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
@@ -51,24 +57,34 @@ export default function App() {
                     <ProtectedRoute allowedRole="student" />
                   }
                 >
+                  {/* DASHBOARD */}
                   <Route
                     path="student/dashboard"
                     element={<StudentDashboard />}
                   />
 
+                  {/* PROFILE */}
                   <Route
                     path="student/profile"
                     element={<StudentProfile />}
                   />
 
+                  {/* SYLLABUS */}
                   <Route
                     path="student/syllabus"
                     element={<StudentSyllabus />}
                   />
 
+                  {/* ASK PADHAI AI */}
                   <Route
                     path="student/ask"
                     element={<AskPadhAI />}
+                  />
+
+                  {/* QUICK REVISION */}
+                  <Route
+                    path="student/quick-revision"
+                    element={<QuickRevision />}
                   />
 
                   {/* CURRENT AFFAIRS LIST */}
@@ -77,7 +93,7 @@ export default function App() {
                     element={<WeeklyCurrentAffairs />}
                   />
 
-                  {/* CURRENT AFFAIR DETAIL / READ MORE */}
+                  {/* CURRENT AFFAIR DETAIL */}
                   <Route
                     path="student/current-affairs/:id"
                     element={<CurrentAffairDetail />}
@@ -102,11 +118,13 @@ export default function App() {
                     <ProtectedRoute allowedRole="admin" />
                   }
                 >
+                  {/* ADMIN DASHBOARD */}
                   <Route
                     path="admin/dashboard"
                     element={<AdminDashboard />}
                   />
 
+                  {/* ADMIN CURRENT AFFAIRS */}
                   <Route
                     path="admin/current-affairs"
                     element={<AdminCurrentAffairs />}
