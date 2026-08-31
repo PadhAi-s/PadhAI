@@ -4,128 +4,71 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
-      language: {
-        english: "English",
-        hindi: "हिंदी",
-        hinglish: "Hinglish",
-      },
-
-      nav: {
-        home: "Home",
-        login: "Login",
-        dashboard: "Dashboard",
-        currentAffairs: "Current Affairs",
+      common: {
+        student: "Student",
+        logout: "Logout",
+        notSet: "Not set",
+        premium: "PREMIUM",
+        free: "FREE",
+        external: "External ↗",
+        comingSoon: "Coming soon",
       },
 
       home: {
-        heroTitle:
-          "Study smarter. Learn better. Achieve more.",
+        heroTitle: "Study smarter. Learn better.",
         heroSubtitle:
-          "PadhAI helps students learn with structured content, AI support, videos and progress tracking.",
+          "PadhAI helps students learn with organized syllabus content, AI assistance, videos and progress tracking.",
         ctaStudent: "Student Login",
 
         pillars: {
-          syllabus:
-            "Structured syllabus and chapter-wise learning.",
-          ai:
-            "AI-powered support for your questions and doubts.",
-          video:
-            "Relevant learning videos for better understanding.",
-          progress:
-            "Track your learning progress and stay consistent.",
+          syllabus: "Organized syllabus and chapter-wise learning.",
+          ai: "Ask questions and get AI-powered explanations.",
+          video: "Learn concepts with useful study videos.",
+          progress: "Track your learning and improve consistently.",
         },
       },
 
-      studentLogin: {
-        createAccount: "Create Student Account",
-        login: "Student Login",
-
-        createAccountSubtitle:
-          "Create your PadhAI student account",
-
-        loginSubtitle:
-          "Login to continue learning with PadhAI",
-
-        fullName: "Full Name",
-        fullNamePlaceholder:
-          "Enter your full name",
-
-        email: "Email",
-        emailPlaceholder:
-          "student@example.com",
-
+      login: {
+        title: "Student Login",
+        subtitle: "Login to continue your learning journey.",
+        email: "Email address",
         password: "Password",
-        passwordPlaceholder:
-          "Enter your password",
-
-        pleaseWait: "Please wait...",
-        create: "Create Account",
+        emailPlaceholder: "Enter your email",
+        passwordPlaceholder: "Enter your password",
         loginButton: "Login",
-
-        alreadyHaveAccount:
-          "Already have an account?",
-
-        dontHaveAccount:
-          "Don't have an account?",
-
-        switchToLogin: "Login",
-        switchToSignup: "Create account",
-
-        emailPasswordRequired:
-          "Please enter your email and password.",
-
-        fullNameRequired:
-          "Please enter your full name.",
-
-        passwordLength:
-          "Password must be at least 6 characters.",
-
-        accountCreated:
-          "Account created! Please check your email to confirm your account.",
-
-        accountCreateError:
-          "Account could not be created.",
-
-        loginError:
-          "Unable to login. Please try again.",
-
-        generalError:
-          "Something went wrong.",
+        loggingIn: "Logging in...",
+        noAccount: "Don't have an account?",
+        signUp: "Sign up",
+        loginError: "Unable to login. Please check your credentials.",
       },
 
       dashboard: {
-        title: "Student Dashboard",
+        subtitle: "Student Dashboard",
 
-        welcome: "Welcome to PadhAI 👋",
-
-        student: "Student",
+        welcome: "Welcome to PadhAI",
 
         class: "Class",
         board: "Board",
         exam: "Exam",
 
-        notSet: "Not set",
+        openMenu: "Open menu",
+
+        editProfile: "Edit My Profile",
 
         menu: {
           syllabus: "My Syllabus",
-          syllabusDescription:
-            "Subjects & chapters",
+          syllabusDesc: "Subjects & chapters",
 
           profile: "My Profile",
-          profileDescription:
-            "Edit your profile",
+          profileDesc: "Edit your profile",
 
           lightMode: "Light Mode",
           darkMode: "Dark Mode",
 
-          appearance:
-            "Change appearance",
+          changeAppearance: "Change appearance",
 
           settings: "Settings",
-
           comingSoon: "Coming soon",
-
-          logout: "Logout",
         },
 
         cards: {
@@ -133,18 +76,14 @@ const resources = {
             title: "Daily Newspaper",
             description:
               "Read today's important news selected specially for students.",
-            action:
-              "Read Today's Paper 🔒 →",
-            badge: "PREMIUM",
+            action: "Read Today's Paper 🔒 →",
           },
 
           currentAffairs: {
             title: "Weekly Current Affairs",
             description:
               "Important weekly current affairs for exams and general awareness.",
-            action:
-              "Read Current Affairs →",
-            badge: "FREE",
+            action: "Read Current Affairs →",
           },
 
           revision: {
@@ -165,20 +104,15 @@ const resources = {
             title: "Vocab Bhaiya",
             description:
               "Improve your English vocabulary with Vocab Bhaiya.",
-            action:
-              "Open Vocab Bhaiya →",
-            badge: "External ↗",
+            action: "Open Vocab Bhaiya →",
           },
 
           videos: {
             title: "Study Videos",
             description:
               "Relevant learning videos for your studies.",
-            action: "Coming soon",
           },
         },
-
-        editProfile: "Edit My Profile",
       },
 
       currentAffairs: {
@@ -189,20 +123,15 @@ const resources = {
         subtitle:
           "Important current affairs for competitive exams.",
 
-        searchPlaceholder:
-          "Search current affairs...",
+        searchPlaceholder: "Search current affairs...",
 
-        loading:
-          "Loading current affairs...",
+        loading: "Loading current affairs...",
 
-        loadError:
-          "Unable to load current affairs.",
+        loadError: "Unable to load current affairs.",
 
-        allCategories:
-          "All Categories",
+        allCategories: "All Categories",
 
-        mixedTitle:
-          "Mixed Current Affairs",
+        mixedTitle: "Mixed Current Affairs",
 
         topics: "topics",
 
@@ -210,8 +139,7 @@ const resources = {
 
         readMore: "Read More",
 
-        emptyTitle:
-          "No current affairs found",
+        emptyTitle: "No current affairs found",
 
         emptyDescription:
           "Try another category or search term.",
@@ -220,31 +148,24 @@ const resources = {
           All: "All",
           National: "National",
           International: "International",
-          "Science & Tech":
-            "Science & Tech",
+          "Science & Tech": "Science & Tech",
           Economy: "Economy",
           Sports: "Sports",
           Awards: "Awards",
         },
 
         categoryTitles: {
-          national:
-            "National Updates",
+          national: "National Updates",
 
-          international:
-            "International Affairs",
+          international: "International Affairs",
 
-          scienceTech:
-            "Science & Technology",
+          scienceTech: "Science & Technology",
 
-          economy:
-            "Economy & Business",
+          economy: "Economy & Business",
 
-          sports:
-            "Sports",
+          sports: "Sports",
 
-          awards:
-            "Awards & Appointments",
+          awards: "Awards & Appointments",
         },
 
         categoryDescriptions: {
@@ -272,184 +193,114 @@ const resources = {
 
   hi: {
     translation: {
-      language: {
-        english: "English",
-        hindi: "हिंदी",
-        hinglish: "Hinglish",
-      },
-
-      nav: {
-        home: "होम",
-        login: "लॉगिन",
-        dashboard: "डैशबोर्ड",
-        currentAffairs: "करंट अफेयर्स",
+      common: {
+        student: "छात्र",
+        logout: "लॉगआउट",
+        notSet: "सेट नहीं है",
+        premium: "प्रीमियम",
+        free: "फ्री",
+        external: "बाहरी ↗",
+        comingSoon: "जल्द आ रहा है",
       },
 
       home: {
-        heroTitle:
-          "स्मार्ट तरीके से पढ़ें। बेहतर सीखें। अधिक हासिल करें।",
+        heroTitle: "स्मार्ट तरीके से पढ़ें। बेहतर सीखें।",
 
         heroSubtitle:
-          "PadhAI छात्रों को संरचित कंटेंट, AI सहायता, वीडियो और प्रगति ट्रैकिंग के साथ पढ़ने में मदद करता है।",
+          "PadhAI छात्रों को व्यवस्थित सिलेबस, AI सहायता, वीडियो और प्रोग्रेस ट्रैकिंग के साथ बेहतर सीखने में मदद करता है।",
 
-        ctaStudent:
-          "स्टूडेंट लॉगिन",
+        ctaStudent: "स्टूडेंट लॉगिन",
 
         pillars: {
           syllabus:
-            "संरचित सिलेबस और चैप्टर के अनुसार पढ़ाई।",
+            "व्यवस्थित सिलेबस और चैप्टर-वाइज पढ़ाई।",
 
           ai:
-            "आपके सवालों और डाउट्स के लिए AI सहायता।",
+            "सवाल पूछें और AI से समझें।",
 
           video:
-            "बेहतर समझ के लिए उपयोगी लर्निंग वीडियो।",
+            "उपयोगी स्टडी वीडियो के साथ कॉन्सेप्ट सीखें।",
 
           progress:
-            "अपनी पढ़ाई की प्रगति ट्रैक करें और लगातार पढ़ें।",
+            "अपनी पढ़ाई ट्रैक करें और लगातार बेहतर बनें।",
         },
       },
 
-      studentLogin: {
-        createAccount:
-          "स्टूडेंट अकाउंट बनाएं",
+      login: {
+        title: "स्टूडेंट लॉगिन",
 
-        login:
-          "स्टूडेंट लॉगिन",
+        subtitle:
+          "अपनी पढ़ाई जारी रखने के लिए लॉगिन करें।",
 
-        createAccountSubtitle:
-          "अपना PadhAI स्टूडेंट अकाउंट बनाएं",
+        email: "ईमेल पता",
 
-        loginSubtitle:
-          "PadhAI के साथ पढ़ाई जारी रखने के लिए लॉगिन करें",
-
-        fullName:
-          "पूरा नाम",
-
-        fullNamePlaceholder:
-          "अपना पूरा नाम दर्ज करें",
-
-        email: "ईमेल",
+        password: "पासवर्ड",
 
         emailPlaceholder:
-          "student@example.com",
-
-        password:
-          "पासवर्ड",
+          "अपना ईमेल दर्ज करें",
 
         passwordPlaceholder:
           "अपना पासवर्ड दर्ज करें",
 
-        pleaseWait:
-          "कृपया प्रतीक्षा करें...",
+        loginButton: "लॉगिन करें",
 
-        create:
-          "अकाउंट बनाएं",
+        loggingIn: "लॉगिन हो रहा है...",
 
-        loginButton:
-          "लॉगिन करें",
+        noAccount: "अकाउंट नहीं है?",
 
-        alreadyHaveAccount:
-          "क्या आपका पहले से अकाउंट है?",
-
-        dontHaveAccount:
-          "क्या आपका अकाउंट नहीं है?",
-
-        switchToLogin:
-          "लॉगिन करें",
-
-        switchToSignup:
-          "अकाउंट बनाएं",
-
-        emailPasswordRequired:
-          "कृपया अपना ईमेल और पासवर्ड दर्ज करें।",
-
-        fullNameRequired:
-          "कृपया अपना पूरा नाम दर्ज करें।",
-
-        passwordLength:
-          "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।",
-
-        accountCreated:
-          "अकाउंट बन गया! कृपया अपने ईमेल को कन्फर्म करें।",
-
-        accountCreateError:
-          "अकाउंट नहीं बनाया जा सका।",
+        signUp: "साइन अप करें",
 
         loginError:
-          "लॉगिन नहीं हो सका। कृपया दोबारा कोशिश करें।",
-
-        generalError:
-          "कुछ गलत हो गया।",
+          "लॉगिन नहीं हो सका। कृपया अपनी जानकारी जांचें।",
       },
 
       dashboard: {
-        title:
-          "स्टूडेंट डैशबोर्ड",
+        subtitle: "स्टूडेंट डैशबोर्ड",
 
-        welcome:
-          "PadhAI में आपका स्वागत है 👋",
+        welcome: "PadhAI में आपका स्वागत है",
 
-        student:
-          "स्टूडेंट",
+        class: "कक्षा",
 
-        class:
-          "कक्षा",
+        board: "बोर्ड",
 
-        board:
-          "बोर्ड",
+        exam: "परीक्षा",
 
-        exam:
-          "परीक्षा",
+        openMenu: "मेनू खोलें",
 
-        notSet:
-          "सेट नहीं है",
+        editProfile: "मेरी प्रोफाइल एडिट करें",
 
         menu: {
-          syllabus:
-            "मेरा सिलेबस",
+          syllabus: "मेरा सिलेबस",
 
-          syllabusDescription:
+          syllabusDesc:
             "विषय और चैप्टर",
 
-          profile:
-            "मेरी प्रोफाइल",
+          profile: "मेरी प्रोफाइल",
 
-          profileDescription:
+          profileDesc:
             "अपनी प्रोफाइल एडिट करें",
 
-          lightMode:
-            "लाइट मोड",
+          lightMode: "लाइट मोड",
 
-          darkMode:
-            "डार्क मोड",
+          darkMode: "डार्क मोड",
 
-          appearance:
+          changeAppearance:
             "दिखावट बदलें",
 
-          settings:
-            "सेटिंग्स",
+          settings: "सेटिंग्स",
 
-          comingSoon:
-            "जल्द आ रहा है",
-
-          logout:
-            "लॉगआउट",
+          comingSoon: "जल्द आ रहा है",
         },
 
         cards: {
           newspaper: {
-            title:
-              "डेली न्यूज़पेपर",
+            title: "डेली न्यूज़पेपर",
 
             description:
               "छात्रों के लिए चुनी गई आज की महत्वपूर्ण खबरें पढ़ें।",
 
             action:
               "आज का पेपर पढ़ें 🔒 →",
-
-            badge:
-              "प्रीमियम",
           },
 
           currentAffairs: {
@@ -461,69 +312,49 @@ const resources = {
 
             action:
               "करंट अफेयर्स पढ़ें →",
-
-            badge:
-              "फ्री",
           },
 
           revision: {
-            title:
-              "क्विक रिवीजन",
+            title: "क्विक रिवीजन",
 
             description:
-              "महत्वपूर्ण कॉन्सेप्ट, फॉर्मूले और एग्जाम पॉइंट जल्दी रिवाइज करें।",
+              "महत्वपूर्ण कॉन्सेप्ट, फॉर्मूले और परीक्षा के पॉइंट जल्दी रिवाइज करें।",
 
-            action:
-              "अभी रिवाइज करें →",
+            action: "अभी रिवाइज करें →",
           },
 
           ask: {
-            title:
-              "PadhAI से पूछें",
+            title: "Ask PadhAI",
 
             description:
               "सवाल पूछें और AI से स्टेप-बाय-स्टेप उत्तर पाएं।",
 
-            action:
-              "अभी पूछें →",
+            action: "अभी पूछें →",
           },
 
           vocab: {
-            title:
-              "वोकैब भैया",
+            title: "Vocab Bhaiya",
 
             description:
-              "Vocab Bhaiya के साथ अपनी इंग्लिश वोकैबुलरी बेहतर करें।",
+              "Vocab Bhaiya के साथ अपनी इंग्लिश शब्दावली बेहतर करें।",
 
             action:
               "Vocab Bhaiya खोलें →",
-
-            badge:
-              "बाहरी ↗",
           },
 
           videos: {
-            title:
-              "स्टडी वीडियो",
+            title: "स्टडी वीडियो",
 
             description:
               "आपकी पढ़ाई के लिए उपयोगी लर्निंग वीडियो।",
-
-            action:
-              "जल्द आ रहा है",
           },
         },
-
-        editProfile:
-          "मेरी प्रोफाइल एडिट करें",
       },
 
       currentAffairs: {
-        label:
-          "करंट अफेयर्स",
+        label: "करंट अफेयर्स",
 
-        title:
-          "दैनिक करंट अफेयर्स",
+        title: "डेली करंट अफेयर्स",
 
         subtitle:
           "प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण करंट अफेयर्स।",
@@ -538,52 +369,54 @@ const resources = {
           "करंट अफेयर्स लोड नहीं हो सके।",
 
         allCategories:
-          "सभी श्रेणियां",
+          "सभी कैटेगरी",
 
         mixedTitle:
-          "मिश्रित करंट अफेयर्स",
+          "मिक्स करंट अफेयर्स",
 
-        topics:
-          "विषय",
+        topics: "टॉपिक्स",
 
-        mcqs:
-          "MCQs",
+        mcqs: "MCQs",
 
-        readMore:
-          "और पढ़ें",
+        readMore: "और पढ़ें",
 
         emptyTitle:
           "कोई करंट अफेयर नहीं मिला",
 
         emptyDescription:
-          "कोई अन्य श्रेणी या खोज शब्द आज़माएं।",
+          "कोई दूसरी कैटेगरी या सर्च शब्द आज़माएं।",
 
         categories: {
           All: "सभी",
+
           National: "राष्ट्रीय",
+
           International: "अंतरराष्ट्रीय",
+
           "Science & Tech":
-            "विज्ञान और तकनीक",
+            "विज्ञान और टेक्नोलॉजी",
+
           Economy: "अर्थव्यवस्था",
+
           Sports: "खेल",
+
           Awards: "पुरस्कार",
         },
 
         categoryTitles: {
           national:
-            "राष्ट्रीय अपडेट",
+            "राष्ट्रीय अपडेट्स",
 
           international:
             "अंतरराष्ट्रीय मामले",
 
           scienceTech:
-            "विज्ञान और प्रौद्योगिकी",
+            "विज्ञान और टेक्नोलॉजी",
 
           economy:
-            "अर्थव्यवस्था और व्यापार",
+            "अर्थव्यवस्था और बिज़नेस",
 
-          sports:
-            "खेल",
+          sports: "खेल",
 
           awards:
             "पुरस्कार और नियुक्तियां",
@@ -594,16 +427,16 @@ const resources = {
             "इस सप्ताह की महत्वपूर्ण राष्ट्रीय घटनाएं और सरकारी विकास।",
 
           international:
-            "प्रमुख अंतरराष्ट्रीय घटनाएं और विश्व से संबंधित महत्वपूर्ण समाचार।",
+            "महत्वपूर्ण अंतरराष्ट्रीय घटनाएं और विश्व से जुड़ी खबरें।",
 
           scienceTech:
-            "विज्ञान, तकनीक, अंतरिक्ष और नवाचार के महत्वपूर्ण विकास।",
+            "विज्ञान, तकनीक, अंतरिक्ष और इनोवेशन से जुड़े महत्वपूर्ण विकास।",
 
           economy:
-            "महत्वपूर्ण आर्थिक विकास, व्यापार समाचार और वित्तीय अपडेट।",
+            "अर्थव्यवस्था, बिज़नेस और वित्तीय क्षेत्र की महत्वपूर्ण खबरें।",
 
           sports:
-            "महत्वपूर्ण खेल आयोजन, टूर्नामेंट और उपलब्धियां।",
+            "महत्वपूर्ण खेल प्रतियोगिताएं, उपलब्धियां और बड़ी जीत।",
 
           awards:
             "समाचारों में महत्वपूर्ण नियुक्तियां, पुरस्कार और सम्मान।",
@@ -614,186 +447,118 @@ const resources = {
 
   hinglish: {
     translation: {
-      language: {
-        english: "English",
-        hindi: "हिंदी",
-        hinglish: "Hinglish",
-      },
-
-      nav: {
-        home: "Home",
-        login: "Login",
-        dashboard: "Dashboard",
-        currentAffairs:
-          "Current Affairs",
+      common: {
+        student: "Student",
+        logout: "Logout",
+        notSet: "Set nahi hai",
+        premium: "PREMIUM",
+        free: "FREE",
+        external: "External ↗",
+        comingSoon: "Coming soon",
       },
 
       home: {
         heroTitle:
-          "Smart tareeke se padho. Better seekho. Zyada achieve karo.",
+          "Smart tareeke se padho. Better seekho.",
 
         heroSubtitle:
-          "PadhAI students ko structured content, AI support, videos aur progress tracking ke saath padhne mein help karta hai.",
+          "PadhAI students ko organised syllabus, AI help, videos aur progress tracking ke saath better learning mein help karta hai.",
 
-        ctaStudent:
-          "Student Login",
+        ctaStudent: "Student Login",
 
         pillars: {
           syllabus:
-            "Structured syllabus aur chapter-wise learning.",
+            "Organised syllabus aur chapter-wise learning.",
 
           ai:
-            "Aapke questions aur doubts ke liye AI support.",
+            "Questions pucho aur AI se explanations pao.",
 
           video:
-            "Better understanding ke liye useful learning videos.",
+            "Useful study videos ke saath concepts seekho.",
 
           progress:
-            "Apni learning progress track karo aur consistent raho.",
+            "Apni learning track karo aur regularly improve karo.",
         },
       },
 
-      studentLogin: {
-        createAccount:
-          "Student Account Banao",
+      login: {
+        title: "Student Login",
 
-        login:
-          "Student Login",
+        subtitle:
+          "Apni learning journey continue karne ke liye login karo.",
 
-        createAccountSubtitle:
-          "Apna PadhAI student account banao",
+        email: "Email address",
 
-        loginSubtitle:
-          "PadhAI ke saath learning continue karne ke liye login karo",
-
-        fullName:
-          "Full Name",
-
-        fullNamePlaceholder:
-          "Apna full name enter karo",
-
-        email:
-          "Email",
+        password: "Password",
 
         emailPlaceholder:
-          "student@example.com",
-
-        password:
-          "Password",
+          "Apna email enter karo",
 
         passwordPlaceholder:
           "Apna password enter karo",
 
-        pleaseWait:
-          "Please wait...",
+        loginButton: "Login",
 
-        create:
-          "Account Banao",
+        loggingIn: "Login ho raha hai...",
 
-        loginButton:
-          "Login",
-
-        alreadyHaveAccount:
-          "Already account hai?",
-
-        dontHaveAccount:
+        noAccount:
           "Account nahi hai?",
 
-        switchToLogin:
-          "Login",
-
-        switchToSignup:
-          "Account Banao",
-
-        emailPasswordRequired:
-          "Please email aur password enter karo.",
-
-        fullNameRequired:
-          "Please apna full name enter karo.",
-
-        passwordLength:
-          "Password kam se kam 6 characters ka hona chahiye.",
-
-        accountCreated:
-          "Account ban gaya! Apna email check karke account confirm karo.",
-
-        accountCreateError:
-          "Account create nahi ho saka.",
+        signUp: "Sign up",
 
         loginError:
-          "Login nahi ho saka. Please dobara try karo.",
-
-        generalError:
-          "Kuch galat ho gaya.",
+          "Login nahi ho saka. Credentials check karo.",
       },
 
       dashboard: {
-        title:
-          "Student Dashboard",
+        subtitle: "Student Dashboard",
 
         welcome:
-          "PadhAI mein Welcome 👋",
+          "PadhAI mein welcome",
 
-        student:
-          "Student",
+        class: "Class",
 
-        class:
-          "Class",
+        board: "Board",
 
-        board:
-          "Board",
+        exam: "Exam",
 
-        exam:
-          "Exam",
+        openMenu: "Menu kholo",
 
-        notSet:
-          "Set nahi hai",
+        editProfile:
+          "Meri Profile Edit Karo",
 
         menu: {
-          syllabus:
-            "My Syllabus",
+          syllabus: "Mera Syllabus",
 
-          syllabusDescription:
+          syllabusDesc:
             "Subjects aur chapters",
 
-          profile:
-            "My Profile",
+          profile: "Meri Profile",
 
-          profileDescription:
+          profileDesc:
             "Apni profile edit karo",
 
-          lightMode:
-            "Light Mode",
+          lightMode: "Light Mode",
 
-          darkMode:
-            "Dark Mode",
+          darkMode: "Dark Mode",
 
-          appearance:
+          changeAppearance:
             "Appearance change karo",
 
-          settings:
-            "Settings",
+          settings: "Settings",
 
-          comingSoon:
-            "Jaldi aa raha hai",
-
-          logout:
-            "Logout",
+          comingSoon: "Coming soon",
         },
 
         cards: {
           newspaper: {
-            title:
-              "Daily Newspaper",
+            title: "Daily Newspaper",
 
             description:
-              "Students ke liye specially selected aaj ki important news padho.",
+              "Students ke liye specially select ki gayi aaj ki important news padho.",
 
             action:
               "Aaj ka Paper Padho 🔒 →",
-
-            badge:
-              "PREMIUM",
           },
 
           currentAffairs: {
@@ -805,14 +570,10 @@ const resources = {
 
             action:
               "Current Affairs Padho →",
-
-            badge:
-              "FREE",
           },
 
           revision: {
-            title:
-              "Quick Revision",
+            title: "Quick Revision",
 
             description:
               "Important concepts, formulas aur exam points jaldi revise karo.",
@@ -822,52 +583,37 @@ const resources = {
           },
 
           ask: {
-            title:
-              "Ask PadhAI",
+            title: "Ask PadhAI",
 
             description:
               "Questions pucho aur AI se step-by-step explanation pao.",
 
-            action:
-              "Abhi Pucho →",
+            action: "Abhi Pucho →",
           },
 
           vocab: {
-            title:
-              "Vocab Bhaiya",
+            title: "Vocab Bhaiya",
 
             description:
               "Vocab Bhaiya ke saath apni English vocabulary improve karo.",
 
             action:
               "Vocab Bhaiya Open Karo →",
-
-            badge:
-              "External ↗",
           },
 
           videos: {
-            title:
-              "Study Videos",
+            title: "Study Videos",
 
             description:
-              "Aapki studies ke liye relevant learning videos.",
-
-            action:
-              "Coming soon",
+              "Tumhari studies ke liye relevant learning videos.",
           },
         },
-
-        editProfile:
-          "My Profile Edit Karo",
       },
 
       currentAffairs: {
-        label:
-          "Current Affairs",
+        label: "Current Affairs",
 
-        title:
-          "Daily Current Affairs",
+        title: "Daily Current Affairs",
 
         subtitle:
           "Competitive exams ke liye important current affairs.",
@@ -882,35 +628,38 @@ const resources = {
           "Current affairs load nahi ho sake.",
 
         allCategories:
-          "All Categories",
+          "Sabhi Categories",
 
         mixedTitle:
           "Mixed Current Affairs",
 
-        topics:
-          "topics",
+        topics: "topics",
 
-        mcqs:
-          "MCQs",
+        mcqs: "MCQs",
 
-        readMore:
-          "Aur Padho",
+        readMore: "Aur Padho",
 
         emptyTitle:
           "Koi current affair nahi mila",
 
         emptyDescription:
-          "Dusri category ya search term try karo.",
+          "Koi doosri category ya search term try karo.",
 
         categories: {
-          All: "Sabhi",
+          All: "All",
+
           National: "National",
+
           International:
             "International",
+
           "Science & Tech":
             "Science & Tech",
+
           Economy: "Economy",
+
           Sports: "Sports",
+
           Awards: "Awards",
         },
 
@@ -927,8 +676,7 @@ const resources = {
           economy:
             "Economy & Business",
 
-          sports:
-            "Sports",
+          sports: "Sports",
 
           awards:
             "Awards & Appointments",
@@ -948,7 +696,7 @@ const resources = {
             "Important economic developments, business news aur financial updates.",
 
           sports:
-            "Important sports events, tournaments aur achievements.",
+            "Important sports events, tournaments aur major victories.",
 
           awards:
             "Important appointments, awards, honours aur news mein personalities.",
@@ -959,7 +707,7 @@ const resources = {
 };
 
 const savedLanguage =
-  localStorage.getItem("padhai_language");
+  localStorage.getItem("padhai-language");
 
 i18n.use(initReactI18next).init({
   resources,
