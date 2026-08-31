@@ -4,7 +4,7 @@ import { LanguageToggle } from "../components/LanguageToggle";
 export function RootLayout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* HEADER */}
+      {/* GLOBAL HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           {/* LOGO */}
@@ -15,10 +15,8 @@ export function RootLayout() {
             PadhAI
           </Link>
 
-          {/* RIGHT SIDE */}
-          <div className="flex items-center">
-            <LanguageToggle />
-          </div>
+          {/* LANGUAGE */}
+          <LanguageToggle />
         </div>
       </header>
 
