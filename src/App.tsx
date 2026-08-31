@@ -22,7 +22,6 @@ import { DailyNewspaper } from "./pages/student/DailyNewspaper";
 
 import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
 import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
-
 import { QuickRevision } from "./pages/student/QuickRevision";
 
 /* ADMIN */
@@ -30,6 +29,7 @@ import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
 
+/* OTHER */
 import { NotFound } from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,7 +43,10 @@ export default function App() {
             <Routes>
               <Route element={<RootLayout />}>
                 {/* HOME */}
-                <Route index element={<Home />} />
+                <Route
+                  index
+                  element={<Home />}
+                />
 
                 {/* STUDENT LOGIN */}
                 <Route
@@ -81,10 +84,10 @@ export default function App() {
                     element={<AskPadhAI />}
                   />
 
-                  {/* QUICK REVISION */}
+                  {/* DAILY NEWSPAPER */}
                   <Route
-                    path="student/quick-revision"
-                    element={<QuickRevision />}
+                    path="student/daily-newspaper"
+                    element={<DailyNewspaper />}
                   />
 
                   {/* CURRENT AFFAIRS LIST */}
@@ -99,10 +102,10 @@ export default function App() {
                     element={<CurrentAffairDetail />}
                   />
 
-                  {/* DAILY NEWSPAPER */}
+                  {/* QUICK REVISION */}
                   <Route
-                    path="student/daily-newspaper"
-                    element={<DailyNewspaper />}
+                    path="student/quick-revision"
+                    element={<QuickRevision />}
                   />
                 </Route>
 
