@@ -1,85 +1,74 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-const savedLanguage =
-  localStorage.getItem("padhai-language") || "en";
-
 const resources = {
   en: {
     translation: {
       common: {
         student: "Student",
+        admin: "Admin",
         logout: "Logout",
-        notSet: "Not set",
         premium: "Premium",
         free: "Free",
         external: "External",
         comingSoon: "Coming Soon",
+        notSet: "Not set",
+        back: "Back",
+        loading: "Loading...",
       },
 
       home: {
-        heroTitle:
-          "Your smarter way to prepare for competitive exams.",
+        heroTitle: "Learn smarter. Prepare better.",
         heroSubtitle:
-          "Learn with structured study material, AI assistance, current affairs and powerful learning tools.",
+          "PadhAI brings learning resources, current affairs and AI-powered study support together in one place.",
         ctaStudent: "Student Login",
 
         pillars: {
           syllabus:
-            "Structured syllabus and focused study resources.",
+            "Follow your syllabus with focused and structured learning.",
           ai:
-            "Ask PadhAI AI whenever you need help.",
+            "Ask PadhAI whenever you need help understanding a topic.",
           video:
-            "Useful learning content and study resources.",
+            "Access useful learning content and educational resources.",
           progress:
-            "Stay focused and keep improving every day.",
+            "Stay consistent and make steady progress in your preparation.",
         },
       },
 
       studentLogin: {
         login: "Student Login",
-        loginSubtitle:
-          "Sign in to continue your learning journey",
+        loginSubtitle: "Login to continue your learning journey.",
         email: "Email",
         password: "Password",
         loginButton: "Login",
         noAccount: "Don't have an account?",
         createAccount: "Create Account",
-        loggingIn: "Logging in...",
-        loginError:
-          "Unable to login. Please check your credentials.",
+        emailPlaceholder: "Enter your email",
+        passwordPlaceholder: "Enter your password",
+        loginError: "Unable to login. Please try again.",
       },
 
       dashboard: {
-        subtitle:
-          "Your learning dashboard",
-
-        welcome:
-          "Welcome back",
+        subtitle: "Your learning dashboard",
+        welcome: "Welcome",
 
         class: "Class",
         board: "Board",
         exam: "Exam",
 
         openMenu: "Open menu",
-
-        editProfile:
-          "Edit Profile",
+        editProfile: "Edit Profile",
 
         menu: {
           syllabus: "Syllabus",
-          syllabusDesc:
-            "View your subjects and syllabus",
+          syllabusDesc: "View your subjects and syllabus",
 
           profile: "Profile",
-          profileDesc:
-            "View and edit your profile",
+          profileDesc: "View and update your profile",
 
           lightMode: "Light Mode",
           darkMode: "Dark Mode",
-
-          changeAppearance:
-            "Change app appearance",
+          changeAppearance: "Change appearance",
 
           settings: "Settings",
           comingSoon: "Coming soon",
@@ -89,114 +78,85 @@ const resources = {
           newspaper: {
             title: "Daily Newspaper",
             description:
-              "Read important news and daily updates.",
-            action: "Open Newspaper",
+              "Read important news and stay updated every day.",
+            action: "Read Newspaper",
           },
 
           currentAffairs: {
             title: "Current Affairs",
             description:
-              "Important current affairs for competitive exams.",
+              "Explore important weekly current affairs for your exams.",
             action: "Explore Current Affairs",
           },
 
           revision: {
             title: "Quick Revision",
             description:
-              "Revise important topics quickly.",
+              "Revise important topics quickly and efficiently.",
             action: "Start Revision",
           },
 
           ask: {
             title: "Ask PadhAI",
             description:
-              "Ask questions and get AI-powered help.",
+              "Ask questions and get help with your studies.",
             action: "Ask Now",
           },
 
           vocab: {
             title: "Vocab Bhaiya",
             description:
-              "Improve your vocabulary with useful resources.",
+              "Improve your vocabulary with an external learning platform.",
             action: "Open Vocab Bhaiya",
           },
 
           videos: {
             title: "Learning Videos",
             description:
-              "Watch useful educational and learning videos.",
+              "Watch educational videos and useful learning content.",
           },
         },
       },
 
       currentAffairs: {
         label: "Current Affairs",
-
-        title:
-          "Daily Current Affairs",
-
+        title: "Weekly Current Affairs",
         subtitle:
-          "Important current affairs for competitive exams.",
+          "Important events and updates curated for your exam preparation.",
 
-        searchPlaceholder:
-          "Search current affairs...",
-
-        loading:
-          "Loading current affairs...",
-
+        searchPlaceholder: "Search current affairs...",
+        loading: "Loading current affairs...",
         loadError:
-          "Unable to load current affairs.",
+          "Unable to load current affairs. Please try again.",
 
-        allCategories:
-          "All Categories",
+        allCategories: "All Categories",
+        mixedTitle: "Latest Current Affairs",
+        topics: "topics",
 
-        mixedTitle:
-          "Mixed Current Affairs",
+        mcqs: "MCQs",
+        readMore: "Read More",
 
-        topics:
-          "topics",
-
-        mcqs:
-          "MCQs",
-
-        readMore:
-          "Read More",
-
-        emptyTitle:
-          "No current affairs found",
-
+        emptyTitle: "No current affairs found",
         emptyDescription:
-          "Try another category or search term.",
+          "Try changing your search or category filter.",
 
         categories: {
           All: "All",
           National: "National",
           International: "International",
-          "Science & Tech":
-            "Science & Tech",
+          "Science & Tech": "Science & Tech",
           Economy: "Economy",
           Sports: "Sports",
           Awards: "Awards",
         },
 
         categoryTitles: {
-          national:
-            "National Updates",
-
-          international:
-            "International Affairs",
-
-          scienceTech:
-            "Science & Technology",
-
-          economy:
-            "Economy & Business",
-
-          sports:
-            "Sports",
-
-          awards:
-            "Awards & Appointments",
+          national: "National Updates",
+          international: "International Affairs",
+          scienceTech: "Science & Technology",
+          economy: "Economy & Business",
+          sports: "Sports",
+          awards: "Awards & Appointments",
         },
 
         categoryDescriptions: {
@@ -218,6 +178,25 @@ const resources = {
           awards:
             "Important appointments, awards, honours and personalities in the news.",
         },
+
+        detail: {
+          back: "Back to Current Affairs",
+          whyInNews: "Why in News?",
+          keyFacts: "Key Facts",
+          examPoint: "Exam Point",
+          staticGK: "Static GK",
+          mcqs: "Practice MCQs",
+          noMcqs: "No MCQs available for this topic.",
+          loading: "Loading current affair...",
+          notFound: "Current affair not found.",
+        },
+      },
+
+      notFound: {
+        title: "Page Not Found",
+        body:
+          "The page you are looking for does not exist or may have been moved.",
+        cta: "Go Home",
       },
     },
   },
@@ -225,255 +204,160 @@ const resources = {
   hi: {
     translation: {
       common: {
-        student: "छात्र",
+        student: "विद्यार्थी",
+        admin: "एडमिन",
         logout: "लॉग आउट",
-        notSet: "सेट नहीं है",
         premium: "प्रीमियम",
-        free: "मुफ्त",
+        free: "फ्री",
         external: "बाहरी",
         comingSoon: "जल्द आ रहा है",
+        notSet: "सेट नहीं है",
+        back: "वापस",
+        loading: "लोड हो रहा है...",
       },
 
       home: {
-        heroTitle:
-          "प्रतियोगी परीक्षाओं की तैयारी का स्मार्ट तरीका।",
-
+        heroTitle: "स्मार्ट तरीके से पढ़ें। बेहतर तैयारी करें।",
         heroSubtitle:
-          "स्ट्रक्चर्ड स्टडी मटेरियल, AI सहायता, करेंट अफेयर्स और उपयोगी लर्निंग टूल्स के साथ पढ़ाई करें।",
-
-        ctaStudent:
-          "स्टूडेंट लॉगिन",
+          "PadhAI आपके लिए पढ़ाई के संसाधन, करंट अफेयर्स और AI आधारित सहायता एक ही जगह लाता है।",
+        ctaStudent: "स्टूडेंट लॉगिन",
 
         pillars: {
           syllabus:
-            "स्ट्रक्चर्ड सिलेबस और फोकस्ड स्टडी रिसोर्सेज।",
-
+            "अपने सिलेबस के अनुसार व्यवस्थित और केंद्रित पढ़ाई करें।",
           ai:
-            "जब भी मदद चाहिए PadhAI AI से पूछें।",
-
+            "किसी भी विषय में मदद के लिए PadhAI से पूछें।",
           video:
-            "उपयोगी लर्निंग कंटेंट और स्टडी रिसोर्सेज।",
-
+            "उपयोगी शैक्षणिक सामग्री और लर्निंग रिसोर्स प्राप्त करें।",
           progress:
-            "फोकस बनाए रखें और हर दिन बेहतर बनें।",
+            "नियमित पढ़ाई करें और अपनी तैयारी में लगातार प्रगति करें।",
         },
       },
 
       studentLogin: {
-        login:
-          "स्टूडेंट लॉगिन",
-
+        login: "स्टूडेंट लॉगिन",
         loginSubtitle:
-          "अपनी पढ़ाई जारी रखने के लिए साइन इन करें",
-
-        email:
-          "ईमेल",
-
-        password:
-          "पासवर्ड",
-
-        loginButton:
-          "लॉगिन करें",
-
-        noAccount:
-          "क्या आपका अकाउंट नहीं है?",
-
-        createAccount:
-          "अकाउंट बनाएं",
-
-        loggingIn:
-          "लॉगिन हो रहा है...",
-
+          "अपनी पढ़ाई जारी रखने के लिए लॉगिन करें।",
+        email: "ईमेल",
+        password: "पासवर्ड",
+        loginButton: "लॉगिन करें",
+        noAccount: "अकाउंट नहीं है?",
+        createAccount: "अकाउंट बनाएं",
+        emailPlaceholder: "अपना ईमेल दर्ज करें",
+        passwordPlaceholder: "अपना पासवर्ड दर्ज करें",
         loginError:
-          "लॉगिन नहीं हो पाया। कृपया अपनी जानकारी जांचें।",
+          "लॉगिन नहीं हो सका। कृपया दोबारा प्रयास करें।",
       },
 
       dashboard: {
-        subtitle:
-          "आपका लर्निंग डैशबोर्ड",
+        subtitle: "आपका लर्निंग डैशबोर्ड",
+        welcome: "स्वागत है",
 
-        welcome:
-          "वापस स्वागत है",
+        class: "कक्षा",
+        board: "बोर्ड",
+        exam: "परीक्षा",
 
-        class:
-          "कक्षा",
-
-        board:
-          "बोर्ड",
-
-        exam:
-          "परीक्षा",
-
-        openMenu:
-          "मेनू खोलें",
-
-        editProfile:
-          "प्रोफाइल एडिट करें",
+        openMenu: "मेनू खोलें",
+        editProfile: "प्रोफाइल एडिट करें",
 
         menu: {
-          syllabus:
-            "सिलेबस",
+          syllabus: "सिलेबस",
+          syllabusDesc: "अपने विषय और सिलेबस देखें",
 
-          syllabusDesc:
-            "अपने विषय और सिलेबस देखें",
+          profile: "प्रोफाइल",
+          profileDesc: "अपनी प्रोफाइल देखें और अपडेट करें",
 
-          profile:
-            "प्रोफाइल",
+          lightMode: "लाइट मोड",
+          darkMode: "डार्क मोड",
+          changeAppearance: "थीम बदलें",
 
-          profileDesc:
-            "अपनी प्रोफाइल देखें और एडिट करें",
-
-          lightMode:
-            "लाइट मोड",
-
-          darkMode:
-            "डार्क मोड",
-
-          changeAppearance:
-            "ऐप का लुक बदलें",
-
-          settings:
-            "सेटिंग्स",
-
-          comingSoon:
-            "जल्द आ रहा है",
+          settings: "सेटिंग्स",
+          comingSoon: "जल्द आ रहा है",
         },
 
         cards: {
           newspaper: {
-            title:
-              "डेली न्यूज़पेपर",
-
+            title: "डेली न्यूज़पेपर",
             description:
-              "महत्वपूर्ण समाचार और दैनिक अपडेट पढ़ें।",
-
-            action:
-              "न्यूज़पेपर खोलें",
+              "हर दिन महत्वपूर्ण समाचार पढ़ें और अपडेट रहें।",
+            action: "न्यूज़पेपर पढ़ें",
           },
 
           currentAffairs: {
-            title:
-              "करेंट अफेयर्स",
-
+            title: "करंट अफेयर्स",
             description:
-              "प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण करेंट अफेयर्स।",
-
-            action:
-              "करेंट अफेयर्स देखें",
+              "परीक्षा के लिए महत्वपूर्ण साप्ताहिक करंट अफेयर्स पढ़ें।",
+            action: "करंट अफेयर्स देखें",
           },
 
           revision: {
-            title:
-              "क्विक रिवीजन",
-
+            title: "क्विक रिवीजन",
             description:
-              "महत्वपूर्ण टॉपिक्स का जल्दी रिवीजन करें।",
-
-            action:
-              "रिवीजन शुरू करें",
+              "महत्वपूर्ण विषयों का जल्दी रिवीजन करें।",
+            action: "रिवीजन शुरू करें",
           },
 
           ask: {
-            title:
-              "Ask PadhAI",
-
+            title: "Ask PadhAI",
             description:
-              "सवाल पूछें और AI की मदद प्राप्त करें।",
-
-            action:
-              "अभी पूछें",
+              "अपने सवाल पूछें और पढ़ाई में सहायता प्राप्त करें।",
+            action: "अभी पूछें",
           },
 
           vocab: {
-            title:
-              "Vocab Bhaiya",
-
+            title: "Vocab Bhaiya",
             description:
-              "उपयोगी रिसोर्सेज के साथ अपनी शब्दावली बेहतर बनाएं।",
-
-            action:
-              "Vocab Bhaiya खोलें",
+              "वोकैबुलरी बेहतर बनाने के लिए लर्निंग प्लेटफॉर्म।",
+            action: "Vocab Bhaiya खोलें",
           },
 
           videos: {
-            title:
-              "लर्निंग वीडियो",
-
+            title: "लर्निंग वीडियो",
             description:
-              "उपयोगी एजुकेशनल और लर्निंग वीडियो देखें।",
+              "शैक्षणिक वीडियो और उपयोगी लर्निंग कंटेंट देखें।",
           },
         },
       },
 
       currentAffairs: {
-        label:
-          "करेंट अफेयर्स",
-
-        title:
-          "डेली करेंट अफेयर्स",
-
+        label: "करंट अफेयर्स",
+        title: "साप्ताहिक करंट अफेयर्स",
         subtitle:
-          "प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण करेंट अफेयर्स।",
+          "आपकी परीक्षा की तैयारी के लिए महत्वपूर्ण घटनाएं और अपडेट।",
 
-        searchPlaceholder:
-          "करेंट अफेयर्स खोजें...",
-
-        loading:
-          "करेंट अफेयर्स लोड हो रहे हैं...",
-
+        searchPlaceholder: "करंट अफेयर्स खोजें...",
+        loading: "करंट अफेयर्स लोड हो रहे हैं...",
         loadError:
-          "करेंट अफेयर्स लोड नहीं हो पाए।",
+          "करंट अफेयर्स लोड नहीं हो सके। कृपया दोबारा प्रयास करें।",
 
-        allCategories:
-          "सभी श्रेणियां",
+        allCategories: "सभी श्रेणियां",
+        mixedTitle: "नवीनतम करंट अफेयर्स",
+        topics: "टॉपिक्स",
 
-        mixedTitle:
-          "सभी करेंट अफेयर्स",
+        mcqs: "MCQs",
+        readMore: "और पढ़ें",
 
-        topics:
-          "टॉपिक्स",
-
-        mcqs:
-          "MCQs",
-
-        readMore:
-          "और पढ़ें",
-
-        emptyTitle:
-          "कोई करेंट अफेयर्स नहीं मिला",
-
+        emptyTitle: "कोई करंट अफेयर नहीं मिला",
         emptyDescription:
-          "दूसरी कैटेगरी या सर्च शब्द आज़माएं।",
+          "अपनी खोज या कैटेगरी फ़िल्टर बदलकर देखें।",
 
         categories: {
           All: "सभी",
           National: "राष्ट्रीय",
           International: "अंतरराष्ट्रीय",
-          "Science & Tech":
-            "विज्ञान और तकनीक",
+          "Science & Tech": "विज्ञान और टेक्नोलॉजी",
           Economy: "अर्थव्यवस्था",
           Sports: "खेल",
           Awards: "पुरस्कार",
         },
 
         categoryTitles: {
-          national:
-            "राष्ट्रीय अपडेट",
-
-          international:
-            "अंतरराष्ट्रीय मामले",
-
-          scienceTech:
-            "विज्ञान और तकनीक",
-
-          economy:
-            "अर्थव्यवस्था और बिजनेस",
-
-          sports:
-            "खेल",
-
-          awards:
-            "पुरस्कार और नियुक्तियां",
+          national: "राष्ट्रीय अपडेट",
+          international: "अंतरराष्ट्रीय मामले",
+          scienceTech: "विज्ञान और टेक्नोलॉजी",
+          economy: "अर्थव्यवस्था और बिजनेस",
+          sports: "खेल",
+          awards: "पुरस्कार और नियुक्तियां",
         },
 
         categoryDescriptions: {
@@ -481,20 +365,40 @@ const resources = {
             "महत्वपूर्ण राष्ट्रीय घटनाएं और सरकारी विकास।",
 
           international:
-            "प्रमुख अंतरराष्ट्रीय घटनाएं और विश्व से जुड़ी महत्वपूर्ण खबरें।",
+            "महत्वपूर्ण अंतरराष्ट्रीय घटनाएं और वैश्विक विकास।",
 
           scienceTech:
-            "विज्ञान, तकनीक, अंतरिक्ष और इनोवेशन से जुड़े महत्वपूर्ण विकास।",
+            "विज्ञान, टेक्नोलॉजी, अंतरिक्ष और इनोवेशन के महत्वपूर्ण विकास।",
 
           economy:
-            "महत्वपूर्ण आर्थिक विकास और बिजनेस अपडेट।",
+            "अर्थव्यवस्था, बिजनेस और वित्तीय जगत की महत्वपूर्ण खबरें।",
 
           sports:
-            "महत्वपूर्ण खेल प्रतियोगिताएं और उपलब्धियां।",
+            "महत्वपूर्ण खेल आयोजन, उपलब्धियां और जीत।",
 
           awards:
-            "महत्वपूर्ण नियुक्तियां, पुरस्कार और समाचारों में रहने वाली हस्तियां।",
+            "महत्वपूर्ण नियुक्तियां, पुरस्कार और सम्मान।",
         },
+
+        detail: {
+          back: "करंट अफेयर्स पर वापस जाएं",
+          whyInNews: "खबरों में क्यों?",
+          keyFacts: "मुख्य तथ्य",
+          examPoint: "परीक्षा के लिए महत्वपूर्ण",
+          staticGK: "स्टैटिक GK",
+          mcqs: "अभ्यास MCQs",
+          noMcqs:
+            "इस विषय के लिए कोई MCQ उपलब्ध नहीं है।",
+          loading: "करंट अफेयर लोड हो रहा है...",
+          notFound: "करंट अफेयर नहीं मिला।",
+        },
+      },
+
+      notFound: {
+        title: "पेज नहीं मिला",
+        body:
+          "आप जिस पेज को खोज रहे हैं वह मौजूद नहीं है या स्थानांतरित हो गया है।",
+        cta: "होम पर जाएं",
       },
     },
   },
@@ -503,293 +407,217 @@ const resources = {
     translation: {
       common: {
         student: "Student",
+        admin: "Admin",
         logout: "Logout",
-        notSet: "Set nahi hai",
         premium: "Premium",
         free: "Free",
         external: "External",
         comingSoon: "Coming Soon",
+        notSet: "Set nahi hai",
+        back: "Back",
+        loading: "Loading...",
       },
 
       home: {
         heroTitle:
-          "Competitive exams ki preparation ka smarter way.",
-
+          "Smart tareeke se padho. Better preparation karo.",
         heroSubtitle:
-          "Structured study material, AI help, current affairs aur powerful learning tools ke saath padho.",
-
-        ctaStudent:
-          "Student Login",
+          "PadhAI mein learning resources, current affairs aur AI study support ek hi jagah milta hai.",
+        ctaStudent: "Student Login",
 
         pillars: {
           syllabus:
-            "Structured syllabus aur focused study resources.",
-
+            "Apne syllabus ke according focused aur structured study karo.",
           ai:
-            "Jab bhi help chahiye PadhAI AI se poocho.",
-
+            "Jab bhi kisi topic mein help chahiye ho, PadhAI se pucho.",
           video:
-            "Useful learning content aur study resources.",
-
+            "Useful educational content aur learning resources access karo.",
           progress:
-            "Focused raho aur har din improve karo.",
+            "Regular study karo aur preparation mein progress banao.",
         },
       },
 
       studentLogin: {
-        login:
-          "Student Login",
-
+        login: "Student Login",
         loginSubtitle:
-          "Apni learning journey continue karne ke liye sign in karo",
-
-        email:
-          "Email",
-
-        password:
-          "Password",
-
-        loginButton:
-          "Login",
-
-        noAccount:
-          "Account nahi hai?",
-
-        createAccount:
-          "Account Banao",
-
-        loggingIn:
-          "Login ho raha hai...",
-
+          "Apni learning journey continue karne ke liye login karo.",
+        email: "Email",
+        password: "Password",
+        loginButton: "Login",
+        noAccount: "Account nahi hai?",
+        createAccount: "Account Banao",
+        emailPlaceholder: "Apna email enter karo",
+        passwordPlaceholder: "Apna password enter karo",
         loginError:
-          "Login nahi ho paya. Apni details check karo.",
+          "Login nahi ho paya. Please dobara try karo.",
       },
 
       dashboard: {
-        subtitle:
-          "Tumhara learning dashboard",
+        subtitle: "Tumhara learning dashboard",
+        welcome: "Welcome",
 
-        welcome:
-          "Welcome back",
+        class: "Class",
+        board: "Board",
+        exam: "Exam",
 
-        class:
-          "Class",
-
-        board:
-          "Board",
-
-        exam:
-          "Exam",
-
-        openMenu:
-          "Menu kholo",
-
-        editProfile:
-          "Profile Edit Karo",
+        openMenu: "Menu kholo",
+        editProfile: "Profile Edit Karo",
 
         menu: {
-          syllabus:
-            "Syllabus",
-
+          syllabus: "Syllabus",
           syllabusDesc:
             "Apne subjects aur syllabus dekho",
 
-          profile:
-            "Profile",
-
+          profile: "Profile",
           profileDesc:
-            "Apni profile dekho aur edit karo",
+            "Apni profile dekho aur update karo",
 
-          lightMode:
-            "Light Mode",
+          lightMode: "Light Mode",
+          darkMode: "Dark Mode",
+          changeAppearance: "Appearance change karo",
 
-          darkMode:
-            "Dark Mode",
-
-          changeAppearance:
-            "App ka appearance badlo",
-
-          settings:
-            "Settings",
-
-          comingSoon:
-            "Coming Soon",
+          settings: "Settings",
+          comingSoon: "Jaldi aa raha hai",
         },
 
         cards: {
           newspaper: {
-            title:
-              "Daily Newspaper",
-
+            title: "Daily Newspaper",
             description:
-              "Important news aur daily updates padho.",
-
-            action:
-              "Newspaper Open Karo",
+              "Roz important news padho aur updated raho.",
+            action: "Newspaper Padho",
           },
 
           currentAffairs: {
-            title:
-              "Current Affairs",
-
+            title: "Current Affairs",
             description:
-              "Competitive exams ke liye important current affairs.",
-
-            action:
-              "Current Affairs Explore Karo",
+              "Exam ke liye important weekly current affairs explore karo.",
+            action: "Current Affairs Dekho",
           },
 
           revision: {
-            title:
-              "Quick Revision",
-
+            title: "Quick Revision",
             description:
               "Important topics ko jaldi revise karo.",
-
-            action:
-              "Revision Start Karo",
+            action: "Revision Start Karo",
           },
 
           ask: {
-            title:
-              "Ask PadhAI",
-
+            title: "Ask PadhAI",
             description:
-              "Questions poocho aur AI-powered help pao.",
-
-            action:
-              "Abhi Poocho",
+              "Apne questions pucho aur study help lo.",
+            action: "Abhi Pucho",
           },
 
           vocab: {
-            title:
-              "Vocab Bhaiya",
-
+            title: "Vocab Bhaiya",
             description:
-              "Useful resources ke saath vocabulary improve karo.",
-
-            action:
-              "Vocab Bhaiya Open Karo",
+              "Vocabulary improve karne ke liye learning platform.",
+            action: "Vocab Bhaiya Open Karo",
           },
 
           videos: {
-            title:
-              "Learning Videos",
-
+            title: "Learning Videos",
             description:
-              "Useful educational aur learning videos dekho.",
+              "Educational videos aur useful learning content dekho.",
           },
         },
       },
 
       currentAffairs: {
-        label:
-          "Current Affairs",
-
-        title:
-          "Daily Current Affairs",
-
+        label: "Current Affairs",
+        title: "Weekly Current Affairs",
         subtitle:
-          "Competitive exams ke liye important current affairs.",
+          "Exam preparation ke liye important events aur updates.",
 
-        searchPlaceholder:
-          "Current affairs search karo...",
-
-        loading:
-          "Current affairs load ho rahe hain...",
-
+        searchPlaceholder: "Current affairs search karo...",
+        loading: "Current affairs load ho rahe hain...",
         loadError:
-          "Current affairs load nahi ho paaye.",
+          "Current affairs load nahi ho sake. Dobara try karo.",
 
-        allCategories:
-          "All Categories",
+        allCategories: "All Categories",
+        mixedTitle: "Latest Current Affairs",
+        topics: "topics",
 
-        mixedTitle:
-          "Mixed Current Affairs",
+        mcqs: "MCQs",
+        readMore: "Aur Padho",
 
-        topics:
-          "topics",
-
-        mcqs:
-          "MCQs",
-
-        readMore:
-          "Aur Padho",
-
-        emptyTitle:
-          "Koi current affair nahi mila",
-
+        emptyTitle: "Koi current affair nahi mila",
         emptyDescription:
-          "Dusri category ya search term try karo.",
+          "Search ya category filter change karke dekho.",
 
         categories: {
           All: "All",
           National: "National",
           International: "International",
-          "Science & Tech":
-            "Science & Tech",
+          "Science & Tech": "Science & Tech",
           Economy: "Economy",
           Sports: "Sports",
           Awards: "Awards",
         },
 
         categoryTitles: {
-          national:
-            "National Updates",
-
-          international:
-            "International Affairs",
-
-          scienceTech:
-            "Science & Technology",
-
-          economy:
-            "Economy & Business",
-
-          sports:
-            "Sports",
-
-          awards:
-            "Awards & Appointments",
+          national: "National Updates",
+          international: "International Affairs",
+          scienceTech: "Science & Technology",
+          economy: "Economy & Business",
+          sports: "Sports",
+          awards: "Awards & Appointments",
         },
 
         categoryDescriptions: {
           national:
-            "Important national events aur government related developments.",
+            "Important national events aur government developments.",
 
           international:
-            "Major international events aur important world news.",
+            "Major international events aur global developments.",
 
           scienceTech:
             "Science, technology, space aur innovation ke important developments.",
 
           economy:
-            "Important economic developments aur business updates.",
+            "Economy, business aur financial updates.",
 
           sports:
-            "Important sports events aur major achievements.",
+            "Important sports events aur achievements.",
 
           awards:
-            "Important appointments, awards aur news mein rehne wali personalities.",
+            "Important appointments, awards aur honours.",
         },
+
+        detail: {
+          back: "Current Affairs par wapas jao",
+          whyInNews: "News mein kyun hai?",
+          keyFacts: "Important Facts",
+          examPoint: "Exam Point",
+          staticGK: "Static GK",
+          mcqs: "Practice MCQs",
+          noMcqs:
+            "Is topic ke liye koi MCQ available nahi hai.",
+          loading: "Current affair load ho raha hai...",
+          notFound: "Current affair nahi mila.",
+        },
+      },
+
+      notFound: {
+        title: "Page Nahi Mila",
+        body:
+          "Jo page tum search kar rahe ho woh exist nahi karta ya move ho gaya hai.",
+        cta: "Home Jao",
       },
     },
   },
 };
 
+const savedLanguage =
+  localStorage.getItem("padhai-language") || "en";
+
 i18n.use(initReactI18next).init({
   resources,
-
   lng: savedLanguage,
-
   fallbackLng: "en",
-
   interpolation: {
     escapeValue: false,
-  },
-
-  react: {
-    useSuspense: false,
   },
 });
 
