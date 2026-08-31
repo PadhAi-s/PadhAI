@@ -1,9 +1,226 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { supabase } from "../../lib/supabase";
 
 type Difficulty = "Easy" | "Medium" | "Hard";
+
+interface SubjectOption {
+  value: string;
+  label: string;
+  topics: {
+    value: string;
+    label: string;
+  }[];
+}
+
+const subjects: SubjectOption[] = [
+  {
+    value: "Mathematics",
+    label: "Mathematics / गणित",
+    topics: [
+      {
+        value: "Percentage",
+        label: "Percentage / प्रतिशत",
+      },
+      {
+        value: "Profit and Loss",
+        label: "Profit & Loss / लाभ और हानि",
+      },
+      {
+        value: "Ratio and Proportion",
+        label: "Ratio & Proportion / अनुपात और समानुपात",
+      },
+      {
+        value: "Simple Interest",
+        label: "Simple Interest / साधारण ब्याज",
+      },
+      {
+        value: "Compound Interest",
+        label: "Compound Interest / चक्रवृद्धि ब्याज",
+      },
+      {
+        value: "Time and Work",
+        label: "Time & Work / समय और कार्य",
+      },
+      {
+        value: "Time Speed and Distance",
+        label: "Time, Speed & Distance / समय, गति और दूरी",
+      },
+      {
+        value: "Algebra",
+        label: "Algebra / बीजगणित",
+      },
+      {
+        value: "Geometry",
+        label: "Geometry / ज्यामिति",
+      },
+    ],
+  },
+
+  {
+    value: "Science",
+    label: "Science / विज्ञान",
+    topics: [
+      {
+        value: "Physics",
+        label: "Physics / भौतिक विज्ञान",
+      },
+      {
+        value: "Chemistry",
+        label: "Chemistry / रसायन विज्ञान",
+      },
+      {
+        value: "Biology",
+        label: "Biology / जीव विज्ञान",
+      },
+      {
+        value: "Human Body",
+        label: "Human Body / मानव शरीर",
+      },
+      {
+        value: "Electricity",
+        label: "Electricity / विद्युत",
+      },
+      {
+        value: "Light",
+        label: "Light / प्रकाश",
+      },
+      {
+        value: "Motion and Force",
+        label: "Motion & Force / गति और बल",
+      },
+      {
+        value: "Environment",
+        label: "Environment / पर्यावरण",
+      },
+    ],
+  },
+
+  {
+    value: "Social Science",
+    label: "Social Science / सामाजिक विज्ञान",
+    topics: [
+      {
+        value: "Indian History",
+        label: "Indian History / भारतीय इतिहास",
+      },
+      {
+        value: "Indian Geography",
+        label: "Indian Geography / भारतीय भूगोल",
+      },
+      {
+        value: "Indian Constitution",
+        label: "Indian Constitution / भारतीय संविधान",
+      },
+      {
+        value: "Fundamental Rights",
+        label: "Fundamental Rights / मौलिक अधिकार",
+      },
+      {
+        value: "Indian Economy",
+        label: "Indian Economy / भारतीय अर्थव्यवस्था",
+      },
+      {
+        value: "World Geography",
+        label: "World Geography / विश्व भूगोल",
+      },
+      {
+        value: "Civics",
+        label: "Civics / नागरिक शास्त्र",
+      },
+    ],
+  },
+
+  {
+    value: "English",
+    label: "English / अंग्रेज़ी",
+    topics: [
+      {
+        value: "Grammar",
+        label: "Grammar / व्याकरण",
+      },
+      {
+        value: "Tenses",
+        label: "Tenses / काल",
+      },
+      {
+        value: "Vocabulary",
+        label: "Vocabulary / शब्दावली",
+      },
+      {
+        value: "Parts of Speech",
+        label: "Parts of Speech / शब्द भेद",
+      },
+      {
+        value: "Active and Passive Voice",
+        label: "Active & Passive Voice / कर्तृवाच्य और कर्मवाच्य",
+      },
+      {
+        value: "Direct and Indirect Speech",
+        label: "Direct & Indirect Speech / प्रत्यक्ष और अप्रत्यक्ष कथन",
+      },
+    ],
+  },
+
+  {
+    value: "General Knowledge",
+    label: "General Knowledge / सामान्य ज्ञान",
+    topics: [
+      {
+        value: "Indian Constitution",
+        label: "Indian Constitution / भारतीय संविधान",
+      },
+      {
+        value: "Indian History",
+        label: "Indian History / भारतीय इतिहास",
+      },
+      {
+        value: "Indian Geography",
+        label: "Indian Geography / भारतीय भूगोल",
+      },
+      {
+        value: "Science and Technology",
+        label: "Science & Technology / विज्ञान और तकनीक",
+      },
+      {
+        value: "Important Days",
+        label: "Important Days / महत्वपूर्ण दिवस",
+      },
+      {
+        value: "Awards and Honours",
+        label: "Awards & Honours / पुरस्कार और सम्मान",
+      },
+    ],
+  },
+
+  {
+    value: "Current Affairs",
+    label: "Current Affairs / समसामयिक घटनाएँ",
+    topics: [
+      {
+        value: "National Current Affairs",
+        label: "National / राष्ट्रीय",
+      },
+      {
+        value: "International Current Affairs",
+        label: "International / अंतरराष्ट्रीय",
+      },
+      {
+        value: "Sports Current Affairs",
+        label: "Sports / खेल",
+      },
+      {
+        value: "Government Schemes",
+        label: "Government Schemes / सरकारी योजनाएँ",
+      },
+      {
+        value: "Awards",
+        label: "Awards / पुरस्कार",
+      },
+    ],
+  },
+];
 
 interface FlashCard {
   id: string;
@@ -49,10 +266,14 @@ export function QuickRevision() {
   const navigate = useNavigate();
 
   /* FORM */
+
   const [subject, setSubject] =
     useState("General Knowledge");
 
   const [topic, setTopic] =
+    useState("");
+
+  const [customTopic, setCustomTopic] =
     useState("");
 
   const [difficulty, setDifficulty] =
@@ -62,13 +283,15 @@ export function QuickRevision() {
     useState(10);
 
   /* AI DATA */
+
   const [cards, setCards] =
     useState<FlashCard[]>([]);
 
   const [quiz, setQuiz] =
     useState<QuizQuestion[]>([]);
 
-  /* UI STATES */
+  /* UI */
+
   const [loading, setLoading] =
     useState(false);
 
@@ -98,15 +321,55 @@ export function QuickRevision() {
   const [answers, setAnswers] =
     useState<number[]>([]);
 
-  /* GENERATE AI REVISION */
+  const currentSubject = useMemo(
+    () =>
+      subjects.find(
+        (item) => item.value === subject,
+      ),
+    [subject],
+  );
+
+  const topicOptions =
+    currentSubject?.topics || [];
+
+  const isCustomTopic =
+    topic === "__custom__";
+
+  const isMixedTopic =
+    topic === "__mix__";
+
+  function handleSubjectChange(
+    value: string,
+  ) {
+    setSubject(value);
+
+    setTopic("");
+    setCustomTopic("");
+    setError("");
+  }
+
+  function getFinalTopic() {
+    if (topic === "__custom__") {
+      return customTopic.trim();
+    }
+
+    if (topic === "__mix__") {
+      return `Mixed important topics from ${subject}`;
+    }
+
+    return topic.trim();
+  }
+
   async function handleGenerate(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    if (!topic.trim()) {
+    const finalTopic = getFinalTopic();
+
+    if (!finalTopic) {
       setError(
-        "Please enter a topic / कृपया एक टॉपिक लिखें",
+        "Please select or enter a topic / कृपया एक टॉपिक चुनें या लिखें",
       );
       return;
     }
@@ -123,7 +386,6 @@ export function QuickRevision() {
 
       setShowAnswer(false);
       setSelectedAnswer(null);
-
       setAnswers([]);
 
       const { data, error: functionError } =
@@ -132,7 +394,7 @@ export function QuickRevision() {
           {
             body: {
               subject,
-              topic: topic.trim(),
+              topic: finalTopic,
               difficulty,
               cardCount,
             },
@@ -152,13 +414,32 @@ export function QuickRevision() {
         );
       }
 
-      const result =
-        data as RevisionResponse;
+      /*
+       * Handles:
+       * normal object response
+       * JSON string response
+       */
+
+      let result: RevisionResponse;
+
+      if (typeof data === "string") {
+        result = JSON.parse(
+          data,
+        ) as RevisionResponse;
+      } else {
+        result =
+          data as RevisionResponse;
+      }
 
       if (
         !Array.isArray(result.cards) ||
         !Array.isArray(result.quiz)
       ) {
+        console.error(
+          "Invalid revision response:",
+          data,
+        );
+
         throw new Error(
           "Invalid revision data received.",
         );
@@ -194,7 +475,8 @@ export function QuickRevision() {
     }
   }
 
-  /* FLASHCARD NEXT */
+  /* FLASHCARD */
+
   function handleNextCard() {
     setShowAnswer(false);
 
@@ -202,6 +484,7 @@ export function QuickRevision() {
       setCurrentCard(
         (previous) => previous + 1,
       );
+
       return;
     }
 
@@ -223,7 +506,8 @@ export function QuickRevision() {
     );
   }
 
-  /* QUIZ ANSWER */
+  /* QUIZ */
+
   function handleSelectAnswer(
     answerIndex: number,
   ) {
@@ -234,7 +518,6 @@ export function QuickRevision() {
     setSelectedAnswer(answerIndex);
   }
 
-  /* NEXT QUESTION */
   function handleNextQuestion() {
     if (selectedAnswer === null) {
       return;
@@ -264,6 +547,7 @@ export function QuickRevision() {
   }
 
   /* RESTART */
+
   function handleRestart() {
     setStarted(false);
 
@@ -282,9 +566,11 @@ export function QuickRevision() {
     setError("");
 
     setTopic("");
+    setCustomTopic("");
   }
 
   /* SCORE */
+
   const score = answers.reduce(
     (total, answer, index) => {
       if (
@@ -299,27 +585,27 @@ export function QuickRevision() {
     0,
   );
 
-  /* ============================= */
-  /* FORM SCREEN */
-  /* ============================= */
+  /* ========================= */
+  /* FORM */
+  /* ========================= */
 
   if (!started) {
     return (
       <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 dark:bg-slate-950 dark:text-white">
         <div className="mx-auto max-w-5xl">
 
-          {/* BACK */}
           <button
             type="button"
             onClick={() =>
               navigate("/student/dashboard")
             }
-            className="mb-5 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
+            className="mb-5 text-sm font-semibold text-slate-600 transition hover:text-purple-600 dark:text-slate-300"
           >
             ← Back to Dashboard
           </button>
 
           {/* HERO */}
+
           <div className="overflow-hidden rounded-t-3xl bg-gradient-to-r from-purple-700 via-violet-600 to-blue-600 px-6 py-8 text-white shadow-xl sm:px-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold backdrop-blur">
               ⚡ AI Powered Revision
@@ -330,16 +616,17 @@ export function QuickRevision() {
             </h1>
 
             <p className="mt-3 text-sm text-purple-100 sm:text-base">
-              Enter any topic and let AI generate bilingual
-              flashcards and MCQ questions.
+              Choose a subject and let AI generate
+              bilingual flashcards and MCQ questions.
             </p>
 
             <p className="mt-1 text-sm text-purple-100">
-              किसी भी टॉपिक को जल्दी और आसान तरीके से रिवाइज करें।
+              विषय और टॉपिक चुनें और AI से तुरंत रिवीजन करें।
             </p>
           </div>
 
           {/* FORM */}
+
           <form
             onSubmit={handleGenerate}
             className="rounded-b-3xl bg-white p-5 shadow-xl dark:bg-slate-900 sm:p-8"
@@ -347,25 +634,36 @@ export function QuickRevision() {
             <div className="grid gap-5 md:grid-cols-2">
 
               {/* SUBJECT */}
+
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                   📚 Subject / विषय
                 </label>
 
-                <input
-                  type="text"
+                <select
                   value={subject}
                   onChange={(event) =>
-                    setSubject(
+                    handleSubjectChange(
                       event.target.value,
                     )
                   }
-                  placeholder="General Knowledge"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
-                />
+                >
+                  {subjects.map(
+                    (item) => (
+                      <option
+                        key={item.value}
+                        value={item.value}
+                      >
+                        {item.label}
+                      </option>
+                    ),
+                  )}
+                </select>
               </div>
 
               {/* DIFFICULTY */}
+
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                   🎯 Difficulty / कठिनाई
@@ -397,25 +695,87 @@ export function QuickRevision() {
             </div>
 
             {/* TOPIC */}
+
             <div className="mt-5">
               <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                 🧠 Topic / टॉपिक
               </label>
 
-              <textarea
+              <select
                 value={topic}
-                onChange={(event) =>
+                onChange={(event) => {
                   setTopic(
                     event.target.value,
-                  )
-                }
-                placeholder="Example: Indian Constitution Fundamental Rights / भारतीय संविधान के मौलिक अधिकार"
-                rows={4}
-                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
-              />
+                  );
+
+                  setCustomTopic("");
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
+              >
+                <option value="">
+                  Select Topic / टॉपिक चुनें
+                </option>
+
+                {topicOptions.map(
+                  (item) => (
+                    <option
+                      key={item.value}
+                      value={item.value}
+                    >
+                      {item.label}
+                    </option>
+                  ),
+                )}
+
+                <option value="__mix__">
+                  🔀 Mix Important Topics /
+                  मिश्रित महत्वपूर्ण टॉपिक
+                </option>
+
+                <option value="__custom__">
+                  ✏️ Custom Topic /
+                  अपना टॉपिक लिखें
+                </option>
+              </select>
             </div>
 
+            {/* CUSTOM TOPIC */}
+
+            {isCustomTopic && (
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+                  ✏️ Enter Your Topic / अपना टॉपिक लिखें
+                </label>
+
+                <textarea
+                  value={customTopic}
+                  onChange={(event) =>
+                    setCustomTopic(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Example: Indian Constitution Fundamental Rights / भारतीय संविधान के मौलिक अधिकार"
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
+                />
+              </div>
+            )}
+
+            {/* MIX INFO */}
+
+            {isMixedTopic && (
+              <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-700 dark:border-purple-900 dark:bg-purple-950/30 dark:text-purple-300">
+                🔀 AI will select and mix important
+                topics from{" "}
+                <strong>{subject}</strong>.
+                <br />
+                AI इस विषय के महत्वपूर्ण टॉपिक को मिलाकर
+                रिवीजन तैयार करेगा।
+              </div>
+            )}
+
             {/* CARD COUNT */}
+
             <div className="mt-5">
               <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                 🔢 Number of Cards / कार्डों की संख्या
@@ -451,22 +811,26 @@ export function QuickRevision() {
             </div>
 
             {/* ERROR */}
+
             {error && (
               <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600 dark:border-red-900 dark:bg-red-950/30">
                 ⚠️ {error}
               </div>
             )}
 
-            {/* START BUTTON */}
+            {/* START */}
+
             <button
               type="submit"
               disabled={
                 loading ||
-                !topic.trim()
+                (!topic ||
+                  (isCustomTopic &&
+                    !customTopic.trim()))
               }
-              className="group relative mt-6 flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-blue-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-purple-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="group relative mt-6 flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-blue-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg backdrop-blur-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg backdrop-blur-sm">
                 {loading
                   ? "⏳"
                   : "⚡"}
@@ -479,14 +843,15 @@ export function QuickRevision() {
               </span>
 
               {!loading && (
-                <span className="text-lg transition-transform duration-300 group-hover:translate-x-1">
+                <span className="text-lg">
                   →
                 </span>
               )}
             </button>
 
             <p className="mt-4 text-center text-xs text-slate-400">
-              AI will generate flashcards and MCQs automatically.
+              AI will automatically generate bilingual
+              flashcards and MCQs.
             </p>
           </form>
         </div>
@@ -494,9 +859,9 @@ export function QuickRevision() {
     );
   }
 
-  /* ============================= */
+  /* ========================= */
   /* FLASHCARDS */
-  /* ============================= */
+  /* ========================= */
 
   if (
     mode === "cards" &&
@@ -508,7 +873,6 @@ export function QuickRevision() {
       <div className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-slate-950">
         <div className="mx-auto max-w-3xl">
 
-          {/* HEADER */}
           <div className="mb-6 flex items-center justify-between">
             <button
               type="button"
@@ -524,7 +888,6 @@ export function QuickRevision() {
             </span>
           </div>
 
-          {/* PROGRESS */}
           <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className="h-full rounded-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all"
@@ -538,7 +901,6 @@ export function QuickRevision() {
             />
           </div>
 
-          {/* CARD */}
           <div className="overflow-hidden rounded-3xl bg-white shadow-xl dark:bg-slate-900">
 
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-5 text-white">
@@ -606,7 +968,6 @@ export function QuickRevision() {
                 </div>
               )}
 
-              {/* NAVIGATION */}
               <div className="mt-8 flex gap-3">
                 <button
                   type="button"
@@ -626,7 +987,7 @@ export function QuickRevision() {
                   onClick={
                     handleNextCard
                   }
-                  className="flex-1 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 font-bold text-white shadow-lg transition hover:shadow-xl"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 font-bold text-white shadow-lg"
                 >
                   {currentCard ===
                   cards.length - 1
@@ -641,9 +1002,9 @@ export function QuickRevision() {
     );
   }
 
-  /* ============================= */
+  /* ========================= */
   /* QUIZ */
-  /* ============================= */
+  /* ========================= */
 
   if (
     mode === "quiz" &&
@@ -656,7 +1017,6 @@ export function QuickRevision() {
       <div className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-slate-950">
         <div className="mx-auto max-w-3xl">
 
-          {/* HEADER */}
           <div className="mb-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-bold text-purple-600">
@@ -664,8 +1024,7 @@ export function QuickRevision() {
               </p>
 
               <p className="text-xs text-slate-500">
-                Question{" "}
-                {currentQuestion + 1} of{" "}
+                Question {currentQuestion + 1} of{" "}
                 {quiz.length}
               </p>
             </div>
@@ -675,10 +1034,9 @@ export function QuickRevision() {
             </span>
           </div>
 
-          {/* PROGRESS */}
           <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
-              className="h-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all"
+              className="h-full bg-gradient-to-r from-purple-600 to-blue-600"
               style={{
                 width: `${
                   ((currentQuestion + 1) /
@@ -689,7 +1047,6 @@ export function QuickRevision() {
             />
           </div>
 
-          {/* QUESTION */}
           <div className="rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 sm:p-8">
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               {question.question_en}
@@ -699,7 +1056,6 @@ export function QuickRevision() {
               {question.question_hi}
             </p>
 
-            {/* OPTIONS */}
             <div className="mt-8 space-y-3">
               {question.options.map(
                 (option, index) => {
@@ -767,7 +1123,6 @@ export function QuickRevision() {
               )}
             </div>
 
-            {/* EXPLANATION */}
             {selectedAnswer !== null && (
               <div className="mt-6 rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/30">
                 <p className="font-bold text-blue-700 dark:text-blue-300">
@@ -784,7 +1139,6 @@ export function QuickRevision() {
               </div>
             )}
 
-            {/* NEXT */}
             <button
               type="button"
               disabled={
@@ -793,7 +1147,7 @@ export function QuickRevision() {
               onClick={
                 handleNextQuestion
               }
-              className="mt-8 w-full rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-bold text-white transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-8 w-full rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               {currentQuestion ===
               quiz.length - 1
@@ -806,16 +1160,15 @@ export function QuickRevision() {
     );
   }
 
-  /* ============================= */
+  /* ========================= */
   /* RESULT */
-  /* ============================= */
+  /* ========================= */
 
   if (mode === "result") {
     const percentage =
       quiz.length > 0
         ? Math.round(
-            (score / quiz.length) *
-              100,
+            (score / quiz.length) * 100,
           )
         : 0;
 
@@ -839,7 +1192,6 @@ export function QuickRevision() {
             रिवीजन पूरा हो गया
           </p>
 
-          {/* SCORE */}
           <div className="mx-auto mt-8 flex h-40 w-40 flex-col items-center justify-center rounded-full border-8 border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-950/30">
             <span className="text-4xl font-bold text-purple-600">
               {percentage}%
@@ -882,12 +1234,11 @@ export function QuickRevision() {
             </div>
           </div>
 
-          {/* ACTIONS */}
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={handleRestart}
-              className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-bold text-white transition hover:shadow-xl"
+              className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-bold text-white"
             >
               🔄 New Revision
             </button>
@@ -899,7 +1250,7 @@ export function QuickRevision() {
                   "/student/dashboard",
                 )
               }
-              className="rounded-xl border border-slate-200 px-5 py-4 font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+              className="rounded-xl border border-slate-200 px-5 py-4 font-bold text-slate-700 dark:border-slate-700 dark:text-white"
             >
               🏠 Dashboard
             </button>
