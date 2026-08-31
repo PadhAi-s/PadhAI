@@ -1,226 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { supabase } from "../../lib/supabase";
 
 type Difficulty = "Easy" | "Medium" | "Hard";
-
-interface SubjectOption {
-  value: string;
-  label: string;
-  topics: {
-    value: string;
-    label: string;
-  }[];
-}
-
-const subjects: SubjectOption[] = [
-  {
-    value: "Mathematics",
-    label: "Mathematics / गणित",
-    topics: [
-      {
-        value: "Percentage",
-        label: "Percentage / प्रतिशत",
-      },
-      {
-        value: "Profit and Loss",
-        label: "Profit & Loss / लाभ और हानि",
-      },
-      {
-        value: "Ratio and Proportion",
-        label: "Ratio & Proportion / अनुपात और समानुपात",
-      },
-      {
-        value: "Simple Interest",
-        label: "Simple Interest / साधारण ब्याज",
-      },
-      {
-        value: "Compound Interest",
-        label: "Compound Interest / चक्रवृद्धि ब्याज",
-      },
-      {
-        value: "Time and Work",
-        label: "Time & Work / समय और कार्य",
-      },
-      {
-        value: "Time Speed and Distance",
-        label: "Time, Speed & Distance / समय, गति और दूरी",
-      },
-      {
-        value: "Algebra",
-        label: "Algebra / बीजगणित",
-      },
-      {
-        value: "Geometry",
-        label: "Geometry / ज्यामिति",
-      },
-    ],
-  },
-
-  {
-    value: "Science",
-    label: "Science / विज्ञान",
-    topics: [
-      {
-        value: "Physics",
-        label: "Physics / भौतिक विज्ञान",
-      },
-      {
-        value: "Chemistry",
-        label: "Chemistry / रसायन विज्ञान",
-      },
-      {
-        value: "Biology",
-        label: "Biology / जीव विज्ञान",
-      },
-      {
-        value: "Human Body",
-        label: "Human Body / मानव शरीर",
-      },
-      {
-        value: "Electricity",
-        label: "Electricity / विद्युत",
-      },
-      {
-        value: "Light",
-        label: "Light / प्रकाश",
-      },
-      {
-        value: "Motion and Force",
-        label: "Motion & Force / गति और बल",
-      },
-      {
-        value: "Environment",
-        label: "Environment / पर्यावरण",
-      },
-    ],
-  },
-
-  {
-    value: "Social Science",
-    label: "Social Science / सामाजिक विज्ञान",
-    topics: [
-      {
-        value: "Indian History",
-        label: "Indian History / भारतीय इतिहास",
-      },
-      {
-        value: "Indian Geography",
-        label: "Indian Geography / भारतीय भूगोल",
-      },
-      {
-        value: "Indian Constitution",
-        label: "Indian Constitution / भारतीय संविधान",
-      },
-      {
-        value: "Fundamental Rights",
-        label: "Fundamental Rights / मौलिक अधिकार",
-      },
-      {
-        value: "Indian Economy",
-        label: "Indian Economy / भारतीय अर्थव्यवस्था",
-      },
-      {
-        value: "World Geography",
-        label: "World Geography / विश्व भूगोल",
-      },
-      {
-        value: "Civics",
-        label: "Civics / नागरिक शास्त्र",
-      },
-    ],
-  },
-
-  {
-    value: "English",
-    label: "English / अंग्रेज़ी",
-    topics: [
-      {
-        value: "Grammar",
-        label: "Grammar / व्याकरण",
-      },
-      {
-        value: "Tenses",
-        label: "Tenses / काल",
-      },
-      {
-        value: "Vocabulary",
-        label: "Vocabulary / शब्दावली",
-      },
-      {
-        value: "Parts of Speech",
-        label: "Parts of Speech / शब्द भेद",
-      },
-      {
-        value: "Active and Passive Voice",
-        label: "Active & Passive Voice / कर्तृवाच्य और कर्मवाच्य",
-      },
-      {
-        value: "Direct and Indirect Speech",
-        label: "Direct & Indirect Speech / प्रत्यक्ष और अप्रत्यक्ष कथन",
-      },
-    ],
-  },
-
-  {
-    value: "General Knowledge",
-    label: "General Knowledge / सामान्य ज्ञान",
-    topics: [
-      {
-        value: "Indian Constitution",
-        label: "Indian Constitution / भारतीय संविधान",
-      },
-      {
-        value: "Indian History",
-        label: "Indian History / भारतीय इतिहास",
-      },
-      {
-        value: "Indian Geography",
-        label: "Indian Geography / भारतीय भूगोल",
-      },
-      {
-        value: "Science and Technology",
-        label: "Science & Technology / विज्ञान और तकनीक",
-      },
-      {
-        value: "Important Days",
-        label: "Important Days / महत्वपूर्ण दिवस",
-      },
-      {
-        value: "Awards and Honours",
-        label: "Awards & Honours / पुरस्कार और सम्मान",
-      },
-    ],
-  },
-
-  {
-    value: "Current Affairs",
-    label: "Current Affairs / समसामयिक घटनाएँ",
-    topics: [
-      {
-        value: "National Current Affairs",
-        label: "National / राष्ट्रीय",
-      },
-      {
-        value: "International Current Affairs",
-        label: "International / अंतरराष्ट्रीय",
-      },
-      {
-        value: "Sports Current Affairs",
-        label: "Sports / खेल",
-      },
-      {
-        value: "Government Schemes",
-        label: "Government Schemes / सरकारी योजनाएँ",
-      },
-      {
-        value: "Awards",
-        label: "Awards / पुरस्कार",
-      },
-    ],
-  },
-];
 
 interface FlashCard {
   id: string;
@@ -262,18 +45,125 @@ interface RevisionResponse {
   quiz: QuizQuestion[];
 }
 
+const SUBJECTS = [
+  "General Knowledge",
+  "Mathematics",
+  "Science",
+  "History",
+  "Geography",
+  "Indian Polity",
+  "Economics",
+  "English",
+  "Reasoning",
+  "Current Affairs",
+  "Mix",
+];
+
+const TOPICS_BY_SUBJECT: Record<string, string[]> = {
+  "General Knowledge": [
+    "Indian Constitution",
+    "Indian States and Capitals",
+    "National Parks",
+    "Important Days",
+    "Awards and Honours",
+  ],
+
+  Mathematics: [
+    "Percentage",
+    "Profit and Loss",
+    "Ratio and Proportion",
+    "Simple Interest",
+    "Compound Interest",
+    "Time and Work",
+    "Time Speed and Distance",
+    "Average",
+  ],
+
+  Science: [
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "Human Body",
+    "Plants",
+    "Force and Motion",
+  ],
+
+  History: [
+    "Ancient India",
+    "Medieval India",
+    "Modern India",
+    "Indian Freedom Struggle",
+    "Important Movements",
+  ],
+
+  Geography: [
+    "Indian Geography",
+    "World Geography",
+    "Rivers of India",
+    "Climate",
+    "Mountains",
+  ],
+
+  "Indian Polity": [
+    "Fundamental Rights",
+    "Fundamental Duties",
+    "President of India",
+    "Prime Minister",
+    "Parliament",
+    "Supreme Court",
+    "Constitution",
+  ],
+
+  Economics: [
+    "Indian Economy",
+    "GDP",
+    "Inflation",
+    "Budget",
+    "Banking",
+    "RBI",
+  ],
+
+  English: [
+    "Vocabulary",
+    "Synonyms",
+    "Antonyms",
+    "Idioms and Phrases",
+    "One Word Substitution",
+    "Grammar",
+  ],
+
+  Reasoning: [
+    "Number Series",
+    "Coding Decoding",
+    "Analogy",
+    "Blood Relation",
+    "Direction Test",
+  ],
+
+  "Current Affairs": [
+    "National Current Affairs",
+    "International Current Affairs",
+    "Sports Current Affairs",
+    "Awards Current Affairs",
+  ],
+
+  Mix: [
+    "Mixed General Knowledge",
+    "Mixed Mathematics",
+    "Mixed Science",
+    "Mixed Exam Practice",
+    "Random Mixed Questions",
+  ],
+};
+
 export function QuickRevision() {
   const navigate = useNavigate();
 
   /* FORM */
-
   const [subject, setSubject] =
     useState("General Knowledge");
 
   const [topic, setTopic] =
-    useState("");
-
-  const [customTopic, setCustomTopic] =
     useState("");
 
   const [difficulty, setDifficulty] =
@@ -283,7 +173,6 @@ export function QuickRevision() {
     useState(10);
 
   /* AI DATA */
-
   const [cards, setCards] =
     useState<FlashCard[]>([]);
 
@@ -291,7 +180,6 @@ export function QuickRevision() {
     useState<QuizQuestion[]>([]);
 
   /* UI */
-
   const [loading, setLoading] =
     useState(false);
 
@@ -321,55 +209,24 @@ export function QuickRevision() {
   const [answers, setAnswers] =
     useState<number[]>([]);
 
-  const currentSubject = useMemo(
-    () =>
-      subjects.find(
-        (item) => item.value === subject,
-      ),
-    [subject],
-  );
-
-  const topicOptions =
-    currentSubject?.topics || [];
-
-  const isCustomTopic =
-    topic === "__custom__";
-
-  const isMixedTopic =
-    topic === "__mix__";
-
+  /* SUBJECT CHANGE */
   function handleSubjectChange(
-    value: string,
+    newSubject: string,
   ) {
-    setSubject(value);
-
+    setSubject(newSubject);
     setTopic("");
-    setCustomTopic("");
     setError("");
   }
 
-  function getFinalTopic() {
-    if (topic === "__custom__") {
-      return customTopic.trim();
-    }
-
-    if (topic === "__mix__") {
-      return `Mixed important topics from ${subject}`;
-    }
-
-    return topic.trim();
-  }
-
+  /* GENERATE */
   async function handleGenerate(
-    event: React.FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    const finalTopic = getFinalTopic();
-
-    if (!finalTopic) {
+    if (!topic.trim()) {
       setError(
-        "Please select or enter a topic / कृपया एक टॉपिक चुनें या लिखें",
+        "Please select or enter a topic / कृपया एक टॉपिक चुनें",
       );
       return;
     }
@@ -394,7 +251,7 @@ export function QuickRevision() {
           {
             body: {
               subject,
-              topic: finalTopic,
+              topic: topic.trim(),
               difficulty,
               cardCount,
             },
@@ -402,6 +259,11 @@ export function QuickRevision() {
         );
 
       if (functionError) {
+        console.error(
+          "Edge Function Error:",
+          functionError,
+        );
+
         throw new Error(
           functionError.message ||
             "Unable to connect to AI service.",
@@ -414,48 +276,110 @@ export function QuickRevision() {
         );
       }
 
-      /*
-       * Handles:
-       * normal object response
-       * JSON string response
-       */
+      console.log(
+        "Generate Revision Response:",
+        data,
+      );
 
-      let result: RevisionResponse;
+      let result: unknown = data;
 
-      if (typeof data === "string") {
-        result = JSON.parse(
-          data,
-        ) as RevisionResponse;
-      } else {
-        result =
-          data as RevisionResponse;
+      /* STRING RESPONSE */
+      if (typeof result === "string") {
+        try {
+          result = JSON.parse(result);
+        } catch {
+          console.error(
+            "Invalid JSON response:",
+            result,
+          );
+
+          throw new Error(
+            "AI returned invalid JSON.",
+          );
+        }
       }
 
+      /* BACKEND ERROR */
       if (
-        !Array.isArray(result.cards) ||
-        !Array.isArray(result.quiz)
+        result &&
+        typeof result === "object" &&
+        "error" in result
+      ) {
+        const backendError = (
+          result as {
+            error?: unknown;
+          }
+        ).error;
+
+        throw new Error(
+          typeof backendError === "string"
+            ? backendError
+            : "AI service returned an error.",
+        );
+      }
+
+      /* BASIC VALIDATION */
+      if (
+        !result ||
+        typeof result !== "object"
+      ) {
+        throw new Error(
+          "Invalid revision data received from AI.",
+        );
+      }
+
+      const revisionResult =
+        result as RevisionResponse;
+
+      if (
+        !Array.isArray(
+          revisionResult.cards,
+        )
       ) {
         console.error(
-          "Invalid revision response:",
-          data,
+          "Missing cards:",
+          revisionResult,
         );
 
         throw new Error(
-          "Invalid revision data received.",
+          "AI response does not contain flashcards.",
         );
       }
 
       if (
-        result.cards.length === 0 ||
-        result.quiz.length === 0
+        !Array.isArray(
+          revisionResult.quiz,
+        )
       ) {
+        console.error(
+          "Missing quiz:",
+          revisionResult,
+        );
+
         throw new Error(
-          "AI did not generate enough revision content.",
+          "AI response does not contain quiz questions.",
         );
       }
 
-      setCards(result.cards);
-      setQuiz(result.quiz);
+      if (
+        revisionResult.cards.length === 0
+      ) {
+        throw new Error(
+          "AI did not generate any flashcards.",
+        );
+      }
+
+      if (
+        revisionResult.quiz.length === 0
+      ) {
+        throw new Error(
+          "AI did not generate any quiz questions.",
+        );
+      }
+
+      /* SUCCESS */
+      setCards(revisionResult.cards);
+      setQuiz(revisionResult.quiz);
 
       setStarted(true);
       setMode("cards");
@@ -475,21 +399,21 @@ export function QuickRevision() {
     }
   }
 
-  /* FLASHCARD */
-
+  /* NEXT CARD */
   function handleNextCard() {
     setShowAnswer(false);
 
-    if (currentCard < cards.length - 1) {
+    if (
+      currentCard <
+      cards.length - 1
+    ) {
       setCurrentCard(
         (previous) => previous + 1,
       );
-
       return;
     }
 
     setMode("quiz");
-
     setCurrentQuestion(0);
     setSelectedAnswer(null);
   }
@@ -506,8 +430,7 @@ export function QuickRevision() {
     );
   }
 
-  /* QUIZ */
-
+  /* SELECT ANSWER */
   function handleSelectAnswer(
     answerIndex: number,
   ) {
@@ -518,6 +441,7 @@ export function QuickRevision() {
     setSelectedAnswer(answerIndex);
   }
 
+  /* NEXT QUESTION */
   function handleNextQuestion() {
     if (selectedAnswer === null) {
       return;
@@ -539,7 +463,6 @@ export function QuickRevision() {
       );
 
       setSelectedAnswer(null);
-
       return;
     }
 
@@ -547,7 +470,6 @@ export function QuickRevision() {
   }
 
   /* RESTART */
-
   function handleRestart() {
     setStarted(false);
 
@@ -566,16 +488,15 @@ export function QuickRevision() {
     setError("");
 
     setTopic("");
-    setCustomTopic("");
   }
 
   /* SCORE */
-
   const score = answers.reduce(
     (total, answer, index) => {
       if (
         quiz[index] &&
-        answer === quiz[index].correctAnswer
+        answer ===
+          quiz[index].correctAnswer
       ) {
         return total + 1;
       }
@@ -585,11 +506,12 @@ export function QuickRevision() {
     0,
   );
 
-  /* ========================= */
-  /* FORM */
-  /* ========================= */
+  /* ================= FORM ================= */
 
   if (!started) {
+    const availableTopics =
+      TOPICS_BY_SUBJECT[subject] || [];
+
     return (
       <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 dark:bg-slate-950 dark:text-white">
         <div className="mx-auto max-w-5xl">
@@ -599,13 +521,12 @@ export function QuickRevision() {
             onClick={() =>
               navigate("/student/dashboard")
             }
-            className="mb-5 text-sm font-semibold text-slate-600 transition hover:text-purple-600 dark:text-slate-300"
+            className="mb-5 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
           >
             ← Back to Dashboard
           </button>
 
           {/* HERO */}
-
           <div className="overflow-hidden rounded-t-3xl bg-gradient-to-r from-purple-700 via-violet-600 to-blue-600 px-6 py-8 text-white shadow-xl sm:px-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold backdrop-blur">
               ⚡ AI Powered Revision
@@ -616,8 +537,8 @@ export function QuickRevision() {
             </h1>
 
             <p className="mt-3 text-sm text-purple-100 sm:text-base">
-              Choose a subject and let AI generate
-              bilingual flashcards and MCQ questions.
+              Select a subject and topic, then let AI generate
+              bilingual flashcards and MCQs.
             </p>
 
             <p className="mt-1 text-sm text-purple-100">
@@ -626,7 +547,6 @@ export function QuickRevision() {
           </div>
 
           {/* FORM */}
-
           <form
             onSubmit={handleGenerate}
             className="rounded-b-3xl bg-white p-5 shadow-xl dark:bg-slate-900 sm:p-8"
@@ -634,7 +554,6 @@ export function QuickRevision() {
             <div className="grid gap-5 md:grid-cols-2">
 
               {/* SUBJECT */}
-
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                   📚 Subject / विषय
@@ -649,13 +568,13 @@ export function QuickRevision() {
                   }
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
                 >
-                  {subjects.map(
+                  {SUBJECTS.map(
                     (item) => (
                       <option
-                        key={item.value}
-                        value={item.value}
+                        key={item}
+                        value={item}
                       >
-                        {item.label}
+                        {item}
                       </option>
                     ),
                   )}
@@ -663,7 +582,6 @@ export function QuickRevision() {
               </div>
 
               {/* DIFFICULTY */}
-
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                   🎯 Difficulty / कठिनाई
@@ -695,7 +613,6 @@ export function QuickRevision() {
             </div>
 
             {/* TOPIC */}
-
             <div className="mt-5">
               <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                 🧠 Topic / टॉपिक
@@ -703,79 +620,48 @@ export function QuickRevision() {
 
               <select
                 value={topic}
-                onChange={(event) => {
+                onChange={(event) =>
                   setTopic(
                     event.target.value,
-                  );
-
-                  setCustomTopic("");
-                }}
+                  )
+                }
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
               >
                 <option value="">
                   Select Topic / टॉपिक चुनें
                 </option>
 
-                {topicOptions.map(
+                {availableTopics.map(
                   (item) => (
                     <option
-                      key={item.value}
-                      value={item.value}
+                      key={item}
+                      value={item}
                     >
-                      {item.label}
+                      {item}
                     </option>
                   ),
                 )}
-
-                <option value="__mix__">
-                  🔀 Mix Important Topics /
-                  मिश्रित महत्वपूर्ण टॉपिक
-                </option>
-
-                <option value="__custom__">
-                  ✏️ Custom Topic /
-                  अपना टॉपिक लिखें
-                </option>
               </select>
+
+              {/* CUSTOM TOPIC */}
+              <input
+                type="text"
+                value={
+                  availableTopics.includes(topic)
+                    ? ""
+                    : topic
+                }
+                onChange={(event) =>
+                  setTopic(
+                    event.target.value,
+                  )
+                }
+                placeholder="Or enter your own topic / अपना टॉपिक लिखें"
+                className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
+              />
             </div>
 
-            {/* CUSTOM TOPIC */}
-
-            {isCustomTopic && (
-              <div className="mt-4">
-                <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
-                  ✏️ Enter Your Topic / अपना टॉपिक लिखें
-                </label>
-
-                <textarea
-                  value={customTopic}
-                  onChange={(event) =>
-                    setCustomTopic(
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Example: Indian Constitution Fundamental Rights / भारतीय संविधान के मौलिक अधिकार"
-                  rows={3}
-                  className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 dark:border-slate-700 dark:bg-slate-800 dark:focus:ring-purple-950"
-                />
-              </div>
-            )}
-
-            {/* MIX INFO */}
-
-            {isMixedTopic && (
-              <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-700 dark:border-purple-900 dark:bg-purple-950/30 dark:text-purple-300">
-                🔀 AI will select and mix important
-                topics from{" "}
-                <strong>{subject}</strong>.
-                <br />
-                AI इस विषय के महत्वपूर्ण टॉपिक को मिलाकर
-                रिवीजन तैयार करेगा।
-              </div>
-            )}
-
             {/* CARD COUNT */}
-
             <div className="mt-5">
               <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
                 🔢 Number of Cards / कार्डों की संख्या
@@ -811,22 +697,18 @@ export function QuickRevision() {
             </div>
 
             {/* ERROR */}
-
             {error && (
               <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600 dark:border-red-900 dark:bg-red-950/30">
                 ⚠️ {error}
               </div>
             )}
 
-            {/* START */}
-
+            {/* BUTTON */}
             <button
               type="submit"
               disabled={
                 loading ||
-                (!topic ||
-                  (isCustomTopic &&
-                    !customTopic.trim()))
+                !topic.trim()
               }
               className="group relative mt-6 flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-blue-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -850,8 +732,7 @@ export function QuickRevision() {
             </button>
 
             <p className="mt-4 text-center text-xs text-slate-400">
-              AI will automatically generate bilingual
-              flashcards and MCQs.
+              AI will generate bilingual flashcards and MCQs automatically.
             </p>
           </form>
         </div>
@@ -859,9 +740,7 @@ export function QuickRevision() {
     );
   }
 
-  /* ========================= */
-  /* FLASHCARDS */
-  /* ========================= */
+  /* ================= FLASHCARDS ================= */
 
   if (
     mode === "cards" &&
@@ -877,7 +756,7 @@ export function QuickRevision() {
             <button
               type="button"
               onClick={handleRestart}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             >
               ← New Topic
             </button>
@@ -902,7 +781,6 @@ export function QuickRevision() {
           </div>
 
           <div className="overflow-hidden rounded-3xl bg-white shadow-xl dark:bg-slate-900">
-
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-5 text-white">
               <p className="text-xs font-bold uppercase tracking-wider text-purple-100">
                 {card.topic}
@@ -1002,9 +880,7 @@ export function QuickRevision() {
     );
   }
 
-  /* ========================= */
-  /* QUIZ */
-  /* ========================= */
+  /* ================= QUIZ ================= */
 
   if (
     mode === "quiz" &&
@@ -1024,19 +900,20 @@ export function QuickRevision() {
               </p>
 
               <p className="text-xs text-slate-500">
-                Question {currentQuestion + 1} of{" "}
+                Question{" "}
+                {currentQuestion + 1} of{" "}
                 {quiz.length}
               </p>
             </div>
 
-            <span className="rounded-full bg-blue-100 px-4 py-2 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+            <span className="rounded-full bg-blue-100 px-4 py-2 text-xs font-bold text-blue-700">
               MCQ Practice
             </span>
           </div>
 
-          <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+          <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200">
             <div
-              className="h-full bg-gradient-to-r from-purple-600 to-blue-600"
+              className="h-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all"
               style={{
                 width: `${
                   ((currentQuestion + 1) /
@@ -1071,8 +948,7 @@ export function QuickRevision() {
                     "border-slate-200 bg-white hover:border-purple-400 dark:border-slate-700 dark:bg-slate-800";
 
                   if (
-                    selectedAnswer !==
-                    null
+                    selectedAnswer !== null
                   ) {
                     if (isCorrect) {
                       className =
@@ -1160,15 +1036,14 @@ export function QuickRevision() {
     );
   }
 
-  /* ========================= */
-  /* RESULT */
-  /* ========================= */
+  /* ================= RESULT ================= */
 
   if (mode === "result") {
     const percentage =
       quiz.length > 0
         ? Math.round(
-            (score / quiz.length) * 100,
+            (score / quiz.length) *
+              100,
           )
         : 0;
 
