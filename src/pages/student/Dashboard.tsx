@@ -29,7 +29,10 @@ export function StudentDashboard() {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside,
+      );
     };
   }, []);
 
@@ -57,6 +60,10 @@ export function StudentDashboard() {
     navigate("/student/current-affairs");
   }
 
+  function handleQuickRevision() {
+    navigate("/student/quick-revision");
+  }
+
   function handleAskPadhAI() {
     navigate("/student/ask");
   }
@@ -67,10 +74,6 @@ export function StudentDashboard() {
       "_blank",
       "noopener,noreferrer",
     );
-  }
-
-  function handleQuickRevision() {
-    alert(t("common.comingSoon"));
   }
 
   return (
@@ -125,9 +128,7 @@ export function StudentDashboard() {
                     onClick={handleSyllabus}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    <span className="text-lg">
-                      📚
-                    </span>
+                    <span className="text-lg">📚</span>
 
                     <span>
                       <span className="block">
@@ -145,9 +146,7 @@ export function StudentDashboard() {
                     onClick={handleProfile}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    <span className="text-lg">
-                      👤
-                    </span>
+                    <span className="text-lg">👤</span>
 
                     <span>
                       <span className="block">
@@ -166,9 +165,7 @@ export function StudentDashboard() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span className="text-lg">
-                      {theme === "dark"
-                        ? "☀️"
-                        : "🌙"}
+                      {theme === "dark" ? "☀️" : "🌙"}
                     </span>
 
                     <span>
@@ -191,9 +188,7 @@ export function StudentDashboard() {
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
-                    <span className="text-lg">
-                      🚪
-                    </span>
+                    <span className="text-lg">🚪</span>
 
                     <span>
                       {t("common.logout")}
@@ -285,6 +280,7 @@ export function StudentDashboard() {
               onClick={handleCurrentAffairs}
             />
 
+            {/* QUICK REVISION */}
             <DashboardCard
               icon="⚡"
               title={t(
