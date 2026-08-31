@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../lib/supabase";
 
@@ -16,88 +19,24 @@ interface CurrentAffair {
   mcqs: unknown[];
 }
 
-interface CurrentAffairRow {
-  id: string;
-  affair_date: string | null;
-  serial_no: number | string | null;
-  title: string | null;
-  why_in_news: string | null;
-  key_facts: string | null;
-  exam_point: string | null;
-  static_gk: string | null;
-  category: string | null;
-  mcqs: unknown[] | null;
-}
-
-const categories = [
-  "All",
-  "National",
-  "International",
-  "Science & Tech",
-  "Economy",
-  "Sports",
-  "Awards",
-];
-
-const categoryInfo: Record<
-  string,
-  {
-    title: string;
-    description: string;
-  }
-> = {
-  National: {
-    title: "National Updates",
-    description:
-      "Important national events and government-related developments from this week.",
-  },
-
-  International: {
-    title: "International Affairs",
-    description:
-      "Major international events, global developments and important world news.",
-  },
-
-  "Science & Tech": {
-    title: "Science & Technology",
-    description:
-      "Important developments in science, technology, space and innovation.",
-  },
-
-  Economy: {
-    title: "Economy & Business",
-    description:
-      "Key economic developments, business news and important financial updates.",
-  },
-
-  Sports: {
-    title: "Sports",
-    description:
-      "Important sports events, tournaments, achievements and major victories.",
-  },
-
-  Awards: {
-    title: "Awards & Appointments",
-    description:
-      "Important appointments, awards, honours and personalities in the news.",
-  },
-};
-
-export function WeeklyCurrentAffairs() {
+export function CurrentAffairDetail() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const [records, setRecords] = useState<CurrentAffair[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [search, setSearch] = useState("");
+  const [record, setRecord] =
+    useState<CurrentAffair | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    void loadCurrentAffairs();
-  }, []);
+    if (id) {
+      void loadCurrentAffair();
+    }
+  }, [id]);
 
-  async function loadCurrentAffairs() {
+  async function loadCurrentAffair() {
     setLoading(true);
     setError("");
 
@@ -118,35 +57,27 @@ export function WeeklyCurrentAffairs() {
             mcqs
           `,
         )
-        .order("affair_date", {
-          ascending: false,
-        })
-        .order("serial_no", {
-          ascending: true,
-        });
+        .eq("id", id)
+        .single();
 
       if (fetchError) {
         throw fetchError;
       }
 
-      const rows = (data ?? []) as CurrentAffairRow[];
-
-      const formattedRecords: CurrentAffair[] = rows.map(
-        (row: CurrentAffairRow): CurrentAffair => ({
-          id: row.id,
-          affair_date: row.affair_date ?? "",
-          serial_no: Number(row.serial_no ?? 1),
-          title: row.title ?? "",
-          why_in_news: row.why_in_news ?? "",
-          key_facts: row.key_facts ?? "",
-          exam_point: row.exam_point ?? "",
-          static_gk: row.static_gk ?? "",
-          category: row.category ?? null,
-          mcqs: Array.isArray(row.mcqs) ? row.mcqs : [],
-        }),
-      );
-
-      setRecords(formattedRecords);
+      setRecord({
+        id: data.id,
+        affair_date: data.affair_date ?? "",
+        serial_no: Number(data.serial_no ?? 1),
+        title: data.title ?? "",
+        why_in_news: data.why_in_news ?? "",
+        key_facts: data.key_facts ?? "",
+        exam_point: data.exam_point ?? "",
+        static_gk: data.static_gk ?? "",
+        category: data.category ?? null,
+        mcqs: Array.isArray(data.mcqs)
+          ? data.mcqs
+          : [],
+      });
     } catch (err) {
       setError(
         err instanceof Error
@@ -158,312 +89,133 @@ export function WeeklyCurrentAffairs() {
     }
   }
 
-  const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
-      const categoryMatch =
-        selectedCategory === "All" ||
-        record.category === selectedCategory;
-
-      const searchText = [
-        record.title,
-        record.why_in_news,
-        record.key_facts,
-        record.exam_point,
-        record.static_gk,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      const searchMatch =
-        !search.trim() ||
-        searchText.includes(search.trim().toLowerCase());
-
-      return categoryMatch && searchMatch;
-    });
-  }, [records, selectedCategory, search]);
-
-  function getCategoryCount(category: string) {
-    if (category === "All") {
-      return records.length;
-    }
-
-    return records.filter(
-      (record) => record.category === category,
-    ).length;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8 text-center dark:bg-slate-950">
+        {t("currentAffairs.loading")}
+      </div>
+    );
   }
 
-  function getCategoryLabel(category: string) {
-    return t(`currentAffairs.categories.${category}`, {
-      defaultValue: category,
-    });
-  }
+  if (error || !record) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
+        <button
+          type="button"
+          onClick={() =>
+            navigate("/student/current-affairs")
+          }
+          className="mb-6 font-semibold text-blue-600"
+        >
+          ← {t("common.back")}
+        </button>
 
-  function getCategoryTitle(category: string) {
-    if (category === "National") {
-      return t("currentAffairs.categoryTitles.national");
-    }
-
-    if (category === "International") {
-      return t(
-        "currentAffairs.categoryTitles.international",
-      );
-    }
-
-    if (category === "Science & Tech") {
-      return t(
-        "currentAffairs.categoryTitles.scienceTech",
-      );
-    }
-
-    if (category === "Economy") {
-      return t("currentAffairs.categoryTitles.economy");
-    }
-
-    if (category === "Sports") {
-      return t("currentAffairs.categoryTitles.sports");
-    }
-
-    if (category === "Awards") {
-      return t("currentAffairs.categoryTitles.awards");
-    }
-
-    return category;
-  }
-
-  function getCategoryDescription(category: string) {
-    if (category === "National") {
-      return t(
-        "currentAffairs.categoryDescriptions.national",
-      );
-    }
-
-    if (category === "International") {
-      return t(
-        "currentAffairs.categoryDescriptions.international",
-      );
-    }
-
-    if (category === "Science & Tech") {
-      return t(
-        "currentAffairs.categoryDescriptions.scienceTech",
-      );
-    }
-
-    if (category === "Economy") {
-      return t(
-        "currentAffairs.categoryDescriptions.economy",
-      );
-    }
-
-    if (category === "Sports") {
-      return t(
-        "currentAffairs.categoryDescriptions.sports",
-      );
-    }
-
-    if (category === "Awards") {
-      return t(
-        "currentAffairs.categoryDescriptions.awards",
-      );
-    }
-
-    return categoryInfo[category]?.description ?? "";
+        <div className="rounded-xl bg-red-50 p-4 text-red-700">
+          ❌ {error || "Current affair not found"}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-white">
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-blue-600">
-            {t("currentAffairs.label")}
-          </p>
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <button
+          type="button"
+          onClick={() =>
+            navigate("/student/current-affairs")
+          }
+          className="mb-6 font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
+        >
+          ← {t("common.back")}
+        </button>
 
-          <h1 className="mt-2 text-3xl font-bold">
-            {t("currentAffairs.title")}
+        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+              {record.category ||
+                t("currentAffairs.label")}
+            </span>
+
+            <span className="text-sm text-slate-400">
+              {record.affair_date}
+            </span>
+          </div>
+
+          <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
+            {record.title}
           </h1>
 
-          <p className="mt-2 text-slate-500 dark:text-slate-400">
-            {t("currentAffairs.subtitle")}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-            placeholder={t(
-              "currentAffairs.searchPlaceholder",
-            )}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          <DetailSection
+            title={t("currentAffairs.detail.whyInNews")}
+            content={record.why_in_news}
           />
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() =>
-                  setSelectedCategory(category)
-                }
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white shadow"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                }`}
-              >
-                {getCategoryLabel(category)}
+          <DetailSection
+            title={t("currentAffairs.detail.keyFacts")}
+            content={record.key_facts}
+          />
 
-                <span className="ml-1 opacity-70">
-                  ({getCategoryCount(category)})
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
+          <DetailSection
+            title={t("currentAffairs.detail.examPoint")}
+            content={record.exam_point}
+          />
 
-        {loading && (
-          <div className="py-16 text-center text-slate-500">
-            {t("currentAffairs.loading")}
-          </div>
-        )}
+          <DetailSection
+            title={t("currentAffairs.detail.staticGK")}
+            content={record.static_gk}
+          />
 
-        {!loading && error && (
-          <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
-            ❌ {error}
-          </div>
-        )}
+          {record.mcqs.length > 0 && (
+            <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+              <h2 className="text-xl font-bold">
+                {t("currentAffairs.detail.mcqs")}
+              </h2>
 
-        {!loading && !error && (
-          <section className="mt-8">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                {selectedCategory === "All" ? (
-                  <>
-                    <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                      {t("currentAffairs.allCategories")}
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-bold">
-                      {t("currentAffairs.mixedTitle")}
-                    </h2>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                      {getCategoryLabel(selectedCategory)}
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-bold">
-                      {getCategoryTitle(selectedCategory)}
-                    </h2>
-
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      {getCategoryDescription(
-                        selectedCategory,
-                      )}
-                    </p>
-                  </>
+              <div className="mt-4 space-y-3">
+                {record.mcqs.map(
+                  (mcq, index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800"
+                    >
+                      {typeof mcq === "string"
+                        ? mcq
+                        : JSON.stringify(mcq)}
+                    </div>
+                  ),
                 )}
               </div>
-
-              <p className="text-sm text-slate-500">
-                {filteredRecords.length}{" "}
-                {t("currentAffairs.topics")}
-              </p>
             </div>
-
-            {filteredRecords.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {filteredRecords.map((record) => (
-                  <AffairCard
-                    key={record.id}
-                    record={record}
-                    onClick={() =>
-                      navigate(
-                        `/current-affairs/${record.id}`,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+          )}
+        </article>
       </main>
     </div>
   );
 }
 
-interface AffairCardProps {
-  record: CurrentAffair;
-  onClick: () => void;
-}
-
-function AffairCard({
-  record,
-  onClick,
-}: AffairCardProps) {
-  const { t } = useTranslation();
+function DetailSection({
+  title,
+  content,
+}: {
+  title: string;
+  content: string;
+}) {
+  if (!content) {
+    return null;
+  }
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-start justify-between gap-3">
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-          {record.category || t("currentAffairs.label")}
-        </span>
+    <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+      <h2 className="text-xl font-bold">
+        {title}
+      </h2>
 
-        <span className="text-xs text-slate-400">
-          {record.affair_date}
-        </span>
-      </div>
-
-      <h3 className="mt-5 text-lg font-bold leading-snug">
-        {record.title}
-      </h3>
-
-      <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-        {record.why_in_news}
+      <p className="mt-3 whitespace-pre-line leading-7 text-slate-600 dark:text-slate-300">
+        {content}
       </p>
-
-      <div className="mt-5 flex items-center justify-between">
-        <span className="text-xs text-slate-400">
-          {record.mcqs.length}{" "}
-          {t("currentAffairs.mcqs")}
-        </span>
-
-        <button
-          type="button"
-          onClick={onClick}
-          className="font-semibold text-blue-700 hover:text-blue-900 dark:text-blue-400"
-        >
-          {t("currentAffairs.readMore")} →
-        </button>
-      </div>
-    </article>
+    </section>
   );
 }
 
-function EmptyState() {
-  const { t } = useTranslation();
-
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
-      <div className="text-4xl">📰</div>
-
-      <h3 className="mt-4 text-lg font-bold">
-        {t("currentAffairs.emptyTitle")}
-      </h3>
-
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-        {t("currentAffairs.emptyDescription")}
-      </p>
-    </div>
-  );
-}
-
-export default WeeklyCurrentAffairs;
+export default CurrentAffairDetail;
