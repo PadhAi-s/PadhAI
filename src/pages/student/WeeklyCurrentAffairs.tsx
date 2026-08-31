@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../lib/supabase";
 
@@ -14,432 +17,807 @@ interface CurrentAffair {
   static_gk: string;
   category: string | null;
   mcqs: unknown[];
+  hindi_version: string;
 }
 
-interface CurrentAffairRow {
-  id: string;
-  affair_date: string | null;
-  serial_no: number | string | null;
-  title: string | null;
-  why_in_news: string | null;
-  key_facts: string | null;
-  exam_point: string | null;
-  static_gk: string | null;
-  category: string | null;
-  mcqs: unknown[] | null;
+interface MCQ {
+  question: string;
+  options: string[];
+  answer: string;
+  explanation?: string;
 }
 
-const categories = [
-  "All",
-  "National",
-  "International",
-  "Science & Tech",
-  "Economy",
-  "Sports",
-  "Awards",
-];
+interface HindiSections {
+  title: string;
+  whyInNews: string;
+  keyFacts: string;
+  examPoint: string;
+  staticGK: string;
+  mcqs: string;
+}
 
-export function WeeklyCurrentAffairs() {
+export function CurrentAffairDetail() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
-  const [records, setRecords] = useState<CurrentAffair[]>([]);
-  const [selectedCategory, setSelectedCategory] =
-    useState("All");
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const {
+    t,
+    i18n,
+  } = useTranslation();
+
+  const [record, setRecord] =
+    useState<CurrentAffair | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const isHindi =
+    i18n.language?.toLowerCase().startsWith("hi");
 
   useEffect(() => {
-    void loadCurrentAffairs();
-  }, []);
+    if (id) {
+      void loadCurrentAffair();
+    }
+  }, [id]);
 
-  async function loadCurrentAffairs() {
+  async function loadCurrentAffair() {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const { data, error: fetchError } = await supabase
+      const {
+        data,
+        error: fetchError,
+      } = await supabase
         .from("current_affairs")
-        .select(
-          `
-            id,
-            affair_date,
-            serial_no,
-            title,
-            why_in_news,
-            key_facts,
-            exam_point,
-            static_gk,
-            category,
-            mcqs
-          `,
-        )
-        .order("affair_date", {
-          ascending: false,
-        })
-        .order("serial_no", {
-          ascending: true,
-        });
+        .select(`
+          id,
+          affair_date,
+          serial_no,
+          title,
+          why_in_news,
+          key_facts,
+          exam_point,
+          static_gk,
+          category,
+          mcqs,
+          hindi_version
+        `)
+        .eq("id", id)
+        .single();
 
       if (fetchError) {
         throw fetchError;
       }
 
-      const rows = (data ?? []) as CurrentAffairRow[];
-
-      const formattedRecords: CurrentAffair[] = rows.map(
-        (row) => ({
-          id: row.id,
-          affair_date: row.affair_date ?? "",
-          serial_no: Number(row.serial_no ?? 1),
-          title: row.title ?? "",
-          why_in_news: row.why_in_news ?? "",
-          key_facts: row.key_facts ?? "",
-          exam_point: row.exam_point ?? "",
-          static_gk: row.static_gk ?? "",
-          category: row.category ?? null,
-          mcqs: Array.isArray(row.mcqs)
-            ? row.mcqs
+      setRecord({
+        id: data.id,
+        affair_date:
+          data.affair_date ?? "",
+        serial_no:
+          Number(data.serial_no ?? 1),
+        title:
+          data.title ?? "",
+        why_in_news:
+          data.why_in_news ?? "",
+        key_facts:
+          data.key_facts ?? "",
+        exam_point:
+          data.exam_point ?? "",
+        static_gk:
+          data.static_gk ?? "",
+        category:
+          data.category ?? null,
+        mcqs:
+          Array.isArray(data.mcqs)
+            ? data.mcqs
             : [],
-        }),
-      );
-
-      setRecords(formattedRecords);
+        hindi_version:
+          data.hindi_version ?? "",
+      });
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : t("currentAffairs.loadError"),
+          : "Current affair load nahi ho saka.",
       );
     } finally {
       setLoading(false);
     }
   }
 
-  const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
-      const categoryMatch =
-        selectedCategory === "All" ||
-        record.category === selectedCategory;
-
-      const searchText = [
-        record.title,
-        record.why_in_news,
-        record.key_facts,
-        record.exam_point,
-        record.static_gk,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      const searchMatch =
-        !search.trim() ||
-        searchText.includes(
-          search.trim().toLowerCase(),
-        );
-
-      return categoryMatch && searchMatch;
-    });
-  }, [records, selectedCategory, search]);
-
-  function getCategoryCount(category: string) {
-    if (category === "All") {
-      return records.length;
+  const mcqs = useMemo(() => {
+    if (!record) {
+      return [];
     }
 
-    return records.filter(
-      (record) => record.category === category,
-    ).length;
-  }
+    return record.mcqs
+      .map(parseMCQ)
+      .filter(
+        (
+          mcq,
+        ): mcq is MCQ =>
+          mcq !== null,
+      );
+  }, [record]);
 
-  function getCategoryLabel(category: string) {
-    return t(
-      `currentAffairs.categories.${category}`,
-      {
-        defaultValue: category,
-      },
+  const hindiContent =
+    useMemo(() => {
+      if (!record?.hindi_version) {
+        return null;
+      }
+
+      return parseHindiVersion(
+        record.hindi_version,
+      );
+    }, [record]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-slate-600 dark:bg-slate-950 dark:text-slate-300">
+        {isHindi
+          ? "लोड हो रहा है..."
+          : "Loading..."}
+      </div>
     );
   }
 
-  function getCategoryTitle(category: string) {
-    switch (category) {
-      case "National":
-        return t(
-          "currentAffairs.categoryTitles.national",
-        );
+  if (error || !record) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
+        <div className="mx-auto max-w-4xl">
 
-      case "International":
-        return t(
-          "currentAffairs.categoryTitles.international",
-        );
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                "/student/dashboard",
+              )
+            }
+            className="mb-6 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
+          >
+            ← {isHindi
+              ? "डैशबोर्ड पर वापस जाएँ"
+              : "Back to Dashboard"}
+          </button>
 
-      case "Science & Tech":
-        return t(
-          "currentAffairs.categoryTitles.scienceTech",
-        );
-
-      case "Economy":
-        return t(
-          "currentAffairs.categoryTitles.economy",
-        );
-
-      case "Sports":
-        return t(
-          "currentAffairs.categoryTitles.sports",
-        );
-
-      case "Awards":
-        return t(
-          "currentAffairs.categoryTitles.awards",
-        );
-
-      default:
-        return category;
-    }
-  }
-
-  function getCategoryDescription(category: string) {
-    switch (category) {
-      case "National":
-        return t(
-          "currentAffairs.categoryDescriptions.national",
-        );
-
-      case "International":
-        return t(
-          "currentAffairs.categoryDescriptions.international",
-        );
-
-      case "Science & Tech":
-        return t(
-          "currentAffairs.categoryDescriptions.scienceTech",
-        );
-
-      case "Economy":
-        return t(
-          "currentAffairs.categoryDescriptions.economy",
-        );
-
-      case "Sports":
-        return t(
-          "currentAffairs.categoryDescriptions.sports",
-        );
-
-      case "Awards":
-        return t(
-          "currentAffairs.categoryDescriptions.awards",
-        );
-
-      default:
-        return "";
-    }
+          <div className="rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
+            ❌{" "}
+            {error ||
+              (isHindi
+                ? "यह करेंट अफेयर्स नहीं मिला।"
+                : "Current affair not found.")}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-white">
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        {/* HEADER */}
+      <main className="mx-auto max-w-4xl px-4 py-8">
 
-        <div className="mb-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-blue-600">
-            {t("currentAffairs.label")}
-          </p>
+        <button
+          type="button"
+          onClick={() =>
+            navigate(
+              "/student/dashboard",
+            )
+          }
+          className="mb-6 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
+        >
+          ← {isHindi
+            ? "डैशबोर्ड पर वापस जाएँ"
+            : "Back to Dashboard"}
+        </button>
 
-          <h1 className="mt-2 text-3xl font-bold">
-            {t("currentAffairs.title")}
-          </h1>
-
-          <p className="mt-2 text-slate-500 dark:text-slate-400">
-            {t("currentAffairs.subtitle")}
-          </p>
-        </div>
-
-        {/* SEARCH + CATEGORY FILTER */}
-
-        <div className="rounded-2xl border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-            placeholder={t(
-              "currentAffairs.searchPlaceholder",
-            )}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+        {isHindi &&
+        hindiContent ? (
+          <HindiCurrentAffair
+            record={record}
+            content={hindiContent}
           />
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() =>
-                  setSelectedCategory(category)
-                }
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white shadow"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                }`}
-              >
-                {getCategoryLabel(category)}
-
-                <span className="ml-1 opacity-70">
-                  ({getCategoryCount(category)})
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* LOADING */}
-
-        {loading && (
-          <div className="py-16 text-center text-slate-500">
-            {t("currentAffairs.loading")}
-          </div>
-        )}
-
-        {/* ERROR */}
-
-        {!loading && error && (
-          <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
-            ❌ {error}
-          </div>
-        )}
-
-        {/* RESULTS */}
-
-        {!loading && !error && (
-          <section className="mt-8">
-            <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                {selectedCategory === "All" ? (
-                  <>
-                    <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                      {t("currentAffairs.allCategories")}
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-bold">
-                      {t("currentAffairs.mixedTitle")}
-                    </h2>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-                      {getCategoryLabel(selectedCategory)}
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-bold">
-                      {getCategoryTitle(selectedCategory)}
-                    </h2>
-
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      {getCategoryDescription(
-                        selectedCategory,
-                      )}
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <p className="text-sm text-slate-500">
-                {filteredRecords.length}{" "}
-                {t("currentAffairs.topics")}
-              </p>
-            </div>
-
-            {filteredRecords.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {filteredRecords.map((record) => (
-                  <AffairCard
-                    key={record.id}
-                    record={record}
-                    onClick={() =>
-                      navigate(
-                        `/student/current-affairs/${record.id}`,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+        ) : (
+          <EnglishCurrentAffair
+            record={record}
+            mcqs={mcqs}
+          />
         )}
       </main>
     </div>
   );
 }
 
-interface AffairCardProps {
-  record: CurrentAffair;
-  onClick: () => void;
-}
+/* =========================================
+   ENGLISH VERSION
+========================================= */
 
-function AffairCard({
+function EnglishCurrentAffair({
   record,
-  onClick,
-}: AffairCardProps) {
-  const { t } = useTranslation();
-
+  mcqs,
+}: {
+  record: CurrentAffair;
+  mcqs: MCQ[];
+}) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-start justify-between gap-3">
+    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+
+      <div className="flex flex-wrap items-center gap-3">
         <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-          {record.category || t("currentAffairs.label")}
+          {record.category ||
+            "Current Affairs"}
         </span>
 
-        <span className="text-xs text-slate-400">
+        <span className="text-sm text-slate-400">
           {record.affair_date}
         </span>
       </div>
 
-      <h3 className="mt-5 text-lg font-bold leading-snug">
+      <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
         {record.title}
-      </h3>
+      </h1>
 
-      <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-        {record.why_in_news}
-      </p>
+      <DetailSection
+        title="Why in News?"
+        content={record.why_in_news}
+      />
 
-      <div className="mt-5 flex items-center justify-between">
-        <span className="text-xs text-slate-400">
-          {record.mcqs.length}{" "}
-          {t("currentAffairs.mcqs")}
-        </span>
+      <DetailSection
+        title="Key Facts"
+        content={record.key_facts}
+      />
 
-        <button
-          type="button"
-          onClick={onClick}
-          className="font-semibold text-blue-700 hover:text-blue-900 dark:text-blue-400"
-        >
-          {t("currentAffairs.readMore")} →
-        </button>
-      </div>
+      <DetailSection
+        title="Exam Point"
+        content={record.exam_point}
+      />
+
+      <DetailSection
+        title="Static GK"
+        content={record.static_gk}
+      />
+
+      <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+        <h2 className="text-xl font-bold">
+          MCQs
+        </h2>
+
+        {mcqs.length === 0 ? (
+          <p className="mt-3 text-slate-500 dark:text-slate-400">
+            No MCQs available.
+          </p>
+        ) : (
+          <div className="mt-5 space-y-5">
+            {mcqs.map(
+              (mcq, index) => (
+                <MCQCard
+                  key={`${record.id}-${index}`}
+                  mcq={mcq}
+                  number={index + 1}
+                />
+              ),
+            )}
+          </div>
+        )}
+      </section>
     </article>
   );
 }
 
-function EmptyState() {
-  const { t } = useTranslation();
+/* =========================================
+   HINDI VERSION
+========================================= */
+
+function HindiCurrentAffair({
+  record,
+  content,
+}: {
+  record: CurrentAffair;
+  content: HindiSections;
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+          {record.category ||
+            "करेंट अफेयर्स"}
+        </span>
+
+        <span className="text-sm text-slate-400">
+          {record.affair_date}
+        </span>
+      </div>
+
+      <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
+        {content.title ||
+          record.title}
+      </h1>
+
+      <HindiDetailSection
+        title="चर्चा में क्यों?"
+        content={
+          content.whyInNews
+        }
+      />
+
+      <HindiDetailSection
+        title="मुख्य तथ्य"
+        content={
+          content.keyFacts
+        }
+      />
+
+      <HindiDetailSection
+        title="परीक्षा बिंदु"
+        content={
+          content.examPoint
+        }
+      />
+
+      <HindiDetailSection
+        title="सामान्य ज्ञान"
+        content={
+          content.staticGK
+        }
+      />
+
+      {content.mcqs && (
+        <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+          <h2 className="text-xl font-bold">
+            प्रश्नोत्तर (MCQs)
+          </h2>
+
+          <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
+            <p className="whitespace-pre-line leading-7 text-slate-700 dark:text-slate-300">
+              {content.mcqs}
+            </p>
+          </div>
+        </section>
+      )}
+    </article>
+  );
+}
+
+/* =========================================
+   HINDI VERSION PARSER
+========================================= */
+
+function parseHindiVersion(
+  html: string,
+): HindiSections {
+  const text =
+    htmlToPlainText(html);
+
+  const title = extractSection(
+    text,
+    "शीर्षक (Title):",
+    [
+      "चर्चा में क्यों:",
+    ],
+  );
+
+  const whyInNews =
+    extractSection(
+      text,
+      "चर्चा में क्यों:",
+      [
+        "मुख्य तथ्य:",
+      ],
+    );
+
+  const keyFacts =
+    extractSection(
+      text,
+      "मुख्य तथ्य:",
+      [
+        "परीक्षा बिंदु:",
+      ],
+    );
+
+  const examPoint =
+    extractSection(
+      text,
+      "परीक्षा बिंदु:",
+      [
+        "सामान्य ज्ञान:",
+      ],
+    );
+
+  const staticGK =
+    extractSection(
+      text,
+      "सामान्य ज्ञान:",
+      [
+        "प्रश्नोत्तर (MCQs):",
+      ],
+    );
+
+  const mcqs =
+    extractSection(
+      text,
+      "प्रश्नोत्तर (MCQs):",
+      [],
+    );
+
+  return {
+    title,
+    whyInNews,
+    keyFacts,
+    examPoint,
+    staticGK,
+    mcqs,
+  };
+}
+
+function htmlToPlainText(
+  html: string,
+) {
+  return html
+    .replace(
+      /<br\s*\/?>/gi,
+      "\n",
+    )
+    .replace(
+      /<\/p>/gi,
+      "\n",
+    )
+    .replace(
+      /<li>/gi,
+      "• ",
+    )
+    .replace(
+      /<\/li>/gi,
+      "\n",
+    )
+    .replace(
+      /<[^>]*>/g,
+      "",
+    )
+    .replace(
+      /&nbsp;/g,
+      " ",
+    )
+    .replace(
+      /&amp;/g,
+      "&",
+    )
+    .replace(
+      /&lt;/g,
+      "<",
+    )
+    .replace(
+      /&gt;/g,
+      ">",
+    )
+    .replace(
+      /\n{3,}/g,
+      "\n\n",
+    )
+    .trim();
+}
+
+function extractSection(
+  text: string,
+  startLabel: string,
+  endLabels: string[],
+) {
+  const startIndex =
+    text.indexOf(startLabel);
+
+  if (startIndex === -1) {
+    return "";
+  }
+
+  const contentStart =
+    startIndex +
+    startLabel.length;
+
+  let endIndex =
+    text.length;
+
+  for (
+    const label of endLabels
+  ) {
+    const index =
+      text.indexOf(
+        label,
+        contentStart,
+      );
+
+    if (
+      index !== -1 &&
+      index < endIndex
+    ) {
+      endIndex = index;
+    }
+  }
+
+  return text
+    .slice(
+      contentStart,
+      endIndex,
+    )
+    .trim();
+}
+
+/* =========================================
+   PARSE ENGLISH MCQ
+========================================= */
+
+function parseMCQ(
+  value: unknown,
+): MCQ | null {
+  try {
+    let parsed: unknown =
+      value;
+
+    if (
+      typeof value === "string"
+    ) {
+      parsed =
+        JSON.parse(value);
+    }
+
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      return null;
+    }
+
+    const data =
+      parsed as Record<
+        string,
+        unknown
+      >;
+
+    const question =
+      typeof data.question ===
+      "string"
+        ? data.question
+        : "";
+
+    const answer =
+      typeof data.answer ===
+      "string"
+        ? data.answer
+        : "";
+
+    const options =
+      Array.isArray(
+        data.options,
+      )
+        ? data.options.filter(
+            (
+              option,
+            ): option is string =>
+              typeof option ===
+              "string",
+          )
+        : [];
+
+    const explanation =
+      typeof data.explanation ===
+      "string"
+        ? data.explanation
+        : undefined;
+
+    if (
+      !question ||
+      !answer ||
+      options.length === 0
+    ) {
+      return null;
+    }
+
+    return {
+      question,
+      options,
+      answer,
+      explanation,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* =========================================
+   ENGLISH MCQ CARD
+========================================= */
+
+function MCQCard({
+  mcq,
+  number,
+}: {
+  mcq: MCQ;
+  number: number;
+}) {
+  const [
+    selectedAnswer,
+    setSelectedAnswer,
+  ] = useState<
+    string | null
+  >(null);
+
+  const isAnswered =
+    selectedAnswer !== null;
+
+  function selectAnswer(
+    option: string,
+  ) {
+    if (isAnswered) {
+      return;
+    }
+
+    setSelectedAnswer(option);
+  }
 
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
-      <div className="text-4xl">📰</div>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/60">
 
-      <h3 className="mt-4 text-lg font-bold">
-        {t("currentAffairs.emptyTitle")}
+      <p className="text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+        Question {number}
+      </p>
+
+      <h3 className="mt-2 text-base font-semibold leading-6">
+        {mcq.question}
       </h3>
 
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-        {t("currentAffairs.emptyDescription")}
-      </p>
+      <div className="mt-4 space-y-3">
+        {mcq.options.map(
+          (option, index) => {
+            const isSelected =
+              selectedAnswer ===
+              option;
+
+            const isCorrect =
+              isAnswered &&
+              option ===
+                mcq.answer;
+
+            const isWrong =
+              isSelected &&
+              option !==
+                mcq.answer;
+
+            let optionClass =
+              "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900";
+
+            if (isCorrect) {
+              optionClass =
+                "border-green-500 bg-green-50 text-green-800 dark:border-green-500 dark:bg-green-950/30 dark:text-green-300";
+            }
+
+            if (isWrong) {
+              optionClass =
+                "border-red-500 bg-red-50 text-red-800 dark:border-red-500 dark:bg-red-950/30 dark:text-red-300";
+            }
+
+            return (
+              <button
+                key={`${option}-${index}`}
+                type="button"
+                disabled={
+                  isAnswered
+                }
+                onClick={() =>
+                  selectAnswer(
+                    option,
+                  )
+                }
+                className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${optionClass}`}
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs font-bold">
+                  {String.fromCharCode(
+                    65 + index,
+                  )}
+                </span>
+
+                <span>
+                  {option}
+                </span>
+              </button>
+            );
+          },
+        )}
+      </div>
+
+      {isAnswered && (
+        <div className="mt-4">
+          {selectedAnswer ===
+          mcq.answer ? (
+            <p className="font-semibold text-green-600 dark:text-green-400">
+              ✓ Correct Answer!
+            </p>
+          ) : (
+            <div>
+              <p className="font-semibold text-red-600 dark:text-red-400">
+                ✗ Incorrect
+              </p>
+
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Correct answer:{" "}
+                <strong>
+                  {mcq.answer}
+                </strong>
+              </p>
+            </div>
+          )}
+
+          {mcq.explanation && (
+            <div className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-slate-700 dark:bg-blue-950/30 dark:text-slate-300">
+              <strong>
+                Explanation:
+              </strong>{" "}
+              {mcq.explanation}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-export default WeeklyCurrentAffairs;
+/* =========================================
+   DETAIL SECTION
+========================================= */
+
+function DetailSection({
+  title,
+  content,
+}: {
+  title: string;
+  content: string;
+}) {
+  if (!content) {
+    return null;
+  }
+
+  return (
+    <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+      <h2 className="text-xl font-bold">
+        {title}
+      </h2>
+
+      <p className="mt-3 whitespace-pre-line leading-7 text-slate-600 dark:text-slate-300">
+        {content}
+      </p>
+    </section>
+  );
+}
+
+function HindiDetailSection({
+  title,
+  content,
+}: {
+  title: string;
+  content: string;
+}) {
+  if (!content) {
+    return null;
+  }
+
+  return (
+    <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+      <h2 className="text-xl font-bold">
+        {title}
+      </h2>
+
+      <p className="mt-3 whitespace-pre-line leading-7 text-slate-600 dark:text-slate-300">
+        {content}
+      </p>
+    </section>
+  );
+}
+
+export default CurrentAffairDetail;
