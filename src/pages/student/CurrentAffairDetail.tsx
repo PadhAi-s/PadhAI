@@ -19,6 +19,13 @@ interface CurrentAffair {
   mcqs: unknown[];
 }
 
+interface MCQ {
+  question: string;
+  options: string[];
+  answer: string;
+  explanation?: string;
+}
+
 export function CurrentAffairDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -37,6 +44,11 @@ export function CurrentAffairDetail() {
   }, [id]);
 
   async function loadCurrentAffair() {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -89,10 +101,16 @@ export function CurrentAffairDetail() {
     }
   }
 
+  const mcqs = record
+    ? record.mcqs
+        .map(parseMCQ)
+        .filter((mcq): mcq is MCQ => mcq !== null)
+    : [];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8 text-center dark:bg-slate-950">
-        {t("currentAffairs.loading")}
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-slate-600 dark:bg-slate-950 dark:text-slate-300">
+        {t("currentAffairs.detail.loading")}
       </div>
     );
   }
@@ -100,18 +118,22 @@ export function CurrentAffairDetail() {
   if (error || !record) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
-        <button
-          type="button"
-          onClick={() =>
-            navigate("/student/current-affairs")
-          }
-          className="mb-6 font-semibold text-blue-600"
-        >
-          ← {t("common.back")}
-        </button>
+        <div className="mx-auto max-w-4xl">
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/student/current-affairs")
+            }
+            className="mb-6 font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
+          >
+            ← {t("currentAffairs.detail.back")}
+          </button>
 
-        <div className="rounded-xl bg-red-50 p-4 text-red-700">
-          ❌ {error || "Current affair not found"}
+          <div className="rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
+            ❌{" "}
+            {error ||
+              t("currentAffairs.detail.notFound")}
+          </div>
         </div>
       </div>
     );
@@ -127,7 +149,7 @@ export function CurrentAffairDetail() {
           }
           className="mb-6 font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
         >
-          ← {t("common.back")}
+          ← {t("currentAffairs.detail.back")}
         </button>
 
         <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
@@ -166,30 +188,193 @@ export function CurrentAffairDetail() {
             content={record.static_gk}
           />
 
-          {record.mcqs.length > 0 && (
-            <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
-              <h2 className="text-xl font-bold">
-                {t("currentAffairs.detail.mcqs")}
-              </h2>
+          <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <h2 className="text-xl font-bold">
+              {t("currentAffairs.detail.mcqs")}
+            </h2>
 
-              <div className="mt-4 space-y-3">
-                {record.mcqs.map(
-                  (mcq, index) => (
-                    <div
-                      key={index}
-                      className="rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800"
-                    >
-                      {typeof mcq === "string"
-                        ? mcq
-                        : JSON.stringify(mcq)}
-                    </div>
-                  ),
-                )}
+            {mcqs.length === 0 ? (
+              <p className="mt-3 text-slate-500 dark:text-slate-400">
+                {t("currentAffairs.detail.noMcqs")}
+              </p>
+            ) : (
+              <div className="mt-5 space-y-5">
+                {mcqs.map((mcq, index) => (
+                  <MCQCard
+                    key={`${record.id}-${index}`}
+                    mcq={mcq}
+                    number={index + 1}
+                  />
+                ))}
               </div>
-            </div>
-          )}
+            )}
+          </section>
         </article>
       </main>
+    </div>
+  );
+}
+
+function parseMCQ(value: unknown): MCQ | null {
+  try {
+    let parsed: unknown = value;
+
+    if (typeof value === "string") {
+      parsed = JSON.parse(value);
+    }
+
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      return null;
+    }
+
+    const data = parsed as Record<string, unknown>;
+
+    const question =
+      typeof data.question === "string"
+        ? data.question
+        : "";
+
+    const answer =
+      typeof data.answer === "string"
+        ? data.answer
+        : "";
+
+    const options = Array.isArray(data.options)
+      ? data.options.filter(
+          (option): option is string =>
+            typeof option === "string",
+        )
+      : [];
+
+    const explanation =
+      typeof data.explanation === "string"
+        ? data.explanation
+        : undefined;
+
+    if (
+      !question ||
+      !answer ||
+      options.length === 0
+    ) {
+      return null;
+    }
+
+    return {
+      question,
+      options,
+      answer,
+      explanation,
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface MCQCardProps {
+  mcq: MCQ;
+  number: number;
+}
+
+function MCQCard({
+  mcq,
+  number,
+}: MCQCardProps) {
+  const [selectedAnswer, setSelectedAnswer] =
+    useState<string | null>(null);
+
+  const isAnswered = selectedAnswer !== null;
+
+  function selectAnswer(option: string) {
+    if (isAnswered) {
+      return;
+    }
+
+    setSelectedAnswer(option);
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/60">
+      <p className="text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+        Question {number}
+      </p>
+
+      <h3 className="mt-2 text-base font-semibold leading-6">
+        {mcq.question}
+      </h3>
+
+      <div className="mt-4 space-y-3">
+        {mcq.options.map((option, index) => {
+          const isSelected =
+            selectedAnswer === option;
+
+          const isCorrect =
+            isAnswered && option === mcq.answer;
+
+          const isWrong =
+            isSelected && option !== mcq.answer;
+
+          let optionClass =
+            "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500 dark:hover:bg-slate-800";
+
+          if (isCorrect) {
+            optionClass =
+              "border-green-500 bg-green-50 text-green-800 dark:border-green-500 dark:bg-green-950/30 dark:text-green-300";
+          }
+
+          if (isWrong) {
+            optionClass =
+              "border-red-500 bg-red-50 text-red-800 dark:border-red-500 dark:bg-red-950/30 dark:text-red-300";
+          }
+
+          return (
+            <button
+              key={`${option}-${index}`}
+              type="button"
+              disabled={isAnswered}
+              onClick={() => selectAnswer(option)}
+              className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${optionClass}`}
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs font-bold">
+                {String.fromCharCode(65 + index)}
+              </span>
+
+              <span>{option}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {isAnswered && (
+        <div className="mt-4">
+          {selectedAnswer === mcq.answer ? (
+            <p className="font-semibold text-green-600 dark:text-green-400">
+              ✓ Correct Answer!
+            </p>
+          ) : (
+            <div>
+              <p className="font-semibold text-red-600 dark:text-red-400">
+                ✗ Incorrect
+              </p>
+
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Correct answer:{" "}
+                <strong>{mcq.answer}</strong>
+              </p>
+            </div>
+          )}
+
+          {mcq.explanation && (
+            <div className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-slate-700 dark:bg-blue-950/30 dark:text-slate-300">
+              <strong>Explanation:</strong>{" "}
+              {mcq.explanation}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
