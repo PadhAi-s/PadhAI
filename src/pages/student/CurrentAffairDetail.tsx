@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useNavigate,
   useParams,
@@ -17,6 +17,7 @@ interface CurrentAffair {
   static_gk: string;
   category: string | null;
   mcqs: unknown[];
+  hindi_version: string;
 }
 
 interface MCQ {
@@ -26,10 +27,20 @@ interface MCQ {
   explanation?: string;
 }
 
+interface HindiSections {
+  title: string;
+  whyInNews: string;
+  keyFacts: string;
+  examPoint: string;
+  staticGK: string;
+  mcqs: string;
+}
+
 export function CurrentAffairDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+
+  const { i18n } = useTranslation();
 
   const [record, setRecord] =
     useState<CurrentAffair | null>(null);
@@ -39,6 +50,9 @@ export function CurrentAffairDetail() {
 
   const [error, setError] =
     useState("");
+
+  const isHindi =
+    i18n.language?.toLowerCase().startsWith("hi");
 
   useEffect(() => {
     if (id) {
@@ -56,23 +70,26 @@ export function CurrentAffairDetail() {
     setError("");
 
     try {
-      const { data, error: fetchError } =
-        await supabase
-          .from("current_affairs")
-          .select(`
-            id,
-            affair_date,
-            serial_no,
-            title,
-            why_in_news,
-            key_facts,
-            exam_point,
-            static_gk,
-            category,
-            mcqs
-          `)
-          .eq("id", id)
-          .single();
+      const {
+        data,
+        error: fetchError,
+      } = await supabase
+        .from("current_affairs")
+        .select(`
+          id,
+          affair_date,
+          serial_no,
+          title,
+          why_in_news,
+          key_facts,
+          exam_point,
+          static_gk,
+          category,
+          mcqs,
+          hindi_version
+        `)
+        .eq("id", id)
+        .single();
 
       if (fetchError) {
         throw fetchError;
@@ -84,7 +101,8 @@ export function CurrentAffairDetail() {
           data.affair_date ?? "",
         serial_no:
           Number(data.serial_no ?? 1),
-        title: data.title ?? "",
+        title:
+          data.title ?? "",
         why_in_news:
           data.why_in_news ?? "",
         key_facts:
@@ -95,50 +113,64 @@ export function CurrentAffairDetail() {
           data.static_gk ?? "",
         category:
           data.category ?? null,
-        mcqs: Array.isArray(data.mcqs)
-          ? data.mcqs
-          : [],
+        mcqs:
+          Array.isArray(data.mcqs)
+            ? data.mcqs
+            : [],
+        hindi_version:
+          data.hindi_version ?? "",
       });
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : t("currentAffairs.loadError"),
+          : "Current affair load nahi ho saka.",
       );
     } finally {
       setLoading(false);
     }
   }
 
-  const mcqs = record
-    ? record.mcqs
-        .map(parseMCQ)
-        .filter(
-          (mcq): mcq is MCQ =>
-            mcq !== null,
-        )
-    : [];
+  const mcqs = useMemo(() => {
+    if (!record) {
+      return [];
+    }
 
-  /* LOADING */
+    return record.mcqs
+      .map(parseMCQ)
+      .filter(
+        (
+          mcq,
+        ): mcq is MCQ =>
+          mcq !== null,
+      );
+  }, [record]);
+
+  const hindiContent =
+    useMemo(() => {
+      if (!record?.hindi_version) {
+        return null;
+      }
+
+      return parseHindiVersion(
+        record.hindi_version,
+      );
+    }, [record]);
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-slate-600 dark:bg-slate-950 dark:text-slate-300">
-        {t(
-          "currentAffairs.detail.loading",
-        )}
+        {isHindi
+          ? "लोड हो रहा है..."
+          : "Loading..."}
       </div>
     );
   }
-
-  /* ERROR / NOT FOUND */
 
   if (error || !record) {
     return (
       <div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
         <div className="mx-auto max-w-4xl">
-
-          {/* BACK TO DASHBOARD */}
 
           <button
             type="button"
@@ -149,28 +181,27 @@ export function CurrentAffairDetail() {
             }
             className="mb-6 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
           >
-            ← Back to Dashboard
+            ←{" "}
+            {isHindi
+              ? "डैशबोर्ड पर वापस जाएँ"
+              : "Back to Dashboard"}
           </button>
 
           <div className="rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
             ❌{" "}
             {error ||
-              t(
-                "currentAffairs.detail.notFound",
-              )}
+              (isHindi
+                ? "यह करेंट अफेयर्स नहीं मिला।"
+                : "Current affair not found.")}
           </div>
         </div>
       </div>
     );
   }
 
-  /* MAIN PAGE */
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-white">
       <main className="mx-auto max-w-4xl px-4 py-8">
-
-        {/* BACK TO DASHBOARD */}
 
         <button
           type="button"
@@ -181,116 +212,345 @@ export function CurrentAffairDetail() {
           }
           className="mb-6 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
         >
-          ← Back to Dashboard
+          ←{" "}
+          {isHindi
+            ? "डैशबोर्ड पर वापस जाएँ"
+            : "Back to Dashboard"}
         </button>
 
-        {/* ARTICLE */}
-
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-
-          {/* CATEGORY + DATE */}
-
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-              {record.category ||
-                t(
-                  "currentAffairs.label",
-                )}
-            </span>
-
-            <span className="text-sm text-slate-400">
-              {record.affair_date}
-            </span>
-          </div>
-
-          {/* TITLE */}
-
-          <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
-            {record.title}
-          </h1>
-
-          {/* WHY IN NEWS */}
-
-          <DetailSection
-            title={t(
-              "currentAffairs.detail.whyInNews",
-            )}
-            content={
-              record.why_in_news
-            }
+        {isHindi &&
+        hindiContent ? (
+          <HindiCurrentAffair
+            record={record}
+            content={hindiContent}
           />
-
-          {/* KEY FACTS */}
-
-          <DetailSection
-            title={t(
-              "currentAffairs.detail.keyFacts",
-            )}
-            content={
-              record.key_facts
-            }
+        ) : (
+          <EnglishCurrentAffair
+            record={record}
+            mcqs={mcqs}
           />
-
-          {/* EXAM POINT */}
-
-          <DetailSection
-            title={t(
-              "currentAffairs.detail.examPoint",
-            )}
-            content={
-              record.exam_point
-            }
-          />
-
-          {/* STATIC GK */}
-
-          <DetailSection
-            title={t(
-              "currentAffairs.detail.staticGK",
-            )}
-            content={
-              record.static_gk
-            }
-          />
-
-          {/* MCQs */}
-
-          <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
-            <h2 className="text-xl font-bold">
-              {t(
-                "currentAffairs.detail.mcqs",
-              )}
-            </h2>
-
-            {mcqs.length === 0 ? (
-              <p className="mt-3 text-slate-500 dark:text-slate-400">
-                {t(
-                  "currentAffairs.detail.noMcqs",
-                )}
-              </p>
-            ) : (
-              <div className="mt-5 space-y-5">
-                {mcqs.map(
-                  (mcq, index) => (
-                    <MCQCard
-                      key={`${record.id}-${index}`}
-                      mcq={mcq}
-                      number={
-                        index + 1
-                      }
-                    />
-                  ),
-                )}
-              </div>
-            )}
-          </section>
-        </article>
+        )}
       </main>
     </div>
   );
 }
 
-/* PARSE MCQ */
+/* =========================================
+   ENGLISH VERSION
+========================================= */
+
+function EnglishCurrentAffair({
+  record,
+  mcqs,
+}: {
+  record: CurrentAffair;
+  mcqs: MCQ[];
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+          {record.category ||
+            "Current Affairs"}
+        </span>
+
+        <span className="text-sm text-slate-400">
+          {record.affair_date}
+        </span>
+      </div>
+
+      <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
+        {record.title}
+      </h1>
+
+      <DetailSection
+        title="Why in News?"
+        content={record.why_in_news}
+      />
+
+      <DetailSection
+        title="Key Facts"
+        content={record.key_facts}
+      />
+
+      <DetailSection
+        title="Exam Point"
+        content={record.exam_point}
+      />
+
+      <DetailSection
+        title="Static GK"
+        content={record.static_gk}
+      />
+
+      <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+        <h2 className="text-xl font-bold">
+          MCQs
+        </h2>
+
+        {mcqs.length === 0 ? (
+          <p className="mt-3 text-slate-500 dark:text-slate-400">
+            No MCQs available.
+          </p>
+        ) : (
+          <div className="mt-5 space-y-5">
+            {mcqs.map(
+              (mcq, index) => (
+                <MCQCard
+                  key={`${record.id}-${index}`}
+                  mcq={mcq}
+                  number={index + 1}
+                />
+              ),
+            )}
+          </div>
+        )}
+      </section>
+    </article>
+  );
+}
+
+/* =========================================
+   HINDI VERSION
+========================================= */
+
+function HindiCurrentAffair({
+  record,
+  content,
+}: {
+  record: CurrentAffair;
+  content: HindiSections;
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+          {record.category ||
+            "करेंट अफेयर्स"}
+        </span>
+
+        <span className="text-sm text-slate-400">
+          {record.affair_date}
+        </span>
+      </div>
+
+      <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
+        {content.title ||
+          record.title}
+      </h1>
+
+      <HindiDetailSection
+        title="चर्चा में क्यों?"
+        content={
+          content.whyInNews
+        }
+      />
+
+      <HindiDetailSection
+        title="मुख्य तथ्य"
+        content={
+          content.keyFacts
+        }
+      />
+
+      <HindiDetailSection
+        title="परीक्षा बिंदु"
+        content={
+          content.examPoint
+        }
+      />
+
+      <HindiDetailSection
+        title="सामान्य ज्ञान"
+        content={
+          content.staticGK
+        }
+      />
+
+      {content.mcqs && (
+        <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+          <h2 className="text-xl font-bold">
+            प्रश्नोत्तर (MCQs)
+          </h2>
+
+          <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
+            <p className="whitespace-pre-line leading-7 text-slate-700 dark:text-slate-300">
+              {content.mcqs}
+            </p>
+          </div>
+        </section>
+      )}
+    </article>
+  );
+}
+
+/* =========================================
+   HINDI VERSION PARSER
+========================================= */
+
+function parseHindiVersion(
+  html: string,
+): HindiSections {
+  const text =
+    htmlToPlainText(html);
+
+  const title = extractSection(
+    text,
+    "शीर्षक (Title):",
+    [
+      "चर्चा में क्यों:",
+    ],
+  );
+
+  const whyInNews =
+    extractSection(
+      text,
+      "चर्चा में क्यों:",
+      [
+        "मुख्य तथ्य:",
+      ],
+    );
+
+  const keyFacts =
+    extractSection(
+      text,
+      "मुख्य तथ्य:",
+      [
+        "परीक्षा बिंदु:",
+      ],
+    );
+
+  const examPoint =
+    extractSection(
+      text,
+      "परीक्षा बिंदु:",
+      [
+        "सामान्य ज्ञान:",
+      ],
+    );
+
+  const staticGK =
+    extractSection(
+      text,
+      "सामान्य ज्ञान:",
+      [
+        "प्रश्नोत्तर (MCQs):",
+      ],
+    );
+
+  const mcqs =
+    extractSection(
+      text,
+      "प्रश्नोत्तर (MCQs):",
+      [],
+    );
+
+  return {
+    title,
+    whyInNews,
+    keyFacts,
+    examPoint,
+    staticGK,
+    mcqs,
+  };
+}
+
+function htmlToPlainText(
+  html: string,
+) {
+  return html
+    .replace(
+      /<br\s*\/?>/gi,
+      "\n",
+    )
+    .replace(
+      /<\/p>/gi,
+      "\n",
+    )
+    .replace(
+      /<li>/gi,
+      "• ",
+    )
+    .replace(
+      /<\/li>/gi,
+      "\n",
+    )
+    .replace(
+      /<[^>]*>/g,
+      "",
+    )
+    .replace(
+      /&nbsp;/g,
+      " ",
+    )
+    .replace(
+      /&amp;/g,
+      "&",
+    )
+    .replace(
+      /&lt;/g,
+      "<",
+    )
+    .replace(
+      /&gt;/g,
+      ">",
+    )
+    .replace(
+      /\n{3,}/g,
+      "\n\n",
+    )
+    .trim();
+}
+
+function extractSection(
+  text: string,
+  startLabel: string,
+  endLabels: string[],
+) {
+  const startIndex =
+    text.indexOf(startLabel);
+
+  if (startIndex === -1) {
+    return "";
+  }
+
+  const contentStart =
+    startIndex +
+    startLabel.length;
+
+  let endIndex =
+    text.length;
+
+  for (
+    const label of endLabels
+  ) {
+    const index =
+      text.indexOf(
+        label,
+        contentStart,
+      );
+
+    if (
+      index !== -1 &&
+      index < endIndex
+    ) {
+      endIndex = index;
+    }
+  }
+
+  return text
+    .slice(
+      contentStart,
+      endIndex,
+    )
+    .trim();
+}
+
+/* =========================================
+   PARSE ENGLISH MCQ
+========================================= */
 
 function parseMCQ(
   value: unknown,
@@ -370,17 +630,17 @@ function parseMCQ(
   }
 }
 
-/* MCQ CARD */
-
-interface MCQCardProps {
-  mcq: MCQ;
-  number: number;
-}
+/* =========================================
+   ENGLISH MCQ CARD
+========================================= */
 
 function MCQCard({
   mcq,
   number,
-}: MCQCardProps) {
+}: {
+  mcq: MCQ;
+  number: number;
+}) {
   const [
     selectedAnswer,
     setSelectedAnswer,
@@ -412,8 +672,6 @@ function MCQCard({
         {mcq.question}
       </h3>
 
-      {/* OPTIONS */}
-
       <div className="mt-4 space-y-3">
         {mcq.options.map(
           (option, index) => {
@@ -432,7 +690,7 @@ function MCQCard({
                 mcq.answer;
 
             let optionClass =
-              "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500 dark:hover:bg-slate-800";
+              "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900";
 
             if (isCorrect) {
               optionClass =
@@ -473,8 +731,6 @@ function MCQCard({
         )}
       </div>
 
-      {/* RESULT */}
-
       {isAnswered && (
         <div className="mt-4">
           {selectedAnswer ===
@@ -511,9 +767,35 @@ function MCQCard({
   );
 }
 
-/* DETAIL SECTION */
+/* =========================================
+   DETAIL SECTION
+========================================= */
 
 function DetailSection({
+  title,
+  content,
+}: {
+  title: string;
+  content: string;
+}) {
+  if (!content) {
+    return null;
+  }
+
+  return (
+    <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+      <h2 className="text-xl font-bold">
+        {title}
+      </h2>
+
+      <p className="mt-3 whitespace-pre-line leading-7 text-slate-600 dark:text-slate-300">
+        {content}
+      </p>
+    </section>
+  );
+}
+
+function HindiDetailSection({
   title,
   content,
 }: {
