@@ -22,7 +22,12 @@ import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
 import { DailyNewspaper } from "./pages/student/DailyNewspaper";
-import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
+
+/*
+ * These two pages use default exports.
+ */
+import WeeklyCurrentAffairs from "./pages/student/WeeklyCurrentAffairs";
+
 import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
 import { QuickRevision } from "./pages/student/QuickRevision";
 
@@ -33,7 +38,11 @@ import { QuickRevision } from "./pages/student/QuickRevision";
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
-import { AdminNewspaper } from "./pages/admin/AdminNewspaper";
+
+/*
+ * AdminNewspaper uses default export.
+ */
+import AdminNewspaper from "./pages/admin/AdminNewspaper";
 
 /* =====================================================
    OTHER
