@@ -46,8 +46,7 @@ interface CurrentAffairRow {
 export function AdminDashboard() {
   const navigate = useNavigate();
 
-  const { user, profile, signOut } =
-    useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const syllabusFileInputRef =
     useRef<HTMLInputElement>(null);
@@ -73,30 +72,20 @@ export function AdminDashboard() {
      SYLLABUS STATES
   ===================================================== */
 
-  const [
-    csvRows,
-    setCsvRows,
-  ] = useState<SyllabusRow[]>([]);
+  const [csvRows, setCsvRows] =
+    useState<SyllabusRow[]>([]);
 
-  const [
-    fileName,
-    setFileName,
-  ] = useState("");
+  const [fileName, setFileName] =
+    useState("");
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [
-    message,
-    setMessage,
-  ] = useState("");
+  const [message, setMessage] =
+    useState("");
 
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [error, setError] =
+    useState("");
 
   /* =====================================================
      CURRENT AFFAIRS STATES
@@ -155,8 +144,7 @@ export function AdminDashboard() {
       i < line.length;
       i++
     ) {
-      const char =
-        line[i];
+      const char = line[i];
 
       if (char === '"') {
         if (
@@ -1218,6 +1206,36 @@ export function AdminDashboard() {
 
           </div>
 
+          {/* =================================================
+              NEWSPAPER
+          ================================================= */}
+
+          <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
+
+            <div className="text-3xl">
+              📰
+            </div>
+
+            <h3 className="mt-4 font-bold">
+              Newspaper
+            </h3>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Upload newspaper PDFs and automatically convert them into translated current affairs and MCQs.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/admin/newspaper")
+              }
+              className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Manage Newspaper
+            </button>
+
+          </div>
+
         </div>
 
       </main>
@@ -1449,8 +1467,6 @@ export function AdminDashboard() {
                     </p>
 
                   )}
-
-                  {/* IMPORTANT UPLOAD BUTTON */}
 
                   <button
                     type="button"
