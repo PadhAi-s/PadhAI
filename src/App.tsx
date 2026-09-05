@@ -12,24 +12,33 @@ import { RootLayout } from "./layouts/RootLayout";
 
 import { Home } from "./pages/Home";
 
-/* STUDENT */
+/* =====================================================
+   STUDENT
+===================================================== */
+
 import { StudentLogin } from "./pages/student/Login";
 import { StudentDashboard } from "./pages/student/Dashboard";
 import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskPadhAI } from "./pages/student/AskPadhAI";
 import { DailyNewspaper } from "./pages/student/DailyNewspaper";
-
 import { WeeklyCurrentAffairs } from "./pages/student/WeeklyCurrentAffairs";
 import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
 import { QuickRevision } from "./pages/student/QuickRevision";
 
-/* ADMIN */
+/* =====================================================
+   ADMIN
+===================================================== */
+
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
+import { AdminNewspaper } from "./pages/admin/AdminNewspaper";
 
-/* OTHER */
+/* =====================================================
+   OTHER
+===================================================== */
+
 import { NotFound } from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,103 +51,144 @@ export default function App() {
           <HashRouter>
             <Routes>
               <Route element={<RootLayout />}>
-                {/* HOME */}
+
+                {/* =====================================================
+                    HOME
+                ===================================================== */}
+
                 <Route
                   index
                   element={<Home />}
                 />
 
-                {/* STUDENT LOGIN */}
+                {/* =====================================================
+                    STUDENT LOGIN
+                ===================================================== */}
+
                 <Route
                   path="student/login"
                   element={<StudentLogin />}
                 />
 
-                {/* STUDENT PROTECTED ROUTES */}
+                {/* =====================================================
+                    STUDENT PROTECTED ROUTES
+                ===================================================== */}
+
                 <Route
                   element={
                     <ProtectedRoute allowedRole="student" />
                   }
                 >
+
                   {/* DASHBOARD */}
+
                   <Route
                     path="student/dashboard"
                     element={<StudentDashboard />}
                   />
 
                   {/* PROFILE */}
+
                   <Route
                     path="student/profile"
                     element={<StudentProfile />}
                   />
 
                   {/* SYLLABUS */}
+
                   <Route
                     path="student/syllabus"
                     element={<StudentSyllabus />}
                   />
 
                   {/* ASK PADHAI AI */}
+
                   <Route
                     path="student/ask"
                     element={<AskPadhAI />}
                   />
 
                   {/* DAILY NEWSPAPER */}
+
                   <Route
                     path="student/daily-newspaper"
                     element={<DailyNewspaper />}
                   />
 
-                  {/* CURRENT AFFAIRS LIST */}
+                  {/* CURRENT AFFAIRS */}
+
                   <Route
                     path="student/current-affairs"
                     element={<WeeklyCurrentAffairs />}
                   />
 
                   {/* CURRENT AFFAIR DETAIL */}
+
                   <Route
                     path="student/current-affairs/:id"
                     element={<CurrentAffairDetail />}
                   />
 
                   {/* QUICK REVISION */}
+
                   <Route
                     path="student/quick-revision"
                     element={<QuickRevision />}
                   />
+
                 </Route>
 
-                {/* ADMIN LOGIN */}
+                {/* =====================================================
+                    ADMIN LOGIN
+                ===================================================== */}
+
                 <Route
                   path="admin/login"
                   element={<AdminLogin />}
                 />
 
-                {/* ADMIN PROTECTED ROUTES */}
+                {/* =====================================================
+                    ADMIN PROTECTED ROUTES
+                ===================================================== */}
+
                 <Route
                   element={
                     <ProtectedRoute allowedRole="admin" />
                   }
                 >
+
                   {/* ADMIN DASHBOARD */}
+
                   <Route
                     path="admin/dashboard"
                     element={<AdminDashboard />}
                   />
 
                   {/* ADMIN CURRENT AFFAIRS */}
+
                   <Route
                     path="admin/current-affairs"
                     element={<AdminCurrentAffairs />}
                   />
+
+                  {/* ADMIN NEWSPAPER */}
+
+                  <Route
+                    path="admin/newspaper"
+                    element={<AdminNewspaper />}
+                  />
+
                 </Route>
 
-                {/* 404 */}
+                {/* =====================================================
+                    404
+                ===================================================== */}
+
                 <Route
                   path="*"
                   element={<NotFound />}
                 />
+
               </Route>
             </Routes>
           </HashRouter>
