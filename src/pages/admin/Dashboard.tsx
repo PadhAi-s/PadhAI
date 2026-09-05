@@ -72,20 +72,30 @@ export function AdminDashboard() {
      SYLLABUS STATES
   ===================================================== */
 
-  const [csvRows, setCsvRows] =
-    useState<SyllabusRow[]>([]);
+  const [
+    csvRows,
+    setCsvRows,
+  ] = useState<SyllabusRow[]>([]);
 
-  const [fileName, setFileName] =
-    useState("");
+  const [
+    fileName,
+    setFileName,
+  ] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  const [message, setMessage] =
-    useState("");
+  const [
+    message,
+    setMessage,
+  ] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
   /* =====================================================
      CURRENT AFFAIRS STATES
@@ -136,7 +146,6 @@ export function AdminDashboard() {
     const values: string[] = [];
 
     let current = "";
-
     let insideQuotes = false;
 
     for (
@@ -289,8 +298,7 @@ export function AdminDashboard() {
       }
     }
 
-    const rows: SyllabusRow[] =
-      [];
+    const rows: SyllabusRow[] = [];
 
     lines
       .slice(1)
@@ -417,7 +425,6 @@ export function AdminDashboard() {
               externalId,
 
             category:
-
               category as
                 | "school"
                 | "government_exam",
@@ -1001,9 +1008,7 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+      {/* HEADER */}
 
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
@@ -1031,9 +1036,7 @@ export function AdminDashboard() {
 
       <main className="mx-auto max-w-7xl px-4 py-8">
 
-        {/* =====================================================
-            WELCOME
-        ===================================================== */}
+        {/* WELCOME */}
 
         <div className="mb-8 rounded-2xl bg-slate-900 p-6 text-white">
 
@@ -1053,13 +1056,9 @@ export function AdminDashboard() {
 
         </div>
 
-        {/* =====================================================
-            STATS
-        ===================================================== */}
+        {/* STATS */}
 
         <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
-          {/* STUDENTS */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
@@ -1071,8 +1070,6 @@ export function AdminDashboard() {
             </p>
           </div>
 
-          {/* SYLLABUS */}
-
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
               Syllabus
@@ -1082,8 +1079,6 @@ export function AdminDashboard() {
               {csvRows.length || "—"}
             </p>
           </div>
-
-          {/* CURRENT AFFAIRS */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
@@ -1095,8 +1090,6 @@ export function AdminDashboard() {
                 "—"}
             </p>
           </div>
-
-          {/* AI */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
@@ -1110,19 +1103,15 @@ export function AdminDashboard() {
 
         </div>
 
-        {/* =====================================================
-            MANAGEMENT
-        ===================================================== */}
+        {/* MANAGEMENT */}
 
         <h3 className="mb-4 text-xl font-bold">
           Management
         </h3>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 
-          {/* =====================================================
-              SYLLABUS
-          ===================================================== */}
+          {/* SYLLABUS */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
 
@@ -1150,9 +1139,7 @@ export function AdminDashboard() {
 
           </div>
 
-          {/* =====================================================
-              CURRENT AFFAIRS
-          ===================================================== */}
+          {/* CURRENT AFFAIRS */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
 
@@ -1180,9 +1167,7 @@ export function AdminDashboard() {
 
           </div>
 
-          {/* =====================================================
-              NEWSPAPER
-          ===================================================== */}
+          {/* NEWSPAPER */}
 
           <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
 
@@ -1195,7 +1180,7 @@ export function AdminDashboard() {
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Upload Hindi or English newspaper PDFs and automatically generate translated current affairs with AI.
+              Upload newspaper PDFs, translate them, and generate current affairs and MCQs using AI.
             </p>
 
             <button
@@ -1212,11 +1197,9 @@ export function AdminDashboard() {
 
           </div>
 
-          {/* =====================================================
-              STUDENTS
-          ===================================================== */}
+          {/* STUDENTS */}
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
 
             <div className="text-3xl">
               👨‍🎓
@@ -1239,11 +1222,9 @@ export function AdminDashboard() {
 
           </div>
 
-          {/* =====================================================
-              AI SETTINGS
-          ===================================================== */}
+          {/* AI */}
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
 
             <div className="text-3xl">
               🤖
@@ -1282,8 +1263,6 @@ export function AdminDashboard() {
 
             <div className="w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
 
-              {/* HEADER */}
-
               <div className="flex items-center justify-between border-b px-6 py-5">
 
                 <div>
@@ -1308,11 +1287,7 @@ export function AdminDashboard() {
 
               </div>
 
-              {/* BODY */}
-
               <div className="p-6">
-
-                {/* FILE */}
 
                 <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center">
 
@@ -1344,23 +1319,17 @@ export function AdminDashboard() {
 
                 </div>
 
-                {/* ERROR */}
-
                 {error && (
                   <div className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
                     ❌ {error}
                   </div>
                 )}
 
-                {/* MESSAGE */}
-
                 {message && (
                   <div className="mt-5 rounded-xl bg-green-50 p-4 text-sm text-green-700">
                     ✅ {message}
                   </div>
                 )}
-
-                {/* UPLOAD */}
 
                 {csvRows.length > 0 && (
 
@@ -1385,8 +1354,6 @@ export function AdminDashboard() {
 
                 )}
 
-                {/* FORMAT */}
-
                 <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
 
                   <p className="text-sm font-semibold">
@@ -1400,8 +1367,6 @@ export function AdminDashboard() {
                 </div>
 
               </div>
-
-              {/* FOOTER */}
 
               <div className="flex justify-end border-t px-6 py-4">
 
@@ -1514,7 +1479,7 @@ export function AdminDashboard() {
 
                   )}
 
-                  {/* UPLOAD BUTTON */}
+                  {/* IMPORTANT UPLOAD BUTTON */}
 
                   <button
                     type="button"
