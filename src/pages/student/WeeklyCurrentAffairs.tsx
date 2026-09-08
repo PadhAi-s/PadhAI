@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
+/* =====================================================
+   TYPES
+===================================================== */
+
 interface MCQ {
   question: string;
   options: string[];
@@ -33,6 +37,10 @@ interface CurrentAffair {
   static_gk_hi: string;
 }
 
+/* =====================================================
+   CATEGORIES
+===================================================== */
+
 const CATEGORIES = [
   "All",
   "National",
@@ -50,13 +58,21 @@ const CATEGORIES = [
   "Other",
 ];
 
+/* =====================================================
+   COMPONENT
+===================================================== */
+
 export function WeeklyCurrentAffairs() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
-  const [affairs, setAffairs] = useState<CurrentAffair[]>([]);
+  const [affairs, setAffairs] = useState<
+    CurrentAffair[]
+  >([]);
+
   const [selectedCategory, setSelectedCategory] =
     useState("All");
+
   const [search, setSearch] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -67,19 +83,10 @@ export function WeeklyCurrentAffairs() {
   ===================================================== */
 
   useEffect(() => {
-    document.title = "Daily Current Affairs | VIDYZEN";
-
-    console.log(
-      "🟡 Current Affairs page mounted"
-    );
+    document.title =
+      "Daily Current Affairs | VIDYZEN";
 
     void loadCurrentAffairs();
-
-    return () => {
-      console.log(
-        "⚪ Current Affairs page unmounted"
-      );
-    };
   }, []);
 
   /* =====================================================
@@ -87,48 +94,69 @@ export function WeeklyCurrentAffairs() {
   ===================================================== */
 
   async function loadCurrentAffairs() {
+    console.log(
+      "========================================",
+    );
+    console.log(
+      "📚 CURRENT AFFAIRS LOAD START",
+    );
+    console.log(
+      "========================================",
+    );
+
     setLoading(true);
     setError("");
 
-    console.log(
-      "🟡 Current Affairs: loading started"
-    );
-
     try {
-      /*
-       * ---------------------------------------------------
-       * 15 SECOND TIMEOUT
-       * ---------------------------------------------------
-       *
-       * Agar Supabase kisi reason se response nahi deta,
-       * page infinite loading par nahi rahega.
-       */
+      /* -----------------------------------------------
+         AUTH CHECK
+      ----------------------------------------------- */
 
-      const timeoutPromise =
-        new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(
-              new Error(
-                "Current Affairs request 15 seconds ke baad timeout ho gayi. Supabase response nahi de raha."
-              )
-            );
-          }, 15000);
-        });
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      /*
-       * ---------------------------------------------------
-       * SUPABASE QUERY
-       * ---------------------------------------------------
-       *
-       * select("*") intentionally use kiya gaya hai.
-       *
-       * Isse individual column select ki wajah se hone
-       * wale errors temporarily eliminate ho jaate hain.
-       */
+      console.log(
+        "🔐 Session:",
+        session
+          ? "SESSION FOUND"
+          : "NO SESSION",
+      );
+
+      if (sessionError) {
+        console.error(
+          "❌ Session Error:",
+          sessionError,
+        );
+      }
+
+      if (!session) {
+        console.warn(
+          "⚠️ No active session. Redirecting login.",
+        );
+
+        navigate("/student/login");
+        return;
+      }
+
+      /* -----------------------------------------------
+         SUPABASE QUERY
+         
+         IMPORTANT:
+         Literal select string intentionally used.
+         Do NOT use array.join(",") here.
+      ----------------------------------------------- */
+
+      console.log(
+        "📡 Querying current_affairs table...",
+      );
 
       const queryPromise = supabase
         .from("current_affairs")
-        .select("*")
+        .select(
+          "id,affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs,published,category,title_hi,why_in_news_hi,key_facts_hi,exam_point_hi,static_gk_hi",
+        )
         .eq("published", true)
         .order("affair_date", {
           ascending: false,
@@ -137,9 +165,27 @@ export function WeeklyCurrentAffairs() {
           ascending: true,
         });
 
-      console.log(
-        "🟡 Current Affairs: Supabase query sending..."
-      );
+      /* -----------------------------------------------
+         TIMEOUT
+         
+         Agar Supabase kisi reason se request hang kare,
+         page forever loading nahi karega.
+      ----------------------------------------------- */
+
+      const timeoutPromise =
+        new Promise<{
+          data: null;
+          error: Error;
+        }>((resolve) => {
+          setTimeout(() => {
+            resolve({
+              data: null,
+              error: new Error(
+                "Supabase request 15 seconds se zyada time le rahi hai. Network, RLS policy ya Supabase connection check karo.",
+              ),
+            });
+          }, 15000);
+        });
 
       const result = await Promise.race([
         queryPromise,
@@ -151,96 +197,111 @@ export function WeeklyCurrentAffairs() {
         error: fetchError,
       } = result;
 
+      /* -----------------------------------------------
+         RAW DEBUG
+      ----------------------------------------------- */
+
       console.log(
-        "🟢 Current Affairs: Supabase response received",
-        {
-          data,
-          error: fetchError,
-        }
+        "📦 Supabase Data:",
+        data,
       );
 
-      /*
-       * ---------------------------------------------------
-       * SUPABASE ERROR
-       * ---------------------------------------------------
-       */
+      console.log(
+        "❗ Supabase Error:",
+        fetchError,
+      );
+
+      /* -----------------------------------------------
+         ERROR CHECK
+      ----------------------------------------------- */
 
       if (fetchError) {
         console.error(
-          "🔴 Current Affairs: Supabase error",
-          fetchError
+          "❌ CURRENT AFFAIRS QUERY FAILED",
+          fetchError,
         );
 
-        throw new Error(
-          `Supabase Error: ${fetchError.message}`
-        );
+        throw fetchError;
       }
 
-      /*
-       * ---------------------------------------------------
-       * DATA
-       * ---------------------------------------------------
-       */
+      /* -----------------------------------------------
+         EMPTY RESULT
+      ----------------------------------------------- */
 
-      const rows = Array.isArray(data)
-        ? data
-        : [];
+      if (!data) {
+        console.warn(
+          "⚠️ Supabase returned null data.",
+        );
+
+        setAffairs([]);
+        return;
+      }
 
       console.log(
-        "🟢 Current Affairs rows:",
-        rows.length
+        `✅ ${data.length} current affairs received.`,
       );
 
-      /*
-       * ---------------------------------------------------
-       * NO DATA
-       * ---------------------------------------------------
-       */
+      /* -----------------------------------------------
+         DEBUG FIRST ROW
+      ----------------------------------------------- */
 
-      if (rows.length === 0) {
+      if (data.length > 0) {
+        console.log(
+          "🔎 FIRST CURRENT AFFAIR:",
+          data[0],
+        );
+      } else {
         console.warn(
-          "🟠 Current Affairs: 0 published rows returned"
+          "⚠️ Query successful but 0 published current affairs found.",
         );
       }
 
-      /*
-       * ---------------------------------------------------
-       * FORMAT DATA
-       * ---------------------------------------------------
-       */
+      /* -----------------------------------------------
+         FORMAT DATA
+      ----------------------------------------------- */
 
       const formatted: CurrentAffair[] =
-        rows.map((row: any) => ({
-          id: String(
-            row.id ?? ""
-          ),
+        data.map((row) => ({
+          id: String(row.id ?? ""),
 
           affair_date:
-            row.affair_date ?? "",
+            String(
+              row.affair_date ?? "",
+            ),
 
           serial_no:
             Number(
-              row.serial_no ?? 1
+              row.serial_no ?? 1,
             ),
 
           title:
-            row.title ?? "",
+            String(
+              row.title ?? "",
+            ),
 
           why_in_news:
-            row.why_in_news ?? "",
+            String(
+              row.why_in_news ?? "",
+            ),
 
           key_facts:
-            row.key_facts ?? "",
+            String(
+              row.key_facts ?? "",
+            ),
 
           exam_point:
-            row.exam_point ?? "",
+            String(
+              row.exam_point ?? "",
+            ),
 
           static_gk:
-            row.static_gk ?? "",
+            String(
+              row.static_gk ?? "",
+            ),
 
           mcqs:
             normalizeMCQs(
-              row.mcqs
+              row.mcqs,
             ),
 
           published:
@@ -251,66 +312,83 @@ export function WeeklyCurrentAffairs() {
 
           category:
             typeof row.category ===
-              "string" &&
+            "string" &&
             row.category.trim()
-              ? row.category
+              ? row.category.trim()
               : "Other",
 
           title_hi:
-            row.title_hi ?? "",
+            String(
+              row.title_hi ?? "",
+            ),
 
           why_in_news_hi:
-            row.why_in_news_hi ??
-            "",
+            String(
+              row.why_in_news_hi ??
+                "",
+            ),
 
           key_facts_hi:
-            row.key_facts_hi ??
-            "",
+            String(
+              row.key_facts_hi ??
+                "",
+            ),
 
           exam_point_hi:
-            row.exam_point_hi ??
-            "",
+            String(
+              row.exam_point_hi ??
+                "",
+            ),
 
           static_gk_hi:
-            row.static_gk_hi ??
-            "",
+            String(
+              row.static_gk_hi ??
+                "",
+            ),
         }));
 
-      /*
-       * ---------------------------------------------------
-       * SET DATA
-       * ---------------------------------------------------
-       */
+      console.log(
+        "🧹 FORMATTED CURRENT AFFAIRS:",
+        formatted,
+      );
 
       setAffairs(formatted);
 
       console.log(
-        "✅ Current Affairs loaded successfully:",
-        formatted.length
+        "✅ CURRENT AFFAIRS LOAD SUCCESS",
       );
-
-      if (formatted.length > 0) {
-        console.log(
-          "📚 First Current Affair:",
-          formatted[0]
-        );
-      }
     } catch (err) {
       console.error(
-        "🔴 Current Affairs Load Error:",
-        err
+        "========================================",
+      );
+
+      console.error(
+        "❌ CURRENT AFFAIRS LOAD ERROR",
+      );
+
+      console.error(
+        err,
+      );
+
+      console.error(
+        "========================================",
       );
 
       setAffairs([]);
 
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load current affairs."
-      );
+      if (err instanceof Error) {
+        setError(
+          err.message ||
+            "Unable to load current affairs.",
+        );
+      } else {
+        setError(
+          "Unable to load current affairs.",
+        );
+      }
     } finally {
       console.log(
-        "⚪ Current Affairs: loading finished"
+        "🔚 Current Affairs loading finished.",
       );
 
       setLoading(false);
@@ -321,94 +399,85 @@ export function WeeklyCurrentAffairs() {
      FILTER
   ===================================================== */
 
-  const filteredAffairs =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredAffairs = useMemo(() => {
+    const query =
+      search.trim().toLowerCase();
 
-      return affairs.filter(
-        (item) => {
-          const category =
-            item.category ||
-            "Other";
+    return affairs.filter((item) => {
+      const category =
+        item.category || "Other";
 
-          const matchesCategory =
-            selectedCategory ===
-              "All" ||
-            category ===
-              selectedCategory;
+      const matchesCategory =
+        selectedCategory === "All" ||
+        category === selectedCategory;
 
-          if (!matchesCategory) {
-            return false;
-          }
+      if (!matchesCategory) {
+        return false;
+      }
 
-          if (!query) {
-            return true;
-          }
+      if (!query) {
+        return true;
+      }
 
-          const searchableText = [
-            item.title,
-            item.why_in_news,
-            item.key_facts,
-            item.exam_point,
-            item.static_gk,
+      const searchableText = [
+        item.title,
+        item.why_in_news,
+        item.key_facts,
+        item.exam_point,
+        item.static_gk,
 
-            item.title_hi,
-            item.why_in_news_hi,
-            item.key_facts_hi,
-            item.exam_point_hi,
-            item.static_gk_hi,
+        item.title_hi,
+        item.why_in_news_hi,
+        item.key_facts_hi,
+        item.exam_point_hi,
+        item.static_gk_hi,
 
-            item.category,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
+        item.category,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-          return searchableText.includes(
-            query
-          );
-        }
+      return searchableText.includes(
+        query,
       );
-    }, [
-      affairs,
-      selectedCategory,
-      search,
-    ]);
+    });
+  }, [
+    affairs,
+    selectedCategory,
+    search,
+  ]);
 
   /* =====================================================
-     DATE
+     DATE FORMAT
   ===================================================== */
 
   function formatDate(
-    date: string
+    date: string,
   ) {
     if (!date) {
       return "";
     }
 
-    const parsedDate =
-      new Date(
-        `${date}T00:00:00`
-      );
+    const parsed = new Date(
+      `${date}T00:00:00`,
+    );
 
     if (
       Number.isNaN(
-        parsedDate.getTime()
+        parsed.getTime(),
       )
     ) {
       return date;
     }
 
-    return parsedDate.toLocaleDateString(
+    return parsed.toLocaleDateString(
       "en-IN",
       {
         day: "2-digit",
         month: "short",
         year: "numeric",
-      }
+      },
     );
   }
 
@@ -417,10 +486,10 @@ export function WeeklyCurrentAffairs() {
   ===================================================== */
 
   function openAffair(
-    id: string
+    id: string,
   ) {
     navigate(
-      `/student/current-affairs/${id}`
+      `/student/current-affairs/${id}`,
     );
   }
 
@@ -454,25 +523,22 @@ export function WeeklyCurrentAffairs() {
       ================================================= */}
 
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
 
           <button
             type="button"
             onClick={() =>
               navigate(
-                "/student/dashboard"
+                "/student/dashboard",
               )
             }
             className="flex items-center gap-3"
           >
-
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-lg font-black text-white shadow-sm">
               V
             </div>
 
             <div className="text-left">
-
               <h1 className="text-lg font-black tracking-tight">
                 VIDYZEN
               </h1>
@@ -480,16 +546,14 @@ export function WeeklyCurrentAffairs() {
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Daily Current Affairs
               </p>
-
             </div>
-
           </button>
 
           <button
             type="button"
             onClick={() =>
               navigate(
-                "/student/dashboard"
+                "/student/dashboard",
               )
             }
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -498,7 +562,6 @@ export function WeeklyCurrentAffairs() {
           </button>
 
         </div>
-
       </header>
 
       {/* =================================================
@@ -507,9 +570,7 @@ export function WeeklyCurrentAffairs() {
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
 
-        {/* =================================================
-            HERO
-        ================================================= */}
+        {/* HERO */}
 
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-6 text-white shadow-lg sm:p-8">
 
@@ -546,9 +607,7 @@ export function WeeklyCurrentAffairs() {
 
         </section>
 
-        {/* =================================================
-            SEARCH + FILTER
-        ================================================= */}
+        {/* SEARCH + FILTER */}
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
@@ -563,7 +622,7 @@ export function WeeklyCurrentAffairs() {
               value={search}
               onChange={(event) =>
                 setSearch(
-                  event.target.value
+                  event.target.value,
                 )
               }
               placeholder="Search current affairs..."
@@ -581,7 +640,7 @@ export function WeeklyCurrentAffairs() {
                   type="button"
                   onClick={() =>
                     setSelectedCategory(
-                      category
+                      category,
                     )
                   }
                   className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${
@@ -593,21 +652,18 @@ export function WeeklyCurrentAffairs() {
                 >
                   {category}
                 </button>
-              )
+              ),
             )}
 
           </div>
 
         </section>
 
-        {/* =================================================
-            SECTION HEADER
-        ================================================= */}
+        {/* SECTION HEADER */}
 
         <div className="mt-8 flex items-end justify-between gap-4">
 
           <div>
-
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
               Latest Updates
             </p>
@@ -615,7 +671,6 @@ export function WeeklyCurrentAffairs() {
             <h2 className="mt-1 text-xl font-black sm:text-2xl">
               Important Current Affairs
             </h2>
-
           </div>
 
           <span className="shrink-0 text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -629,7 +684,7 @@ export function WeeklyCurrentAffairs() {
         </div>
 
         {/* =================================================
-            DEBUG STATUS
+            LOADING
         ================================================= */}
 
         {loading && (
@@ -637,12 +692,12 @@ export function WeeklyCurrentAffairs() {
 
             <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
 
-            <p className="mt-4 text-sm font-medium text-slate-500 dark:text-slate-400">
+            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
               Loading current affairs...
             </p>
 
-            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-              Supabase se data fetch kiya ja raha hai.
+            <p className="mt-2 text-xs text-slate-400">
+              Supabase se data fetch ho raha hai...
             </p>
 
           </div>
@@ -652,52 +707,42 @@ export function WeeklyCurrentAffairs() {
             ERROR
         ================================================= */}
 
-        {!loading && error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
+        {!loading &&
+          error && (
+            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
 
-            <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3">
 
-              <div className="text-2xl">
-                ⚠️
-              </div>
-
-              <div className="min-w-0 flex-1">
-
-                <h3 className="font-bold text-red-700 dark:text-red-300">
-                  Unable to load current affairs
-                </h3>
-
-                <p className="mt-2 break-words text-sm leading-6 text-red-600 dark:text-red-400">
-                  {error}
-                </p>
-
-                <div className="mt-4 rounded-xl border border-red-200 bg-white/60 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">
-                  <p className="font-bold">
-                    Debug:
-                  </p>
-
-                  <p className="mt-1">
-                    Browser Console (F12 → Console)
-                    me bhi detailed error available hai.
-                  </p>
+                <div className="text-2xl">
+                  ⚠️
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    void loadCurrentAffairs()
-                  }
-                  className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
-                >
-                  Try Again
-                </button>
+                <div className="min-w-0">
+
+                  <h3 className="font-bold text-red-700 dark:text-red-300">
+                    Unable to load current affairs
+                  </h3>
+
+                  <p className="mt-2 break-words text-sm leading-6 text-red-600 dark:text-red-400">
+                    {error}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void loadCurrentAffairs()
+                    }
+                    className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
+                  >
+                    Try Again
+                  </button>
+
+                </div>
 
               </div>
 
             </div>
-
-          </div>
-        )}
+          )}
 
         {/* =================================================
             EMPTY
@@ -710,7 +755,7 @@ export function WeeklyCurrentAffairs() {
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
               <div className="text-5xl">
-                🔎
+                📰
               </div>
 
               <h3 className="mt-4 text-lg font-bold">
@@ -718,9 +763,9 @@ export function WeeklyCurrentAffairs() {
               </h3>
 
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Try another search term
-                or choose a different
-                category.
+                {affairs.length === 0
+                  ? "Database me abhi koi published current affair nahi mila."
+                  : "Try another search term or choose a different category."}
               </p>
 
               {(search ||
@@ -772,7 +817,7 @@ export function WeeklyCurrentAffairs() {
 
                         <span className="shrink-0 text-xs font-medium text-slate-400">
                           {formatDate(
-                            item.affair_date
+                            item.affair_date,
                           )}
                         </span>
 
@@ -786,7 +831,8 @@ export function WeeklyCurrentAffairs() {
                           #{item.serial_no}
                         </span>
 
-                        {item.mcqs.length >
+                        {item.mcqs
+                          .length >
                           0 && (
                           <span className="rounded-md bg-green-50 px-2 py-1 font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300">
                             📝{" "}
@@ -815,7 +861,7 @@ export function WeeklyCurrentAffairs() {
 
                       <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
                         {stripHtml(
-                          item.why_in_news
+                          item.why_in_news,
                         ) ||
                           "Current affair details are available inside."}
                       </p>
@@ -831,7 +877,7 @@ export function WeeklyCurrentAffairs() {
 
                           <p className="mt-1 line-clamp-2 text-xs leading-5 text-blue-800 dark:text-blue-300">
                             {stripHtml(
-                              item.exam_point
+                              item.exam_point,
                             )}
                           </p>
 
@@ -846,7 +892,7 @@ export function WeeklyCurrentAffairs() {
                           type="button"
                           onClick={() =>
                             openAffair(
-                              item.id
+                              item.id,
                             )
                           }
                           className="flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 group-hover:shadow-md"
@@ -856,14 +902,13 @@ export function WeeklyCurrentAffairs() {
                           <span className="ml-2">
                             →
                           </span>
-
                         </button>
 
                       </div>
 
                     </article>
                   );
-                }
+                },
               )}
 
             </div>
@@ -907,7 +952,7 @@ export function WeeklyCurrentAffairs() {
               type="button"
               onClick={() =>
                 navigate(
-                  "/student/daily-newspaper"
+                  "/student/daily-newspaper",
                 )
               }
               className="shrink-0 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
@@ -949,7 +994,7 @@ export function WeeklyCurrentAffairs() {
             type="button"
             onClick={() =>
               navigate(
-                "/student/dashboard"
+                "/student/dashboard",
               )
             }
             className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -970,34 +1015,22 @@ export function WeeklyCurrentAffairs() {
 ===================================================== */
 
 function normalizeMCQs(
-  value: unknown
+  value: unknown,
 ): MCQ[] {
-  /*
-   * Supabase JSONB normally returns an array.
-   *
-   * Agar kisi reason se JSON string return hoti hai,
-   * to usko bhi parse karne ki koshish karenge.
-   */
-
   let parsedValue = value;
 
-  if (
-    typeof value ===
-    "string"
-  ) {
+  /* Supabase kabhi JSON string return kare
+     to usko parse karne ki koshish */
+  if (typeof parsedValue === "string") {
     try {
       parsedValue =
-        JSON.parse(value);
+        JSON.parse(parsedValue);
     } catch {
       return [];
     }
   }
 
-  if (
-    !Array.isArray(
-      parsedValue
-    )
-  ) {
+  if (!Array.isArray(parsedValue)) {
     return [];
   }
 
@@ -1026,19 +1059,18 @@ function normalizeMCQs(
 
       const options =
         Array.isArray(
-          row.options
+          row.options,
         )
           ? row.options
               .filter(
                 (
-                  option
+                  option,
                 ): option is string =>
                   typeof option ===
-                  "string"
+                  "string",
               )
-              .map(
-                (option) =>
-                  option.trim()
+              .map((option) =>
+                option.trim(),
               )
           : [];
 
@@ -1060,7 +1092,7 @@ function normalizeMCQs(
           4 ||
         options.some(
           (option) =>
-            !option
+            !option,
         ) ||
         !answer
       ) {
@@ -1076,9 +1108,9 @@ function normalizeMCQs(
     })
     .filter(
       (
-        item
+        item,
       ): item is MCQ =>
-        item !== null
+        item !== null,
     );
 }
 
@@ -1087,7 +1119,7 @@ function normalizeMCQs(
 ===================================================== */
 
 function stripHtml(
-  value: string
+  value: string,
 ): string {
   if (!value) {
     return "";
@@ -1096,35 +1128,35 @@ function stripHtml(
   return value
     .replace(
       /<br\s*\/?>/gi,
-      " "
+      " ",
     )
     .replace(
       /<\/p>/gi,
-      " "
+      " ",
     )
     .replace(
       /<[^>]+>/g,
-      ""
+      "",
     )
     .replace(
       /&nbsp;/gi,
-      " "
+      " ",
     )
     .replace(
       /&amp;/gi,
-      "&"
+      "&",
     )
     .replace(
       /&quot;/gi,
-      '"'
+      '"',
     )
     .replace(
       /&#39;/gi,
-      "'"
+      "'",
     )
     .replace(
       /\s+/g,
-      " "
+      " ",
     )
     .trim();
 }
