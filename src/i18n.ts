@@ -1,6 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
+const STORAGE_KEY = "vidyzen-language";
+
 const resources = {
   en: {
     translation: {
@@ -75,6 +77,18 @@ const resources = {
         openMenu: "Open menu",
         editProfile: "Edit Profile",
 
+        mindset: "Today's Mindset",
+        quote:
+          "Small progress every day becomes big success over time.",
+        quoteSubtitle:
+          "Keep learning. Keep revising. Keep moving forward.",
+
+        welcomeBack: "Welcome back",
+        welcomeDescription:
+          "Your learning space is ready. Revise faster, stay updated with current affairs and use AI to learn smarter.",
+
+        fastRevisionButton: "Fast Revision",
+
         menu: {
           syllabus: "Syllabus",
           syllabusDesc: "View your subjects and syllabus",
@@ -88,6 +102,111 @@ const resources = {
 
           settings: "Settings",
           comingSoon: "Coming soon",
+        },
+
+        sections: {
+          fastRevision: {
+            title: "Fast Revision",
+            description:
+              "Revise important topics quickly and test your preparation.",
+            smartPractice: "Smart Practice",
+            heading: "Fast Revision",
+            body:
+              "Pick a subject or topic and start a quick revision session. Practice questions, identify weak areas and improve every day.",
+            smartQuestions: "Smart Questions",
+            topicWise: "Topic Wise",
+            quickPractice: "Quick Practice",
+            start: "Start Revision",
+          },
+
+          currentAffairs: {
+            title: "Daily Current Affairs",
+            description:
+              "Stay updated with the latest events that matter for your exams.",
+            cardTitle: "Daily Current Affairs",
+            cardDescription:
+              "Read important current affairs, understand what happened and prepare with exam-focused information.",
+            action: "Read Today's Current Affairs →",
+            badge: "FREE",
+          },
+
+          newspaper: {
+            title: "Daily Newspaper",
+            description:
+              "Read the latest newspaper updates and stay informed every day.",
+            cardTitle: "Daily Newspaper",
+            cardDescription:
+              "Read daily newspaper updates in a simple, student-friendly format and stay connected with important national and international news.",
+            action: "Read Today's Newspaper →",
+            badge: "DAILY",
+          },
+
+          news: {
+            title: "What's in News",
+            description:
+              "Know not just what happened, but why it matters.",
+            whatsTitle: "What's in News",
+            whatsDescription:
+              "Get a quick and simple understanding of important events, developments and issues making headlines.",
+            whatsAction: "Explore News →",
+            whatsBadge: "LATEST",
+
+            whyTitle: "Why Important?",
+            whyDescription:
+              "Understand why a news event is important for exams, society, economy, government and the country.",
+            whyAction: "Understand Why →",
+            whyBadge: "EXAM FOCUS",
+          },
+
+          askVidhya: {
+            title: "Ask Vidhya",
+            description:
+              "Stuck on a concept? Ask, understand and learn.",
+            assistant: "AI Learning Assistant",
+            heading: "Ask Vidhya",
+            body:
+              "Ask questions in your own words and get clear, student-friendly explanations to understand difficult concepts faster.",
+            askAnything: "Ask Anything",
+            easyExplanations: "Easy Explanations",
+            studyHelp: "Study Help",
+            action: "Ask Vidhya",
+          },
+
+          vocabulary: {
+            title: "English Vocabulary",
+            description:
+              "Build stronger vocabulary and improve your English every day.",
+            cardTitle: "Learn English with Vocab-Bhaiya",
+            cardDescription:
+              "Improve your vocabulary, learn useful words and strengthen your English skills through interactive learning.",
+            action: "Start Learning →",
+            badge: "EXTERNAL",
+          },
+
+          videos: {
+            title: "Video Learning",
+            description:
+              "Video-based learning experiences are coming soon.",
+            cardTitle: "Video Classes",
+            cardDescription:
+              "Learn through engaging video lessons designed to make difficult concepts easier to understand.",
+            action: "Coming Soon",
+            badge: "COMING SOON",
+          },
+
+          about: {
+            label: "About",
+            title: "About VIDYZEN",
+            description:
+              "VIDYZEN is built to make exam preparation simpler, smarter and more focused. From daily current affairs and newspaper reading to fast revision, AI-powered learning and vocabulary building, everything is designed to help students learn consistently.",
+            examFocused: "Exam Focused",
+            aiPowered: "AI Powered",
+            studentFriendly: "Student Friendly",
+          },
+        },
+
+        footer: {
+          tagline: "Learn smarter. Grow faster.",
         },
 
         cards: {
@@ -192,19 +311,14 @@ const resources = {
         categoryDescriptions: {
           national:
             "Important national events and government-related developments.",
-
           international:
             "Major international events, global developments and important world news.",
-
           scienceTech:
             "Important developments in science, technology, space and innovation.",
-
           economy:
             "Key economic developments, business news and important financial updates.",
-
           sports:
             "Important sports events, tournaments, achievements and major victories.",
-
           awards:
             "Important appointments, awards, honours and personalities in the news.",
         },
@@ -372,6 +486,18 @@ const resources = {
         openMenu: "मेनू खोलें",
         editProfile: "प्रोफाइल एडिट करें",
 
+        mindset: "आज की सोच",
+        quote:
+          "हर दिन की छोटी प्रगति समय के साथ बड़ी सफलता बन जाती है।",
+        quoteSubtitle:
+          "सीखते रहें। रिवीजन करते रहें। आगे बढ़ते रहें।",
+
+        welcomeBack: "वापसी पर स्वागत है",
+        welcomeDescription:
+          "आपका लर्निंग स्पेस तैयार है। तेज़ी से रिवीजन करें, करंट अफेयर्स से अपडेट रहें और स्मार्ट तरीके से पढ़ने के लिए AI का उपयोग करें।",
+
+        fastRevisionButton: "फास्ट रिवीजन",
+
         menu: {
           syllabus: "सिलेबस",
           syllabusDesc: "अपने विषय और सिलेबस देखें",
@@ -385,6 +511,111 @@ const resources = {
 
           settings: "सेटिंग्स",
           comingSoon: "जल्द आ रहा है",
+        },
+
+        sections: {
+          fastRevision: {
+            title: "फास्ट रिवीजन",
+            description:
+              "महत्वपूर्ण विषयों का जल्दी रिवीजन करें और अपनी तैयारी को टेस्ट करें।",
+            smartPractice: "स्मार्ट प्रैक्टिस",
+            heading: "फास्ट रिवीजन",
+            body:
+              "कोई विषय या टॉपिक चुनें और क्विक रिवीजन सेशन शुरू करें। प्रश्नों की प्रैक्टिस करें, कमजोर क्षेत्रों को पहचानें और हर दिन बेहतर बनें।",
+            smartQuestions: "स्मार्ट प्रश्न",
+            topicWise: "टॉपिक वाइज",
+            quickPractice: "क्विक प्रैक्टिस",
+            start: "रिवीजन शुरू करें",
+          },
+
+          currentAffairs: {
+            title: "दैनिक करेंट अफेयर्स",
+            description:
+              "अपने एग्जाम के लिए महत्वपूर्ण नवीनतम घटनाओं से अपडेट रहें।",
+            cardTitle: "दैनिक करेंट अफेयर्स",
+            cardDescription:
+              "महत्वपूर्ण करेंट अफेयर्स पढ़ें, समझें कि क्या हुआ और परीक्षा-केंद्रित जानकारी के साथ तैयारी करें।",
+            action: "आज के करेंट अफेयर्स पढ़ें →",
+            badge: "फ्री",
+          },
+
+          newspaper: {
+            title: "डेली न्यूज़पेपर",
+            description:
+              "नवीनतम न्यूज़पेपर अपडेट पढ़ें और हर दिन जानकारी से जुड़े रहें।",
+            cardTitle: "डेली न्यूज़पेपर",
+            cardDescription:
+              "सरल और छात्र-अनुकूल तरीके से रोज़ के न्यूज़पेपर अपडेट पढ़ें और महत्वपूर्ण राष्ट्रीय व अंतरराष्ट्रीय खबरों से जुड़े रहें।",
+            action: "आज का न्यूज़पेपर पढ़ें →",
+            badge: "डेली",
+          },
+
+          news: {
+            title: "खबरों में क्या है",
+            description:
+              "सिर्फ क्या हुआ नहीं, बल्कि यह क्यों महत्वपूर्ण है, यह भी जानें।",
+            whatsTitle: "खबरों में क्या है",
+            whatsDescription:
+              "महत्वपूर्ण घटनाओं, विकास और सुर्खियों में रहने वाले मुद्दों को जल्दी और आसान तरीके से समझें।",
+            whatsAction: "खबरें देखें →",
+            whatsBadge: "नवीनतम",
+
+            whyTitle: "क्यों महत्वपूर्ण है?",
+            whyDescription:
+              "समझें कि कोई खबर परीक्षा, समाज, अर्थव्यवस्था, सरकार और देश के लिए क्यों महत्वपूर्ण है।",
+            whyAction: "क्यों समझें →",
+            whyBadge: "परीक्षा फोकस",
+          },
+
+          askVidhya: {
+            title: "विध्या से पूछें",
+            description:
+              "किसी कॉन्सेप्ट में अटक गए? पूछें, समझें और सीखें।",
+            assistant: "AI लर्निंग असिस्टेंट",
+            heading: "विध्या से पूछें",
+            body:
+              "अपने शब्दों में सवाल पूछें और कठिन कॉन्सेप्ट को जल्दी समझने के लिए आसान और छात्र-अनुकूल जवाब पाएं।",
+            askAnything: "कुछ भी पूछें",
+            easyExplanations: "आसान समझ",
+            studyHelp: "स्टडी हेल्प",
+            action: "विध्या से पूछें",
+          },
+
+          vocabulary: {
+            title: "अंग्रेज़ी शब्दावली",
+            description:
+              "अपनी शब्दावली मजबूत करें और हर दिन अपनी अंग्रेज़ी बेहतर करें।",
+            cardTitle: "Vocab-Bhaiya से अंग्रेज़ी सीखें",
+            cardDescription:
+              "अपनी शब्दावली बेहतर करें, उपयोगी शब्द सीखें और इंटरैक्टिव लर्निंग के जरिए अंग्रेज़ी मजबूत करें।",
+            action: "सीखना शुरू करें →",
+            badge: "बाहरी",
+          },
+
+          videos: {
+            title: "वीडियो लर्निंग",
+            description:
+              "वीडियो आधारित लर्निंग अनुभव जल्द आ रहे हैं।",
+            cardTitle: "वीडियो क्लासेस",
+            cardDescription:
+              "ऐसे वीडियो लेसन से सीखें जो कठिन कॉन्सेप्ट को आसान तरीके से समझने में मदद करें।",
+            action: "जल्द आ रहा है",
+            badge: "जल्द आ रहा है",
+          },
+
+          about: {
+            label: "परिचय",
+            title: "VIDYZEN के बारे में",
+            description:
+              "VIDYZEN को परीक्षा की तैयारी को आसान, स्मार्ट और अधिक केंद्रित बनाने के लिए बनाया गया है। डेली करंट अफेयर्स और न्यूज़पेपर से लेकर फास्ट रिवीजन, AI लर्निंग और वोकैबुलरी तक, हर सुविधा छात्रों को लगातार सीखने में मदद करने के लिए बनाई गई है।",
+            examFocused: "परीक्षा केंद्रित",
+            aiPowered: "AI आधारित",
+            studentFriendly: "छात्र अनुकूल",
+          },
+        },
+
+        footer: {
+          tagline: "स्मार्ट तरीके से सीखें। तेजी से आगे बढ़ें।",
         },
 
         cards: {
@@ -489,19 +720,14 @@ const resources = {
         categoryDescriptions: {
           national:
             "महत्वपूर्ण राष्ट्रीय घटनाएं और सरकारी विकास।",
-
           international:
             "महत्वपूर्ण अंतरराष्ट्रीय घटनाएं और वैश्विक विकास।",
-
           scienceTech:
             "विज्ञान, टेक्नोलॉजी, अंतरिक्ष और इनोवेशन के महत्वपूर्ण विकास।",
-
           economy:
             "अर्थव्यवस्था, बिजनेस और वित्तीय जगत की महत्वपूर्ण खबरें।",
-
           sports:
             "महत्वपूर्ण खेल आयोजन, उपलब्धियां और जीत।",
-
           awards:
             "महत्वपूर्ण नियुक्तियां, पुरस्कार और सम्मान।",
         },
@@ -671,6 +897,18 @@ const resources = {
         openMenu: "Menu kholo",
         editProfile: "Profile Edit Karo",
 
+        mindset: "Aaj ka Mindset",
+        quote:
+          "Har din ki chhoti progress time ke saath badi success ban jaati hai.",
+        quoteSubtitle:
+          "Learning karte raho. Revision karte raho. Aage badhte raho.",
+
+        welcomeBack: "Welcome back",
+        welcomeDescription:
+          "Tumhara learning space ready hai. Fast revision karo, current affairs se updated raho aur AI ki help se smart study karo.",
+
+        fastRevisionButton: "Fast Revision",
+
         menu: {
           syllabus: "Syllabus",
           syllabusDesc:
@@ -686,6 +924,111 @@ const resources = {
 
           settings: "Settings",
           comingSoon: "Jaldi aa raha hai",
+        },
+
+        sections: {
+          fastRevision: {
+            title: "Fast Revision",
+            description:
+              "Important topics ko quickly revise karo aur apni preparation test karo.",
+            smartPractice: "Smart Practice",
+            heading: "Fast Revision",
+            body:
+              "Subject ya topic choose karo aur quick revision session start karo. Questions practice karo, weak areas identify karo aur har din improve karo.",
+            smartQuestions: "Smart Questions",
+            topicWise: "Topic Wise",
+            quickPractice: "Quick Practice",
+            start: "Revision Start Karo",
+          },
+
+          currentAffairs: {
+            title: "Daily Current Affairs",
+            description:
+              "Exam ke liye important latest events se updated raho.",
+            cardTitle: "Daily Current Affairs",
+            cardDescription:
+              "Important current affairs padho, samjho ki kya hua aur exam-focused information ke saath preparation karo.",
+            action: "Aaj ke Current Affairs Padho →",
+            badge: "FREE",
+          },
+
+          newspaper: {
+            title: "Daily Newspaper",
+            description:
+              "Latest newspaper updates padho aur har din informed raho.",
+            cardTitle: "Daily Newspaper",
+            cardDescription:
+              "Simple aur student-friendly format mein daily newspaper updates padho aur important national aur international news se connected raho.",
+            action: "Aaj ka Newspaper Padho →",
+            badge: "DAILY",
+          },
+
+          news: {
+            title: "What's in News",
+            description:
+              "Sirf kya hua nahi, balki ye kyun important hai ye bhi samjho.",
+            whatsTitle: "What's in News",
+            whatsDescription:
+              "Important events, developments aur headlines mein aane wale issues ko quickly aur easily samjho.",
+            whatsAction: "News Explore Karo →",
+            whatsBadge: "LATEST",
+
+            whyTitle: "Why Important?",
+            whyDescription:
+              "Samjho ki koi news exam, society, economy, government aur country ke liye kyun important hai.",
+            whyAction: "Why Samjho →",
+            whyBadge: "EXAM FOCUS",
+          },
+
+          askVidhya: {
+            title: "Ask Vidhya",
+            description:
+              "Kisi concept mein stuck ho? Pucho, samjho aur seekho.",
+            assistant: "AI Learning Assistant",
+            heading: "Ask Vidhya",
+            body:
+              "Apne words mein questions pucho aur difficult concepts ko jaldi samajhne ke liye clear aur student-friendly explanations pao.",
+            askAnything: "Ask Anything",
+            easyExplanations: "Easy Explanations",
+            studyHelp: "Study Help",
+            action: "Ask Vidhya",
+          },
+
+          vocabulary: {
+            title: "English Vocabulary",
+            description:
+              "Strong vocabulary build karo aur daily English improve karo.",
+            cardTitle: "Vocab-Bhaiya se English Seekho",
+            cardDescription:
+              "Vocabulary improve karo, useful words seekho aur interactive learning ke through English strong karo.",
+            action: "Learning Start Karo →",
+            badge: "EXTERNAL",
+          },
+
+          videos: {
+            title: "Video Learning",
+            description:
+              "Video-based learning experience jaldi aa raha hai.",
+            cardTitle: "Video Classes",
+            cardDescription:
+              "Engaging video lessons ke through seekho jo difficult concepts ko easy banane mein help karein.",
+            action: "Jaldi Aa Raha Hai",
+            badge: "COMING SOON",
+          },
+
+          about: {
+            label: "About",
+            title: "VIDYZEN ke baare mein",
+            description:
+              "VIDYZEN ko exam preparation ko simple, smart aur focused banane ke liye banaya gaya hai. Daily current affairs aur newspaper se lekar fast revision, AI learning aur vocabulary tak, sab kuch students ko consistently learn karne mein help karta hai.",
+            examFocused: "Exam Focused",
+            aiPowered: "AI Powered",
+            studentFriendly: "Student Friendly",
+          },
+        },
+
+        footer: {
+          tagline: "Smart tareeke se seekho. Fast grow karo.",
         },
 
         cards: {
@@ -790,19 +1133,14 @@ const resources = {
         categoryDescriptions: {
           national:
             "Important national events aur government developments.",
-
           international:
             "Major international events aur global developments.",
-
           scienceTech:
             "Science, technology, space aur innovation ke important developments.",
-
           economy:
             "Economy, business aur financial updates.",
-
           sports:
             "Important sports events aur achievements.",
-
           awards:
             "Important appointments, awards aur honours.",
         },
@@ -897,21 +1235,33 @@ const resources = {
   },
 };
 
-const STORAGE_KEY = "vidyzen-language";
+type SupportedLanguage = "en" | "hi" | "hinglish";
 
-const savedLanguage = localStorage.getItem(STORAGE_KEY);
+function getInitialLanguage(): SupportedLanguage {
+  if (typeof window === "undefined") {
+    return "en";
+  }
 
-const initialLanguage =
-  savedLanguage === "en" ||
-  savedLanguage === "hi" ||
-  savedLanguage === "hinglish"
-    ? savedLanguage
-    : "en";
+  const savedLanguage = window.localStorage.getItem(STORAGE_KEY);
+
+  if (
+    savedLanguage === "en" ||
+    savedLanguage === "hi" ||
+    savedLanguage === "hinglish"
+  ) {
+    return savedLanguage;
+  }
+
+  return "en";
+}
+
+const initialLanguage = getInitialLanguage();
 
 i18n.use(initReactI18next).init({
   resources,
   lng: initialLanguage,
   fallbackLng: "en",
+  supportedLngs: ["en", "hi", "hinglish"],
   interpolation: {
     escapeValue: false,
   },
