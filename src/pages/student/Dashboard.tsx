@@ -10,7 +10,7 @@ import { getDailyMindset } from "../../data/dailyMindsets";
 export function StudentDashboard() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { profile, logout } = useAuth();
+  const { profile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -45,19 +45,14 @@ export function StudentDashboard() {
   =================================================== */
 
   useEffect(() => {
-    const updateToday = () => {
-      setToday(new Date());
-    };
-
     const now = new Date();
 
     const nextMidnight = new Date(now);
     nextMidnight.setHours(24, 0, 0, 0);
 
-    const timeout = window.setTimeout(
-      updateToday,
-      nextMidnight.getTime() - now.getTime() + 1000,
-    );
+    const timeout = window.setTimeout(() => {
+      setToday(new Date());
+    }, nextMidnight.getTime() - now.getTime() + 1000);
 
     return () => {
       window.clearTimeout(timeout);
@@ -65,7 +60,7 @@ export function StudentDashboard() {
   }, [today]);
 
   /* ===================================================
-     CLOSE MENU OUTSIDE CLICK
+     CLOSE MENU ON OUTSIDE CLICK
   =================================================== */
 
   useEffect(() => {
@@ -86,17 +81,11 @@ export function StudentDashboard() {
   }, []);
 
   /* ===================================================
-     STUDENT NAME
+     STUDENT
   =================================================== */
 
   const studentName = useMemo(() => {
-    const name =
-      profile?.full_name ??
-      profile?.name ??
-      profile?.student_name ??
-      "Student";
-
-    return String(name).trim() || "Student";
+    return profile?.full_name?.trim() || "Student";
   }, [profile]);
 
   /* ===================================================
@@ -104,19 +93,17 @@ export function StudentDashboard() {
   =================================================== */
 
   const formattedDate = useMemo(() => {
-    return new Intl.DateTimeFormat(
+    const locale =
       language === "hi"
         ? "hi-IN"
-        : language === "hinglish"
-          ? "en-IN"
-          : "en-IN",
-      {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      },
-    ).format(today);
+        : "en-IN";
+
+    return new Intl.DateTimeFormat(locale, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(today);
   }, [today, language]);
 
   /* ===================================================
@@ -129,15 +116,16 @@ export function StudentDashboard() {
     const diff =
       today.getTime() -
       start.getTime() +
-      (start.getTimezoneOffset() - today.getTimezoneOffset()) * 60 * 1000;
+      (start.getTimezoneOffset() -
+        today.getTimezoneOffset()) *
+        60 *
+        1000;
 
-    return Math.min(
-      365,
-      Math.max(
-        1,
-        Math.floor(diff / (1000 * 60 * 60 * 24)),
-      ),
+    const day = Math.floor(
+      diff / (1000 * 60 * 60 * 24),
     );
+
+    return Math.min(365, Math.max(1, day));
   }, [today]);
 
   /* ===================================================
@@ -153,9 +141,9 @@ export function StudentDashboard() {
     setMenuOpen(false);
 
     try {
-      await logout();
+      await signOut();
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("Sign out failed:", error);
     }
   };
 
@@ -175,12 +163,8 @@ export function StudentDashboard() {
     navigate("/student/ask");
   };
 
-  const handleVocabulary = () => {
-    navigate("/student/vocabulary");
-  };
-
   /* ===================================================
-     LOCAL EXAM BOOSTER TRANSLATIONS
+     EXAM BOOSTER TEXT
   =================================================== */
 
   const boosterText = {
@@ -256,6 +240,7 @@ export function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+
       {/* ===================================================
           HEADER
       =================================================== */}
@@ -264,6 +249,7 @@ export function StudentDashboard() {
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
 
           {/* LOGO */}
+
           <button
             type="button"
             onClick={() => navigate("/student/dashboard")}
@@ -279,33 +265,40 @@ export function StudentDashboard() {
               </div>
 
               <div className="text-[10px] font-medium tracking-wide text-slate-400">
-                Learn&nbsp;&nbsp;·&nbsp;&nbsp;Practice&nbsp;&nbsp;·&nbsp;&nbsp;Grow
+                Learn&nbsp; · &nbsp;Practice&nbsp; · &nbsp;Grow
               </div>
             </div>
           </button>
 
-          {/* RIGHT */}
+          {/* RIGHT SIDE */}
+
           <div className="flex items-center gap-2 sm:gap-3">
 
             <LanguageToggle />
 
             {/* THEME */}
+
             <button
               type="button"
               onClick={toggleTheme}
               aria-label="Toggle theme"
               className="flex h-10 items-center gap-1 rounded-full border border-slate-200 bg-white px-3 text-sm shadow-sm transition hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
             >
-              <span>{theme === "dark" ? "🌙" : "☀️"}</span>
+              <span>
+                {theme === "dark" ? "🌙" : "☀️"}
+              </span>
             </button>
 
             {/* STUDENT */}
+
             <div className="hidden items-center gap-3 sm:flex">
+
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-black text-white shadow-md shadow-blue-500/20">
                 {studentName.charAt(0).toUpperCase()}
               </div>
 
               <div className="hidden text-left md:block">
+
                 <p className="text-xs font-bold text-slate-900 dark:text-white">
                   {studentName}
                 </p>
@@ -313,14 +306,21 @@ export function StudentDashboard() {
                 <p className="text-[10px] text-slate-400">
                   {profile?.email ?? "Student"}
                 </p>
+
               </div>
             </div>
 
             {/* MENU */}
-            <div className="relative" ref={menuRef}>
+
+            <div
+              className="relative"
+              ref={menuRef}
+            >
               <button
                 type="button"
-                onClick={() => setMenuOpen((value) => !value)}
+                onClick={() =>
+                  setMenuOpen((value) => !value)
+                }
                 aria-label={t("dashboard.openMenu")}
                 aria-expanded={menuOpen}
                 className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
@@ -330,12 +330,14 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 top-12 w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-900">
+
                   <button
                     type="button"
                     onClick={handleProfile}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span>👤</span>
+
                     {t("dashboard.menu.profile")}
                   </button>
 
@@ -345,11 +347,14 @@ export function StudentDashboard() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
                   >
                     <span>↪</span>
+
                     {t("dashboard.menu.logout")}
                   </button>
+
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </header>
@@ -392,13 +397,17 @@ export function StudentDashboard() {
               <div className="flex flex-wrap items-center gap-3">
 
                 <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/80 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-blue-600 backdrop-blur-sm dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400">
+
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+
                   {t("dashboard.mindset.label")}
+
                 </div>
 
                 <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400">
                   {formattedDate}
                 </span>
+
               </div>
 
               <div className="relative mt-7 max-w-4xl">
@@ -410,17 +419,21 @@ export function StudentDashboard() {
                 <blockquote className="relative text-3xl font-black leading-[1.08] tracking-[-0.03em] text-slate-950 dark:text-white sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
                   {mindsetQuote}
                 </blockquote>
+
               </div>
 
               <div className="mt-7 flex items-center gap-3">
+
                 <div className="h-px w-8 bg-blue-500/50" />
 
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   {t("dashboard.mindset.subtitle")}
                 </p>
+
               </div>
 
               <div className="mt-6 flex items-center gap-3">
+
                 <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                   <div className="h-full w-[62%] rounded-full bg-gradient-to-r from-blue-500 to-violet-500" />
                 </div>
@@ -428,14 +441,19 @@ export function StudentDashboard() {
                 <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
                   Daily Growth
                 </span>
+
               </div>
+
             </div>
 
-            {/* MINDSET DAY */}
+            {/* DESKTOP MINDSET COUNTER */}
+
             <div className="relative hidden h-56 items-center justify-center lg:flex">
 
               <div className="absolute h-48 w-48 rounded-full border border-blue-500/10" />
+
               <div className="absolute h-40 w-40 rounded-full border border-violet-500/10" />
+
               <div className="absolute h-32 w-32 rounded-full border border-cyan-500/10" />
 
               <div className="absolute h-28 w-28 rounded-full bg-blue-500/10 blur-2xl" />
@@ -453,13 +471,19 @@ export function StudentDashboard() {
                 <span className="mt-1 text-[8px] font-black uppercase tracking-[0.18em] text-blue-500">
                   Mindset
                 </span>
+
               </div>
 
               <span className="absolute left-1 top-7 h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_14px_rgba(59,130,246,0.8)]" />
+
               <span className="absolute bottom-7 right-4 h-1.5 w-1.5 rounded-full bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
+
               <span className="absolute right-5 top-4 h-1 w-1 rounded-full bg-cyan-400" />
+
               <span className="absolute bottom-10 left-8 h-1 w-1 rounded-full bg-blue-400" />
+
             </div>
+
           </div>
         </section>
 
@@ -486,11 +510,13 @@ export function StudentDashboard() {
             <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
               {t("dashboard.welcomeDescription")}
             </p>
+
           </div>
 
           <div className="pointer-events-none absolute right-8 top-1/2 hidden -translate-y-1/2 text-[100px] opacity-10 lg:block">
             🧠
           </div>
+
         </section>
 
         {/* ===================================================
@@ -532,7 +558,7 @@ export function StudentDashboard() {
               action={t("dashboard.newspaper.action")}
               badge={t("dashboard.newspaper.badge")}
               badgeClass="bg-blue-600"
-              className="border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:via-sky-950/20 dark:to-indigo-950/20"
+              className="border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:via-sky-950/20 dark:to-indigo-950/30"
               actionClass="text-blue-700 dark:text-blue-400"
               onClick={handleNewspaper}
             />
@@ -549,6 +575,7 @@ export function StudentDashboard() {
           <div className="flex items-end justify-between gap-4">
 
             <div>
+
               <div className="flex flex-wrap items-center gap-2">
 
                 <span className="text-xl">
@@ -562,6 +589,7 @@ export function StudentDashboard() {
                 <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-blue-600 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400">
                   {boosterText.soon}
                 </span>
+
               </div>
 
               <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900 dark:text-white sm:text-2xl">
@@ -571,17 +599,21 @@ export function StudentDashboard() {
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {boosterText.description}
               </p>
+
             </div>
+
           </div>
 
           <div className="mt-5 grid gap-5 md:grid-cols-3">
 
             {/* PYQ */}
+
             <button
               type="button"
               onClick={() => undefined}
               className="group relative overflow-hidden rounded-[1.5rem] border border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-blue-900/50 dark:from-blue-950/30 dark:via-sky-950/20 dark:to-indigo-950/30"
             >
+
               <div className="relative z-10 flex items-start justify-between gap-4">
 
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-slate-900/70">
@@ -589,8 +621,9 @@ export function StudentDashboard() {
                 </div>
 
                 <span className="rounded-full bg-blue-600 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-white">
-                  Soon
+                  {boosterText.soon}
                 </span>
+
               </div>
 
               <h3 className="relative z-10 mt-5 text-lg font-black tracking-tight text-slate-900 dark:text-white">
@@ -610,14 +643,17 @@ export function StudentDashboard() {
               </div>
 
               <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-blue-500/10 transition duration-500 group-hover:scale-150" />
+
             </button>
 
             {/* MOCK TEST */}
+
             <button
               type="button"
               onClick={() => undefined}
               className="group relative overflow-hidden rounded-[1.5rem] border border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-violet-900/50 dark:from-violet-950/30 dark:via-purple-950/20 dark:to-fuchsia-950/30"
             >
+
               <div className="relative z-10 flex items-start justify-between gap-4">
 
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-slate-900/70">
@@ -625,8 +661,9 @@ export function StudentDashboard() {
                 </div>
 
                 <span className="rounded-full bg-violet-600 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-white">
-                  Soon
+                  {boosterText.soon}
                 </span>
+
               </div>
 
               <h3 className="relative z-10 mt-5 text-lg font-black tracking-tight text-slate-900 dark:text-white">
@@ -646,14 +683,17 @@ export function StudentDashboard() {
               </div>
 
               <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-violet-500/10 transition duration-500 group-hover:scale-150" />
+
             </button>
 
             {/* EXAM TIPS */}
+
             <button
               type="button"
               onClick={() => undefined}
               className="group relative overflow-hidden rounded-[1.5rem] border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-orange-900/50 dark:from-orange-950/30 dark:via-amber-950/20 dark:to-yellow-950/30"
             >
+
               <div className="relative z-10 flex items-start justify-between gap-4">
 
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-slate-900/70">
@@ -661,8 +701,9 @@ export function StudentDashboard() {
                 </div>
 
                 <span className="rounded-full bg-orange-500 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-white">
-                  Soon
+                  {boosterText.soon}
                 </span>
+
               </div>
 
               <h3 className="relative z-10 mt-5 text-lg font-black tracking-tight text-slate-900 dark:text-white">
@@ -682,6 +723,7 @@ export function StudentDashboard() {
               </div>
 
               <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-orange-500/10 transition duration-500 group-hover:scale-150" />
+
             </button>
 
           </div>
@@ -716,7 +758,7 @@ export function StudentDashboard() {
               badgeClass="bg-violet-600"
               className="border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 dark:border-violet-900/50 dark:from-violet-950/30 dark:via-purple-950/20 dark:to-indigo-950/30"
               actionClass="text-violet-700 dark:text-violet-400"
-              onClick={handleVocabulary}
+              onClick={() => undefined}
             />
 
             <DashboardCard
@@ -740,18 +782,22 @@ export function StudentDashboard() {
 
         <section className="relative mt-10 overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-6 py-7 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:px-8">
 
-          <div className="absolute -right-20 -bottom-24 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
+          <div className="absolute -bottom-24 -right-20 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
 
           <div className="relative z-10 grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-center">
 
             <div>
 
               <div className="flex items-center gap-2">
-                <span className="text-lg">⭐</span>
+
+                <span className="text-lg">
+                  ⭐
+                </span>
 
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
                   {t("dashboard.about.label")}
                 </p>
+
               </div>
 
               <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-white">
@@ -761,6 +807,7 @@ export function StudentDashboard() {
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500 dark:text-slate-400">
                 {t("dashboard.about.description")}
               </p>
+
             </div>
 
             <div className="flex flex-wrap gap-3 lg:justify-end">
@@ -778,6 +825,7 @@ export function StudentDashboard() {
               </span>
 
             </div>
+
           </div>
         </section>
 
@@ -798,8 +846,10 @@ export function StudentDashboard() {
           <p className="text-center text-xs text-slate-400 sm:text-right">
             {t("dashboard.footer.tagline")}
           </p>
+
         </div>
       </footer>
+
     </div>
   );
 }
@@ -851,6 +901,7 @@ function DashboardCard({
             {badge}
           </span>
         )}
+
       </div>
 
       <h3 className="relative z-10 mt-6 text-xl font-black tracking-tight text-slate-900 dark:text-white">
@@ -872,6 +923,7 @@ function DashboardCard({
       </span>
 
       <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-white/20 transition duration-500 group-hover:scale-150 dark:bg-white/5" />
+
     </button>
   );
 }
