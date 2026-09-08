@@ -156,10 +156,13 @@ const TOPICS_BY_SUBJECT: Record<string, string[]> = {
   ],
 };
 
-export function QuickRevision() {
+export function FastRevision() {
   const navigate = useNavigate();
 
-  /* FORM */
+  // =========================================================
+  // FORM STATE
+  // =========================================================
+
   const [subject, setSubject] =
     useState("General Knowledge");
 
@@ -172,14 +175,20 @@ export function QuickRevision() {
   const [cardCount, setCardCount] =
     useState(10);
 
-  /* AI DATA */
+  // =========================================================
+  // AI DATA
+  // =========================================================
+
   const [cards, setCards] =
     useState<FlashCard[]>([]);
 
   const [quiz, setQuiz] =
     useState<QuizQuestion[]>([]);
 
-  /* UI */
+  // =========================================================
+  // UI STATE
+  // =========================================================
+
   const [loading, setLoading] =
     useState(false);
 
@@ -209,7 +218,10 @@ export function QuickRevision() {
   const [answers, setAnswers] =
     useState<number[]>([]);
 
-  /* SUBJECT CHANGE */
+  // =========================================================
+  // SUBJECT CHANGE
+  // =========================================================
+
   function handleSubjectChange(
     newSubject: string,
   ) {
@@ -218,7 +230,10 @@ export function QuickRevision() {
     setError("");
   }
 
-  /* GENERATE */
+  // =========================================================
+  // GENERATE REVISION
+  // =========================================================
+
   async function handleGenerate(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -281,9 +296,12 @@ export function QuickRevision() {
         data,
       );
 
+      // =====================================================
+      // HANDLE STRING RESPONSE
+      // =====================================================
+
       let result: unknown = data;
 
-      /* STRING RESPONSE */
       if (typeof result === "string") {
         try {
           result = JSON.parse(result);
@@ -299,7 +317,10 @@ export function QuickRevision() {
         }
       }
 
-      /* BACKEND ERROR */
+      // =====================================================
+      // HANDLE BACKEND ERROR
+      // =====================================================
+
       if (
         result &&
         typeof result === "object" &&
@@ -318,7 +339,10 @@ export function QuickRevision() {
         );
       }
 
-      /* BASIC VALIDATION */
+      // =====================================================
+      // BASIC VALIDATION
+      // =====================================================
+
       if (
         !result ||
         typeof result !== "object"
@@ -377,7 +401,10 @@ export function QuickRevision() {
         );
       }
 
-      /* SUCCESS */
+      // =====================================================
+      // SUCCESS
+      // =====================================================
+
       setCards(revisionResult.cards);
       setQuiz(revisionResult.quiz);
 
@@ -385,7 +412,7 @@ export function QuickRevision() {
       setMode("cards");
     } catch (err) {
       console.error(
-        "Quick Revision Error:",
+        "Fast Revision Error:",
         err,
       );
 
@@ -399,7 +426,10 @@ export function QuickRevision() {
     }
   }
 
-  /* NEXT CARD */
+  // =========================================================
+  // NEXT CARD
+  // =========================================================
+
   function handleNextCard() {
     setShowAnswer(false);
 
@@ -418,6 +448,10 @@ export function QuickRevision() {
     setSelectedAnswer(null);
   }
 
+  // =========================================================
+  // PREVIOUS CARD
+  // =========================================================
+
   function handlePreviousCard() {
     if (currentCard <= 0) {
       return;
@@ -430,7 +464,10 @@ export function QuickRevision() {
     );
   }
 
-  /* SELECT ANSWER */
+  // =========================================================
+  // SELECT QUIZ ANSWER
+  // =========================================================
+
   function handleSelectAnswer(
     answerIndex: number,
   ) {
@@ -441,7 +478,10 @@ export function QuickRevision() {
     setSelectedAnswer(answerIndex);
   }
 
-  /* NEXT QUESTION */
+  // =========================================================
+  // NEXT QUESTION
+  // =========================================================
+
   function handleNextQuestion() {
     if (selectedAnswer === null) {
       return;
@@ -469,7 +509,10 @@ export function QuickRevision() {
     setMode("result");
   }
 
-  /* RESTART */
+  // =========================================================
+  // RESTART
+  // =========================================================
+
   function handleRestart() {
     setStarted(false);
 
@@ -490,7 +533,10 @@ export function QuickRevision() {
     setTopic("");
   }
 
-  /* SCORE */
+  // =========================================================
+  // SCORE
+  // =========================================================
+
   const score = answers.reduce(
     (total, answer, index) => {
       if (
@@ -506,7 +552,9 @@ export function QuickRevision() {
     0,
   );
 
-  /* ================= FORM ================= */
+  // =========================================================
+  // FORM SCREEN
+  // =========================================================
 
   if (!started) {
     const availableTopics =
@@ -516,6 +564,7 @@ export function QuickRevision() {
       <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 dark:bg-slate-950 dark:text-white">
         <div className="mx-auto max-w-5xl">
 
+          {/* BACK */}
           <button
             type="button"
             onClick={() =>
@@ -526,14 +575,17 @@ export function QuickRevision() {
             ← Back to Dashboard
           </button>
 
-          {/* HERO */}
+          {/* ===================================================
+              HERO
+          ==================================================== */}
+
           <div className="overflow-hidden rounded-t-3xl bg-gradient-to-r from-purple-700 via-violet-600 to-blue-600 px-6 py-8 text-white shadow-xl sm:px-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold backdrop-blur">
               ⚡ AI Powered Revision
             </div>
 
             <h1 className="mt-5 text-3xl font-bold sm:text-4xl">
-              Quick Revision
+              Fast Revision
             </h1>
 
             <p className="mt-3 text-sm text-purple-100 sm:text-base">
@@ -546,7 +598,10 @@ export function QuickRevision() {
             </p>
           </div>
 
-          {/* FORM */}
+          {/* ===================================================
+              FORM
+          ==================================================== */}
+
           <form
             onSubmit={handleGenerate}
             className="rounded-b-3xl bg-white p-5 shadow-xl dark:bg-slate-900 sm:p-8"
@@ -619,7 +674,13 @@ export function QuickRevision() {
               </label>
 
               <select
-                value={topic}
+                value={
+                  availableTopics.includes(
+                    topic,
+                  )
+                    ? topic
+                    : ""
+                }
                 onChange={(event) =>
                   setTopic(
                     event.target.value,
@@ -647,7 +708,9 @@ export function QuickRevision() {
               <input
                 type="text"
                 value={
-                  availableTopics.includes(topic)
+                  availableTopics.includes(
+                    topic,
+                  )
                     ? ""
                     : topic
                 }
@@ -703,7 +766,7 @@ export function QuickRevision() {
               </div>
             )}
 
-            {/* BUTTON */}
+            {/* GENERATE BUTTON */}
             <button
               type="submit"
               disabled={
@@ -740,7 +803,9 @@ export function QuickRevision() {
     );
   }
 
-  /* ================= FLASHCARDS ================= */
+  // =========================================================
+  // FLASHCARDS
+  // =========================================================
 
   if (
     mode === "cards" &&
@@ -752,7 +817,8 @@ export function QuickRevision() {
       <div className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-slate-950">
         <div className="mx-auto max-w-3xl">
 
-          <div className="mb-6 flex items-center justify-between">
+          {/* TOP BAR */}
+          <div className="mb-6 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={handleRestart}
@@ -767,6 +833,7 @@ export function QuickRevision() {
             </span>
           </div>
 
+          {/* PROGRESS */}
           <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className="h-full rounded-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all"
@@ -780,7 +847,10 @@ export function QuickRevision() {
             />
           </div>
 
+          {/* CARD */}
           <div className="overflow-hidden rounded-3xl bg-white shadow-xl dark:bg-slate-900">
+
+            {/* CARD HEADER */}
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-5 text-white">
               <p className="text-xs font-bold uppercase tracking-wider text-purple-100">
                 {card.topic}
@@ -806,6 +876,7 @@ export function QuickRevision() {
                 </p>
               </div>
 
+              {/* SHOW ANSWER */}
               {!showAnswer ? (
                 <button
                   type="button"
@@ -846,6 +917,7 @@ export function QuickRevision() {
                 </div>
               )}
 
+              {/* NAVIGATION */}
               <div className="mt-8 flex gap-3">
                 <button
                   type="button"
@@ -880,7 +952,9 @@ export function QuickRevision() {
     );
   }
 
-  /* ================= QUIZ ================= */
+  // =========================================================
+  // QUIZ
+  // =========================================================
 
   if (
     mode === "quiz" &&
@@ -893,25 +967,27 @@ export function QuickRevision() {
       <div className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-slate-950">
         <div className="mx-auto max-w-3xl">
 
-          <div className="mb-6 flex items-center justify-between">
+          {/* HEADER */}
+          <div className="mb-6 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-purple-600">
                 📝 AI Quiz
               </p>
 
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Question{" "}
                 {currentQuestion + 1} of{" "}
                 {quiz.length}
               </p>
             </div>
 
-            <span className="rounded-full bg-blue-100 px-4 py-2 text-xs font-bold text-blue-700">
+            <span className="rounded-full bg-blue-100 px-4 py-2 text-xs font-bold text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
               MCQ Practice
             </span>
           </div>
 
-          <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200">
+          {/* PROGRESS */}
+          <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className="h-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all"
               style={{
@@ -924,6 +1000,7 @@ export function QuickRevision() {
             />
           </div>
 
+          {/* QUESTION */}
           <div className="rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 sm:p-8">
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               {question.question_en}
@@ -933,6 +1010,7 @@ export function QuickRevision() {
               {question.question_hi}
             </p>
 
+            {/* OPTIONS */}
             <div className="mt-8 space-y-3">
               {question.options.map(
                 (option, index) => {
@@ -944,19 +1022,19 @@ export function QuickRevision() {
                     index ===
                     question.correctAnswer;
 
-                  let className =
+                  let optionClass =
                     "border-slate-200 bg-white hover:border-purple-400 dark:border-slate-700 dark:bg-slate-800";
 
                   if (
                     selectedAnswer !== null
                   ) {
                     if (isCorrect) {
-                      className =
+                      optionClass =
                         "border-green-500 bg-green-50 dark:bg-green-950/30";
                     } else if (
                       isSelected
                     ) {
-                      className =
+                      optionClass =
                         "border-red-500 bg-red-50 dark:bg-red-950/30";
                     }
                   }
@@ -974,7 +1052,7 @@ export function QuickRevision() {
                           index,
                         )
                       }
-                      className={`w-full rounded-2xl border p-4 text-left transition ${className}`}
+                      className={`w-full rounded-2xl border p-4 text-left transition ${optionClass}`}
                     >
                       <div className="flex gap-4">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold dark:bg-slate-700">
@@ -999,6 +1077,7 @@ export function QuickRevision() {
               )}
             </div>
 
+            {/* EXPLANATION */}
             {selectedAnswer !== null && (
               <div className="mt-6 rounded-2xl bg-blue-50 p-5 dark:bg-blue-950/30">
                 <p className="font-bold text-blue-700 dark:text-blue-300">
@@ -1015,6 +1094,7 @@ export function QuickRevision() {
               </div>
             )}
 
+            {/* NEXT */}
             <button
               type="button"
               disabled={
@@ -1036,7 +1116,9 @@ export function QuickRevision() {
     );
   }
 
-  /* ================= RESULT ================= */
+  // =========================================================
+  // RESULT
+  // =========================================================
 
   if (mode === "result") {
     const percentage =
@@ -1051,6 +1133,7 @@ export function QuickRevision() {
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8 dark:bg-slate-950">
         <div className="w-full max-w-2xl rounded-3xl bg-white p-8 text-center shadow-xl dark:bg-slate-900">
 
+          {/* RESULT ICON */}
           <div className="text-6xl">
             {percentage >= 80
               ? "🏆"
@@ -1063,12 +1146,13 @@ export function QuickRevision() {
             Revision Complete!
           </h1>
 
-          <p className="mt-2 text-slate-500">
+          <p className="mt-2 text-slate-500 dark:text-slate-400">
             रिवीजन पूरा हो गया
           </p>
 
+          {/* SCORE CIRCLE */}
           <div className="mx-auto mt-8 flex h-40 w-40 flex-col items-center justify-center rounded-full border-8 border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-950/30">
-            <span className="text-4xl font-bold text-purple-600">
+            <span className="text-4xl font-bold text-purple-600 dark:text-purple-400">
               {percentage}%
             </span>
 
@@ -1077,6 +1161,7 @@ export function QuickRevision() {
             </span>
           </div>
 
+          {/* SCORE DETAILS */}
           <div className="mt-8 grid grid-cols-3 gap-3">
             <div className="rounded-2xl bg-slate-100 p-4 dark:bg-slate-800">
               <p className="text-xs text-slate-500">
@@ -1089,31 +1174,32 @@ export function QuickRevision() {
             </div>
 
             <div className="rounded-2xl bg-green-50 p-4 dark:bg-green-950/30">
-              <p className="text-xs text-green-600">
+              <p className="text-xs text-green-600 dark:text-green-400">
                 Correct
               </p>
 
-              <p className="mt-1 text-xl font-bold text-green-600">
+              <p className="mt-1 text-xl font-bold text-green-600 dark:text-green-400">
                 {score}
               </p>
             </div>
 
             <div className="rounded-2xl bg-red-50 p-4 dark:bg-red-950/30">
-              <p className="text-xs text-red-600">
+              <p className="text-xs text-red-600 dark:text-red-400">
                 Incorrect
               </p>
 
-              <p className="mt-1 text-xl font-bold text-red-600">
+              <p className="mt-1 text-xl font-bold text-red-600 dark:text-red-400">
                 {quiz.length - score}
               </p>
             </div>
           </div>
 
+          {/* ACTIONS */}
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={handleRestart}
-              className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-bold text-white"
+              className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-4 font-bold text-white shadow-lg"
             >
               🔄 New Revision
             </button>
@@ -1138,4 +1224,4 @@ export function QuickRevision() {
   return null;
 }
 
-export default QuickRevision;
+export default FastRevision;
