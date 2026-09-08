@@ -20,44 +20,94 @@ interface MCQ {
 
 interface CurrentAffair {
   id?: string;
+
   affair_date: string;
   serial_no: number;
+
   title: string;
   why_in_news: string;
   key_facts: string;
   exam_point: string;
   static_gk: string;
+
   mcqs: MCQ[];
-  published?: boolean;
+
+  published: boolean;
+  category: string;
+
+  title_hi: string;
+  why_in_news_hi: string;
+  key_facts_hi: string;
+  exam_point_hi: string;
+  static_gk_hi: string;
 }
+
+/* =====================================================
+   CONSTANTS
+===================================================== */
+
+const CATEGORIES = [
+  "National",
+  "International",
+  "Economy",
+  "Science & Technology",
+  "Environment",
+  "Defence",
+  "Sports",
+  "Awards",
+  "Appointments",
+  "Government Schemes",
+  "Reports & Index",
+  "Important Days",
+  "Other",
+];
 
 /* =====================================================
    EMPTY FORM
 ===================================================== */
 
-const createEmptyForm = (): CurrentAffair => ({
-  affair_date: new Date().toISOString().slice(0, 10),
-  serial_no: 1,
-  title: "",
-  why_in_news: "",
-  key_facts: "",
-  exam_point: "",
-  static_gk: "",
-  mcqs: [],
-  published: true,
-});
+function createEmptyForm(): CurrentAffair {
+  return {
+    affair_date: new Date()
+      .toISOString()
+      .slice(0, 10),
+
+    serial_no: 1,
+
+    title: "",
+    why_in_news: "",
+    key_facts: "",
+    exam_point: "",
+    static_gk: "",
+
+    mcqs: [],
+
+    published: true,
+    category: "National",
+
+    title_hi: "",
+    why_in_news_hi: "",
+    key_facts_hi: "",
+    exam_point_hi: "",
+    static_gk_hi: "",
+  };
+}
 
 /* =====================================================
-   MAIN
+   MAIN COMPONENT
 ===================================================== */
 
 export function AdminCurrentAffairs() {
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
 
-  const [records, setRecords] = useState<
-    CurrentAffair[]
-  >([]);
+  const {
+    user,
+    profile,
+    signOut,
+  } = useAuth();
+
+  const [records, setRecords] =
+    useState<CurrentAffair[]>([]);
 
   const [form, setForm] =
     useState<CurrentAffair>(
@@ -73,17 +123,17 @@ export function AdminCurrentAffairs() {
   const [editingId, setEditingId] =
     useState<string | null>(null);
 
-  const [message, setMessage] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
   const [showForm, setShowForm] =
     useState(false);
 
   const [showCSV, setShowCSV] =
     useState(false);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
 
   const [csvFileName, setCSVFileName] =
     useState("");
@@ -91,13 +141,13 @@ export function AdminCurrentAffairs() {
   const [csvRows, setCSVRows] =
     useState<CurrentAffair[]>([]);
 
+  /* =====================================================
+     LOAD
+  ===================================================== */
+
   useEffect(() => {
     void loadCurrentAffairs();
   }, []);
-
-  /* ===================================================
-     HELPERS
-  =================================================== */
 
   function clearMessages() {
     setMessage("");
@@ -114,15 +164,6 @@ export function AdminCurrentAffairs() {
     setError(text);
   }
 
-  async function handleLogout() {
-    await signOut();
-    navigate("/admin/login");
-  }
-
-  /* ===================================================
-     LOAD
-  =================================================== */
-
   async function loadCurrentAffairs() {
     setLoadingRecords(true);
 
@@ -133,7 +174,24 @@ export function AdminCurrentAffairs() {
       } = await supabase
         .from("current_affairs")
         .select(
-          "id,affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs,published",
+          [
+            "id",
+            "affair_date",
+            "serial_no",
+            "title",
+            "why_in_news",
+            "key_facts",
+            "exam_point",
+            "static_gk",
+            "mcqs",
+            "published",
+            "category",
+            "title_hi",
+            "why_in_news_hi",
+            "key_facts_hi",
+            "exam_point_hi",
+            "static_gk_hi",
+          ].join(","),
         )
         .order("affair_date", {
           ascending: false,
@@ -149,29 +207,56 @@ export function AdminCurrentAffairs() {
       const normalized =
         (data ?? []).map((row) => ({
           id: row.id,
+
           affair_date:
             row.affair_date ?? "",
+
           serial_no:
             Number(row.serial_no ?? 1),
+
           title:
             row.title ?? "",
+
           why_in_news:
             row.why_in_news ?? "",
+
           key_facts:
             row.key_facts ?? "",
+
           exam_point:
             row.exam_point ?? "",
+
           static_gk:
             row.static_gk ?? "",
-          mcqs:
-            Array.isArray(row.mcqs)
-              ? normalizeMCQs(row.mcqs)
-              : [],
+
+          mcqs: normalizeMCQs(
+            row.mcqs,
+          ),
+
           published:
             typeof row.published ===
             "boolean"
               ? row.published
               : true,
+
+          category:
+            row.category ||
+            "Other",
+
+          title_hi:
+            row.title_hi ?? "",
+
+          why_in_news_hi:
+            row.why_in_news_hi ?? "",
+
+          key_facts_hi:
+            row.key_facts_hi ?? "",
+
+          exam_point_hi:
+            row.exam_point_hi ?? "",
+
+          static_gk_hi:
+            row.static_gk_hi ?? "",
         }));
 
       setRecords(normalized);
@@ -192,9 +277,18 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  /* ===================================================
+  /* =====================================================
+     AUTH
+  ===================================================== */
+
+  async function handleLogout() {
+    await signOut();
+    navigate("/admin/login");
+  }
+
+  /* =====================================================
      FORM
-  =================================================== */
+  ===================================================== */
 
   function openAddForm() {
     clearMessages();
@@ -209,18 +303,23 @@ export function AdminCurrentAffairs() {
   ) {
     clearMessages();
 
-    setEditingId(row.id ?? null);
+    setEditingId(
+      row.id ?? null,
+    );
 
     setForm({
       ...row,
-      mcqs: Array.isArray(row.mcqs)
-        ? normalizeMCQs(row.mcqs)
-        : [],
+
+      mcqs: normalizeMCQs(
+        row.mcqs,
+      ),
+
       published:
-        typeof row.published ===
-        "boolean"
-          ? row.published
-          : true,
+        row.published !== false,
+
+      category:
+        row.category ||
+        "Other",
     });
 
     setShowForm(true);
@@ -249,24 +348,28 @@ export function AdminCurrentAffairs() {
     }));
   }
 
-  /* ===================================================
-     MCQ FORM
-  =================================================== */
+  /* =====================================================
+     MCQ
+  ===================================================== */
 
   function addMCQ() {
     setForm((previous) => ({
       ...previous,
+
       mcqs: [
         ...previous.mcqs,
         {
           question: "",
+
           options: [
             "",
             "",
             "",
             "",
           ],
+
           answer: "",
+
           explanation: "",
         },
       ],
@@ -276,7 +379,9 @@ export function AdminCurrentAffairs() {
   function updateMCQ(
     mcqIndex: number,
     field: keyof MCQ,
-    value: string | string[],
+    value:
+      | string
+      | string[],
   ) {
     setForm((previous) => {
       const mcqs = [
@@ -317,7 +422,8 @@ export function AdminCurrentAffairs() {
         ...mcqs[mcqIndex].options,
       ];
 
-      options[optionIndex] = value;
+      options[optionIndex] =
+        value;
 
       mcqs[mcqIndex] = {
         ...mcqs[mcqIndex],
@@ -336,16 +442,14 @@ export function AdminCurrentAffairs() {
   ) {
     setForm((previous) => ({
       ...previous,
-      mcqs: previous.mcqs.filter(
-        (_, index) =>
-          index !== mcqIndex,
-      ),
+
+      mcqs:
+        previous.mcqs.filter(
+          (_, index) =>
+            index !== mcqIndex,
+        ),
     }));
   }
-
-  /* ===================================================
-     MCQ VALIDATION
-  =================================================== */
 
   function validateMCQs(
     mcqs: MCQ[],
@@ -416,6 +520,10 @@ export function AdminCurrentAffairs() {
     return null;
   }
 
+  /* =====================================================
+     FORM VALIDATION
+  ===================================================== */
+
   function validateForm():
     string | null {
     if (!form.affair_date) {
@@ -432,23 +540,57 @@ export function AdminCurrentAffairs() {
     }
 
     if (!form.title.trim()) {
-      return "Title is required.";
+      return "English title is required.";
     }
 
-    if (!form.why_in_news.trim()) {
-      return "Why in News is required.";
+    if (
+      !form.why_in_news.trim()
+    ) {
+      return "English Why in News is required.";
     }
 
     if (!form.key_facts.trim()) {
-      return "Key Facts are required.";
+      return "English Key Facts are required.";
     }
 
     if (!form.exam_point.trim()) {
-      return "Exam Point is required.";
+      return "English Exam Point is required.";
     }
 
     if (!form.static_gk.trim()) {
-      return "Static GK is required.";
+      return "English Static GK is required.";
+    }
+
+    if (!form.category.trim()) {
+      return "Category is required.";
+    }
+
+    if (!form.title_hi.trim()) {
+      return "Hindi title is required.";
+    }
+
+    if (
+      !form.why_in_news_hi.trim()
+    ) {
+      return "Hindi Why in News is required.";
+    }
+
+    if (
+      !form.key_facts_hi.trim()
+    ) {
+      return "Hindi Key Facts are required.";
+    }
+
+    if (
+      !form.exam_point_hi.trim()
+    ) {
+      return "Hindi Exam Point is required.";
+    }
+
+    if (
+      !form.static_gk_hi.trim()
+    ) {
+      return "Hindi Static GK is required.";
     }
 
     return validateMCQs(
@@ -456,9 +598,9 @@ export function AdminCurrentAffairs() {
     );
   }
 
-  /* ===================================================
+  /* =====================================================
      SAVE
-  =================================================== */
+  ===================================================== */
 
   async function handleSave() {
     clearMessages();
@@ -467,7 +609,9 @@ export function AdminCurrentAffairs() {
       validateForm();
 
     if (validationError) {
-      setFailure(validationError);
+      setFailure(
+        validationError,
+      );
       return;
     }
 
@@ -477,22 +621,50 @@ export function AdminCurrentAffairs() {
       const payload = {
         affair_date:
           form.affair_date,
+
         serial_no:
           Number(form.serial_no),
+
         title:
           form.title.trim(),
+
         why_in_news:
           form.why_in_news.trim(),
+
         key_facts:
           form.key_facts.trim(),
+
         exam_point:
           form.exam_point.trim(),
+
         static_gk:
           form.static_gk.trim(),
+
         mcqs:
-          normalizeMCQs(form.mcqs),
+          normalizeMCQs(
+            form.mcqs,
+          ),
+
         published:
-          form.published ?? true,
+          form.published,
+
+        category:
+          form.category.trim(),
+
+        title_hi:
+          form.title_hi.trim(),
+
+        why_in_news_hi:
+          form.why_in_news_hi.trim(),
+
+        key_facts_hi:
+          form.key_facts_hi.trim(),
+
+        exam_point_hi:
+          form.exam_point_hi.trim(),
+
+        static_gk_hi:
+          form.static_gk_hi.trim(),
       };
 
       if (editingId) {
@@ -501,7 +673,10 @@ export function AdminCurrentAffairs() {
         } = await supabase
           .from("current_affairs")
           .update(payload)
-          .eq("id", editingId);
+          .eq(
+            "id",
+            editingId,
+          );
 
         if (updateError) {
           throw updateError;
@@ -515,7 +690,9 @@ export function AdminCurrentAffairs() {
           error: insertError,
         } = await supabase
           .from("current_affairs")
-          .insert(payload);
+          .insert(
+            payload,
+          );
 
         if (insertError) {
           throw insertError;
@@ -548,9 +725,9 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  /* ===================================================
+  /* =====================================================
      DELETE
-  =================================================== */
+  ===================================================== */
 
   async function handleDelete(
     id: string,
@@ -586,7 +763,7 @@ export function AdminCurrentAffairs() {
       await loadCurrentAffairs();
     } catch (err) {
       console.error(
-        "Delete error:",
+        "Delete current affair error:",
         err,
       );
 
@@ -601,9 +778,9 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  /* ===================================================
+  /* =====================================================
      CSV PARSER
-  =================================================== */
+  ===================================================== */
 
   function parseCSVRows(
     text: string,
@@ -642,8 +819,12 @@ export function AdminCurrentAffairs() {
         char === "," &&
         !insideQuotes
       ) {
-        row.push(value.trim());
+        row.push(
+          value.trim(),
+        );
+
         value = "";
+
         continue;
       }
 
@@ -659,7 +840,9 @@ export function AdminCurrentAffairs() {
           i++;
         }
 
-        row.push(value.trim());
+        row.push(
+          value.trim(),
+        );
 
         if (
           row.some(
@@ -706,26 +889,6 @@ export function AdminCurrentAffairs() {
       );
   }
 
-  function getCSVValue(
-    row: Record<string, string>,
-    aliases: string[],
-  ): string {
-    for (const alias of aliases) {
-      const value =
-        row[alias];
-
-      if (
-        typeof value ===
-          "string" &&
-        value.trim()
-      ) {
-        return value.trim();
-      }
-    }
-
-    return "";
-  }
-
   function parseBoolean(
     value: string,
   ): boolean {
@@ -742,9 +905,9 @@ export function AdminCurrentAffairs() {
     );
   }
 
-  /* ===================================================
-     CSV MCQ NORMALIZER
-  =================================================== */
+  /* =====================================================
+     CSV MCQ JSON
+  ===================================================== */
 
   function parseMCQsFromCSV(
     text: string,
@@ -855,9 +1018,9 @@ export function AdminCurrentAffairs() {
     return mcqs;
   }
 
-  /* ===================================================
-     CSV → CURRENT AFFAIRS
-  =================================================== */
+  /* =====================================================
+     CSV FIELD ALIASES
+  ===================================================== */
 
   function parseCSV(
     text: string,
@@ -937,19 +1100,59 @@ export function AdminCurrentAffairs() {
         "published",
         "is_published",
       ],
+
+      category: [
+        "category",
+        "categories",
+      ],
+
+      title_hi: [
+        "title_hi",
+        "title_hindi",
+        "hindi_title",
+      ],
+
+      why_in_news_hi: [
+        "why_in_news_hi",
+        "why_in_news_hindi",
+        "hindi_why_in_news",
+      ],
+
+      key_facts_hi: [
+        "key_facts_hi",
+        "key_facts_hindi",
+        "hindi_key_facts",
+      ],
+
+      exam_point_hi: [
+        "exam_point_hi",
+        "exam_point_hindi",
+        "hindi_exam_point",
+      ],
+
+      static_gk_hi: [
+        "static_gk_hi",
+        "static_gk_hindi",
+        "hindi_static_gk",
+      ],
     };
 
-    const requiredFields =
-      [
-        "affair_date",
-        "serial_no",
-        "title",
-        "why_in_news",
-        "key_facts",
-        "exam_point",
-        "static_gk",
-        "mcqs",
-      ] as const;
+    const requiredFields = [
+      "affair_date",
+      "serial_no",
+      "title",
+      "why_in_news",
+      "key_facts",
+      "exam_point",
+      "static_gk",
+      "mcqs",
+      "category",
+      "title_hi",
+      "why_in_news_hi",
+      "key_facts_hi",
+      "exam_point_hi",
+      "static_gk_hi",
+    ] as const;
 
     const columnIndexes =
       new Map<
@@ -1043,7 +1246,9 @@ export function AdminCurrentAffairs() {
             );
 
           const title =
-            getColumn("title");
+            getColumn(
+              "title",
+            );
 
           const whyInNews =
             getColumn(
@@ -1071,6 +1276,36 @@ export function AdminCurrentAffairs() {
           const publishedText =
             getColumn(
               "published",
+            );
+
+          const category =
+            getColumn(
+              "category",
+            );
+
+          const titleHi =
+            getColumn(
+              "title_hi",
+            );
+
+          const whyInNewsHi =
+            getColumn(
+              "why_in_news_hi",
+            );
+
+          const keyFactsHi =
+            getColumn(
+              "key_facts_hi",
+            );
+
+          const examPointHi =
+            getColumn(
+              "exam_point_hi",
+            );
+
+          const staticGKHi =
+            getColumn(
+              "static_gk_hi",
             );
 
           if (!affairDate) {
@@ -1128,6 +1363,42 @@ export function AdminCurrentAffairs() {
             );
           }
 
+          if (!category) {
+            throw new Error(
+              `Row ${rowNumber}: category is required.`,
+            );
+          }
+
+          if (!titleHi) {
+            throw new Error(
+              `Row ${rowNumber}: title_hi is required.`,
+            );
+          }
+
+          if (!whyInNewsHi) {
+            throw new Error(
+              `Row ${rowNumber}: why_in_news_hi is required.`,
+            );
+          }
+
+          if (!keyFactsHi) {
+            throw new Error(
+              `Row ${rowNumber}: key_facts_hi is required.`,
+            );
+          }
+
+          if (!examPointHi) {
+            throw new Error(
+              `Row ${rowNumber}: exam_point_hi is required.`,
+            );
+          }
+
+          if (!staticGKHi) {
+            throw new Error(
+              `Row ${rowNumber}: static_gk_hi is required.`,
+            );
+          }
+
           const mcqs =
             parseMCQsFromCSV(
               mcqsText,
@@ -1137,24 +1408,49 @@ export function AdminCurrentAffairs() {
           result.push({
             affair_date:
               affairDate,
+
             serial_no:
               serialNo,
+
             title,
+
             why_in_news:
               whyInNews,
+
             key_facts:
               keyFacts,
+
             exam_point:
               examPoint,
+
             static_gk:
               staticGK,
+
             mcqs,
+
             published:
               publishedText
                 ? parseBoolean(
                     publishedText,
                   )
                 : true,
+
+            category,
+
+            title_hi:
+              titleHi,
+
+            why_in_news_hi:
+              whyInNewsHi,
+
+            key_facts_hi:
+              keyFactsHi,
+
+            exam_point_hi:
+              examPointHi,
+
+            static_gk_hi:
+              staticGKHi,
           });
         },
       );
@@ -1168,9 +1464,9 @@ export function AdminCurrentAffairs() {
     return result;
   }
 
-  /* ===================================================
-     CSV FILE SELECT
-  =================================================== */
+  /* =====================================================
+     CSV FILE
+  ===================================================== */
 
   async function handleCSVFile(
     event: ChangeEvent<HTMLInputElement>,
@@ -1192,6 +1488,7 @@ export function AdminCurrentAffairs() {
       setFailure(
         "Please select a valid CSV file.",
       );
+
       return;
     }
 
@@ -1233,9 +1530,9 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  /* ===================================================
+  /* =====================================================
      CSV UPLOAD
-  =================================================== */
+  ===================================================== */
 
   async function handleCSVUpload() {
     clearMessages();
@@ -1244,6 +1541,7 @@ export function AdminCurrentAffairs() {
       setFailure(
         "Please select a valid CSV file first.",
       );
+
       return;
     }
 
@@ -1254,24 +1552,50 @@ export function AdminCurrentAffairs() {
         csvRows.map((row) => ({
           affair_date:
             row.affair_date,
+
           serial_no:
             Number(row.serial_no),
+
           title:
             row.title.trim(),
+
           why_in_news:
             row.why_in_news.trim(),
+
           key_facts:
             row.key_facts.trim(),
+
           exam_point:
             row.exam_point.trim(),
+
           static_gk:
             row.static_gk.trim(),
+
           mcqs:
             normalizeMCQs(
               row.mcqs,
             ),
+
           published:
-            row.published ?? true,
+            row.published,
+
+          category:
+            row.category.trim(),
+
+          title_hi:
+            row.title_hi.trim(),
+
+          why_in_news_hi:
+            row.why_in_news_hi.trim(),
+
+          key_facts_hi:
+            row.key_facts_hi.trim(),
+
+          exam_point_hi:
+            row.exam_point_hi.trim(),
+
+          static_gk_hi:
+            row.static_gk_hi.trim(),
         }));
 
       const {
@@ -1314,9 +1638,9 @@ export function AdminCurrentAffairs() {
     }
   }
 
-  /* ===================================================
+  /* =====================================================
      STATS
-  =================================================== */
+  ===================================================== */
 
   const today =
     new Date()
@@ -1333,20 +1657,27 @@ export function AdminCurrentAffairs() {
   const publishedCount =
     records.filter(
       (record) =>
-        record.published !==
-        false,
+        record.published,
     ).length;
 
-  /* ===================================================
+  const hindiCompleteCount =
+    records.filter(
+      (record) =>
+        record.title_hi &&
+        record.why_in_news_hi &&
+        record.key_facts_hi &&
+        record.exam_point_hi &&
+        record.static_gk_hi,
+    ).length;
+
+  /* =====================================================
      UI
-  =================================================== */
+  ===================================================== */
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* HEADER */}
 
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
@@ -1370,16 +1701,16 @@ export function AdminCurrentAffairs() {
           >
             Logout
           </button>
+
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
 
-        {/* =================================================
-            WELCOME
-        ================================================= */}
+        {/* WELCOME */}
 
         <div className="mb-8 overflow-hidden rounded-3xl bg-slate-900 p-6 text-white sm:p-8">
+
           <p className="text-sm text-slate-400">
             Welcome Admin
           </p>
@@ -1391,15 +1722,14 @@ export function AdminCurrentAffairs() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Manage daily exam-focused current affairs for VIDYZEN students.
+            Manage English + Hindi exam-focused current affairs for VIDYZEN students.
           </p>
+
         </div>
 
-        {/* =================================================
-            STATS
-        ================================================= */}
+        {/* STATS */}
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
           <StatCard
             label="Total Affairs"
@@ -1409,15 +1739,27 @@ export function AdminCurrentAffairs() {
 
           <StatCard
             label="Today"
-            value={todayRecords.length}
+            value={
+              todayRecords.length
+            }
             icon="📅"
             accent
           />
 
           <StatCard
             label="Published"
-            value={publishedCount}
+            value={
+              publishedCount
+            }
             icon="🌐"
+          />
+
+          <StatCard
+            label="Hindi Ready"
+            value={
+              hindiCompleteCount
+            }
+            icon="🇮🇳"
           />
 
           <StatCard
@@ -1425,11 +1767,10 @@ export function AdminCurrentAffairs() {
             value={10}
             icon="🎯"
           />
+
         </div>
 
-        {/* =================================================
-            ACTIONS
-        ================================================= */}
+        {/* ACTIONS */}
 
         <div className="mb-6 flex flex-wrap gap-3">
 
@@ -1467,11 +1808,10 @@ export function AdminCurrentAffairs() {
           >
             ← Dashboard
           </button>
+
         </div>
 
-        {/* =================================================
-            MESSAGES
-        ================================================= */}
+        {/* MESSAGES */}
 
         {error && (
           <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -1485,9 +1825,7 @@ export function AdminCurrentAffairs() {
           </div>
         )}
 
-        {/* =================================================
-            RECORD LIST
-        ================================================= */}
+        {/* TABLE */}
 
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
@@ -1499,7 +1837,7 @@ export function AdminCurrentAffairs() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                All uploaded current affairs
+                English + Hindi content
               </p>
             </div>
 
@@ -1517,14 +1855,17 @@ export function AdminCurrentAffairs() {
                 ? "Loading..."
                 : "Refresh"}
             </button>
+
           </div>
 
           {loadingRecords ? (
             <div className="p-12 text-center text-sm text-slate-500">
               Loading current affairs...
             </div>
-          ) : records.length === 0 ? (
+          ) : records.length ===
+            0 ? (
             <div className="p-12 text-center">
+
               <div className="text-5xl">
                 📰
               </div>
@@ -1536,13 +1877,16 @@ export function AdminCurrentAffairs() {
               <p className="mt-1 text-sm text-slate-500">
                 Add today's current affairs or upload a CSV.
               </p>
+
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-[1100px] w-full text-left text-sm">
+
+              <table className="min-w-[1250px] w-full text-left text-sm">
 
                 <thead className="bg-slate-100">
                   <tr>
+
                     <th className="px-4 py-3 font-bold">
                       Date
                     </th>
@@ -1552,11 +1896,15 @@ export function AdminCurrentAffairs() {
                     </th>
 
                     <th className="px-4 py-3 font-bold">
-                      Title
+                      English
                     </th>
 
                     <th className="px-4 py-3 font-bold">
-                      Exam Point
+                      Hindi
+                    </th>
+
+                    <th className="px-4 py-3 font-bold">
+                      Category
                     </th>
 
                     <th className="px-4 py-3 font-bold">
@@ -1570,10 +1918,12 @@ export function AdminCurrentAffairs() {
                     <th className="px-4 py-3 font-bold">
                       Actions
                     </th>
+
                   </tr>
                 </thead>
 
                 <tbody>
+
                   {records.map(
                     (record) => (
                       <tr
@@ -1582,38 +1932,73 @@ export function AdminCurrentAffairs() {
                         }
                         className="border-t border-slate-100 transition hover:bg-slate-50"
                       >
+
                         <td className="px-4 py-4 whitespace-nowrap">
-                          {record.affair_date}
+                          {
+                            record.affair_date
+                          }
                         </td>
 
                         <td className="px-4 py-4 font-black">
-                          {record.serial_no}
+                          {
+                            record.serial_no
+                          }
                         </td>
 
-                        <td className="max-w-[350px] px-4 py-4">
+                        <td className="max-w-[280px] px-4 py-4">
+
                           <p className="font-bold">
-                            {record.title}
+                            {
+                              record.title
+                            }
                           </p>
 
                           <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-                            {record.why_in_news}
+                            {
+                              record.why_in_news
+                            }
                           </p>
+
                         </td>
 
-                        <td className="max-w-[280px] px-4 py-4 text-slate-600">
-                          <span className="line-clamp-2">
-                            {record.exam_point ||
-                              "—"}
-                          </span>
-                        </td>
+                        <td className="max-w-[280px] px-4 py-4">
 
-                        <td className="px-4 py-4 font-semibold">
-                          {record.mcqs.length}
+                          <p className="font-bold">
+                            {
+                              record.title_hi ||
+                              "—"
+                            }
+                          </p>
+
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                            {
+                              record.why_in_news_hi ||
+                              "—"
+                            }
+                          </p>
+
                         </td>
 
                         <td className="px-4 py-4">
-                          {record.published !==
-                          false ? (
+
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                            {
+                              record.category
+                            }
+                          </span>
+
+                        </td>
+
+                        <td className="px-4 py-4 font-semibold">
+                          {
+                            record.mcqs
+                              .length
+                          }
+                        </td>
+
+                        <td className="px-4 py-4">
+
+                          {record.published ? (
                             <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
                               Published
                             </span>
@@ -1622,10 +2007,13 @@ export function AdminCurrentAffairs() {
                               Draft
                             </span>
                           )}
+
                         </td>
 
                         <td className="px-4 py-4">
+
                           <div className="flex gap-2">
+
                             <button
                               type="button"
                               onClick={() =>
@@ -1656,16 +2044,24 @@ export function AdminCurrentAffairs() {
                             >
                               Delete
                             </button>
+
                           </div>
+
                         </td>
+
                       </tr>
                     ),
                   )}
+
                 </tbody>
+
               </table>
+
             </div>
           )}
+
         </section>
+
       </main>
 
       {/* =================================================
@@ -1675,7 +2071,9 @@ export function AdminCurrentAffairs() {
       {showForm && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
 
-          <div className="mx-auto my-6 max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:my-10">
+          <div className="mx-auto my-6 max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:my-10">
+
+            {/* MODAL HEADER */}
 
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
 
@@ -1687,7 +2085,7 @@ export function AdminCurrentAffairs() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Create exam-focused current affairs.
+                  English + Hindi content
                 </p>
               </div>
 
@@ -1703,152 +2101,309 @@ export function AdminCurrentAffairs() {
               >
                 ×
               </button>
+
             </div>
 
-            <div className="space-y-6 p-6">
+            <div className="space-y-8 p-6">
 
               {/* BASIC */}
-              <div className="grid gap-5 sm:grid-cols-2">
 
-                <InputField
-                  label="Affair Date"
-                  type="date"
-                  value={
-                    form.affair_date
-                  }
-                  onChange={(value) =>
-                    updateForm(
-                      "affair_date",
-                      value,
-                    )
-                  }
+              <section>
+
+                <SectionTitle
+                  title="Basic Information"
+                  subtitle="Date, serial number, category and publication status"
                 />
 
-                <InputField
-                  label="Serial Number"
-                  type="number"
-                  value={
-                    String(
+                <div className="mt-5 grid gap-5 sm:grid-cols-3">
+
+                  <InputField
+                    label="Affair Date"
+                    type="date"
+                    value={
+                      form.affair_date
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "affair_date",
+                        value,
+                      )
+                    }
+                  />
+
+                  <InputField
+                    label="Serial Number"
+                    type="number"
+                    value={String(
                       form.serial_no,
-                    )
-                  }
-                  onChange={(value) =>
-                    updateForm(
-                      "serial_no",
-                      Number(value),
-                    )
-                  }
-                />
-              </div>
+                    )}
+                    onChange={(value) =>
+                      updateForm(
+                        "serial_no",
+                        Number(value),
+                      )
+                    }
+                  />
 
-              <InputField
-                label="Title"
-                value={
-                  form.title
-                }
-                onChange={(value) =>
-                  updateForm(
-                    "title",
-                    value,
-                  )
-                }
-                placeholder="Enter current affair title"
-              />
+                  <div>
 
-              <TextareaField
-                label="Why in News"
-                value={
-                  form.why_in_news
-                }
-                onChange={(value) =>
-                  updateForm(
-                    "why_in_news",
-                    value,
-                  )
-                }
-                rows={4}
-                placeholder="Why is this topic in the news?"
-              />
+                    <label className="text-sm font-bold text-slate-700">
+                      Category
+                    </label>
 
-              <TextareaField
-                label="Key Facts"
-                value={
-                  form.key_facts
-                }
-                onChange={(value) =>
-                  updateForm(
-                    "key_facts",
-                    value,
-                  )
-                }
-                rows={5}
-                placeholder="Important facts"
-              />
+                    <select
+                      value={
+                        form.category
+                      }
+                      onChange={(e) =>
+                        updateForm(
+                          "category",
+                          e.target.value,
+                        )
+                      }
+                      className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    >
 
-              <TextareaField
-                label="Exam Point"
-                value={
-                  form.exam_point
-                }
-                onChange={(value) =>
-                  updateForm(
-                    "exam_point",
-                    value,
-                  )
-                }
-                rows={4}
-                placeholder="Important exam-oriented points"
-              />
+                      {CATEGORIES.map(
+                        (category) => (
+                          <option
+                            key={
+                              category
+                            }
+                            value={
+                              category
+                            }
+                          >
+                            {
+                              category
+                            }
+                          </option>
+                        ),
+                      )}
 
-              <TextareaField
-                label="Static GK"
-                value={
-                  form.static_gk
-                }
-                onChange={(value) =>
-                  updateForm(
-                    "static_gk",
-                    value,
-                  )
-                }
-                rows={4}
-                placeholder="Related static GK"
-              />
+                    </select>
 
-              {/* PUBLISHED */}
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <input
-                  type="checkbox"
-                  checked={
-                    form.published ??
-                    true
-                  }
-                  onChange={(e) =>
-                    updateForm(
-                      "published",
-                      e.target.checked,
-                    )
-                  }
-                  className="h-4 w-4"
-                />
+                  </div>
 
-                <div>
-                  <p className="text-sm font-bold">
-                    Publish this current affair
-                  </p>
-
-                  <p className="text-xs text-slate-500">
-                    Published affairs can appear on the student side.
-                  </p>
                 </div>
-              </label>
+
+                <label className="mt-5 flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+
+                  <input
+                    type="checkbox"
+                    checked={
+                      form.published
+                    }
+                    onChange={(e) =>
+                      updateForm(
+                        "published",
+                        e.target
+                          .checked,
+                      )
+                    }
+                    className="h-4 w-4"
+                  />
+
+                  <div>
+                    <p className="text-sm font-bold">
+                      Publish this current affair
+                    </p>
+
+                    <p className="text-xs text-slate-500">
+                      Published affairs can appear on the student side.
+                    </p>
+                  </div>
+
+                </label>
+
+              </section>
+
+              {/* ENGLISH */}
+
+              <section className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
+
+                <SectionTitle
+                  title="🇬🇧 English Content"
+                  subtitle="Main English current affair content"
+                />
+
+                <div className="mt-5 space-y-5">
+
+                  <InputField
+                    label="Title"
+                    value={
+                      form.title
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "title",
+                        value,
+                      )
+                    }
+                    placeholder="Enter current affair title"
+                  />
+
+                  <TextareaField
+                    label="Why in News"
+                    value={
+                      form.why_in_news
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "why_in_news",
+                        value,
+                      )
+                    }
+                    rows={4}
+                    placeholder="Why is this topic in the news?"
+                  />
+
+                  <TextareaField
+                    label="Key Facts"
+                    value={
+                      form.key_facts
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "key_facts",
+                        value,
+                      )
+                    }
+                    rows={5}
+                    placeholder="Important facts"
+                  />
+
+                  <TextareaField
+                    label="Exam Point"
+                    value={
+                      form.exam_point
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "exam_point",
+                        value,
+                      )
+                    }
+                    rows={4}
+                    placeholder="Important exam-oriented points"
+                  />
+
+                  <TextareaField
+                    label="Static GK"
+                    value={
+                      form.static_gk
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "static_gk",
+                        value,
+                      )
+                    }
+                    rows={4}
+                    placeholder="Related static GK"
+                  />
+
+                </div>
+
+              </section>
+
+              {/* HINDI */}
+
+              <section className="rounded-2xl border border-orange-100 bg-orange-50/40 p-5">
+
+                <SectionTitle
+                  title="🇮🇳 Hindi Content"
+                  subtitle="Hindi translation/content stored in separate database columns"
+                />
+
+                <div className="mt-5 space-y-5">
+
+                  <InputField
+                    label="Title (Hindi)"
+                    value={
+                      form.title_hi
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "title_hi",
+                        value,
+                      )
+                    }
+                    placeholder="हिंदी शीर्षक"
+                  />
+
+                  <TextareaField
+                    label="Why in News (Hindi)"
+                    value={
+                      form.why_in_news_hi
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "why_in_news_hi",
+                        value,
+                      )
+                    }
+                    rows={4}
+                    placeholder="यह खबर चर्चा में क्यों है?"
+                  />
+
+                  <TextareaField
+                    label="Key Facts (Hindi)"
+                    value={
+                      form.key_facts_hi
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "key_facts_hi",
+                        value,
+                      )
+                    }
+                    rows={5}
+                    placeholder="महत्वपूर्ण तथ्य"
+                  />
+
+                  <TextareaField
+                    label="Exam Point (Hindi)"
+                    value={
+                      form.exam_point_hi
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "exam_point_hi",
+                        value,
+                      )
+                    }
+                    rows={4}
+                    placeholder="परीक्षा के लिए महत्वपूर्ण बिंदु"
+                  />
+
+                  <TextareaField
+                    label="Static GK (Hindi)"
+                    value={
+                      form.static_gk_hi
+                    }
+                    onChange={(value) =>
+                      updateForm(
+                        "static_gk_hi",
+                        value,
+                      )
+                    }
+                    rows={4}
+                    placeholder="संबंधित Static GK"
+                  />
+
+                </div>
+
+              </section>
 
               {/* MCQs */}
-              <div className="rounded-2xl bg-slate-50 p-5">
+
+              <section className="rounded-2xl bg-slate-50 p-5">
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
 
                   <div>
+
                     <h3 className="font-black">
                       MCQs
                     </h3>
@@ -1856,6 +2411,7 @@ export function AdminCurrentAffairs() {
                     <p className="mt-1 text-xs text-slate-500">
                       Exactly 4 options are required for every MCQ.
                     </p>
+
                   </div>
 
                   <button
@@ -1867,6 +2423,7 @@ export function AdminCurrentAffairs() {
                   >
                     + Add MCQ
                   </button>
+
                 </div>
 
                 <div className="mt-5 space-y-5">
@@ -1890,6 +2447,7 @@ export function AdminCurrentAffairs() {
                         >
 
                           <div className="mb-4 flex items-center justify-between">
+
                             <h4 className="font-black">
                               MCQ{" "}
                               {mcqIndex +
@@ -1907,6 +2465,7 @@ export function AdminCurrentAffairs() {
                             >
                               Remove
                             </button>
+
                           </div>
 
                           <input
@@ -1927,6 +2486,7 @@ export function AdminCurrentAffairs() {
                           />
 
                           <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
                             {mcq.options.map(
                               (
                                 option,
@@ -1960,6 +2520,7 @@ export function AdminCurrentAffairs() {
                                 />
                               ),
                             )}
+
                           </div>
 
                           <input
@@ -1975,7 +2536,7 @@ export function AdminCurrentAffairs() {
                                   .value,
                               )
                             }
-                            placeholder="Correct answer — must exactly match an option"
+                            placeholder="Correct answer — must exactly match one option"
                             className="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
                           />
 
@@ -1996,15 +2557,20 @@ export function AdminCurrentAffairs() {
                             placeholder="Explanation (optional)"
                             className="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
                           />
+
                         </div>
                       ),
                     )
                   )}
+
                 </div>
-              </div>
+
+              </section>
+
             </div>
 
-            {/* FORM FOOTER */}
+            {/* FOOTER */}
+
             <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-6 py-4">
 
               <button
@@ -2036,8 +2602,11 @@ export function AdminCurrentAffairs() {
                     ? "Update Affair"
                     : "Save Affair"}
               </button>
+
             </div>
+
           </div>
+
         </div>
       )}
 
@@ -2048,7 +2617,9 @@ export function AdminCurrentAffairs() {
       {showCSV && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
 
-          <div className="mx-auto my-6 max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:my-10">
+          <div className="mx-auto my-6 max-w-7xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:my-10">
+
+            {/* HEADER */}
 
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
 
@@ -2058,7 +2629,7 @@ export function AdminCurrentAffairs() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Upload multiple current affairs at once.
+                  Upload English + Hindi current affairs together.
                 </p>
               </div>
 
@@ -2080,11 +2651,13 @@ export function AdminCurrentAffairs() {
               >
                 ×
               </button>
+
             </div>
 
             <div className="p-6">
 
               {/* FILE */}
+
               <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center">
 
                 <div className="text-4xl">
@@ -2096,7 +2669,7 @@ export function AdminCurrentAffairs() {
                 </h3>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  CSV must contain the required columns.
+                  CSV must contain English, Hindi, category and MCQ columns.
                 </p>
 
                 <input
@@ -2116,9 +2689,11 @@ export function AdminCurrentAffairs() {
                     }
                   </p>
                 )}
+
               </div>
 
               {/* PREVIEW */}
+
               {csvRows.length >
                 0 && (
                 <div className="mt-6">
@@ -2126,6 +2701,7 @@ export function AdminCurrentAffairs() {
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
 
                     <div>
+
                       <h3 className="font-black">
                         CSV Preview
                       </h3>
@@ -2136,6 +2712,7 @@ export function AdminCurrentAffairs() {
                         }{" "}
                         rows ready for upload.
                       </p>
+
                     </div>
 
                     <button
@@ -2152,14 +2729,17 @@ export function AdminCurrentAffairs() {
                         ? "Uploading..."
                         : "Upload All"}
                     </button>
+
                   </div>
 
-                  <div className="max-h-[420px] overflow-auto rounded-2xl border border-slate-200">
+                  <div className="max-h-[450px] overflow-auto rounded-2xl border border-slate-200">
 
-                    <table className="min-w-[1100px] w-full text-left text-sm">
+                    <table className="min-w-[1800px] w-full text-left text-sm">
 
                       <thead className="sticky top-0 bg-slate-100">
+
                         <tr>
+
                           <th className="px-4 py-3">
                             Date
                           </th>
@@ -2169,24 +2749,35 @@ export function AdminCurrentAffairs() {
                           </th>
 
                           <th className="px-4 py-3">
-                            Title
+                            English Title
                           </th>
 
                           <th className="px-4 py-3">
-                            Why in News
+                            Hindi Title
                           </th>
 
                           <th className="px-4 py-3">
-                            Exam Point
+                            Category
+                          </th>
+
+                          <th className="px-4 py-3">
+                            English Why
+                          </th>
+
+                          <th className="px-4 py-3">
+                            Hindi Why
                           </th>
 
                           <th className="px-4 py-3">
                             MCQs
                           </th>
+
                         </tr>
+
                       </thead>
 
                       <tbody>
+
                         {csvRows
                           .slice(
                             0,
@@ -2201,6 +2792,7 @@ export function AdminCurrentAffairs() {
                                 key={`${row.affair_date}-${row.serial_no}-${index}`}
                                 className="border-t border-slate-100"
                               >
+
                                 <td className="px-4 py-3">
                                   {
                                     row.affair_date
@@ -2219,6 +2811,20 @@ export function AdminCurrentAffairs() {
                                   }
                                 </td>
 
+                                <td className="max-w-[300px] px-4 py-3 font-semibold">
+                                  {
+                                    row.title_hi
+                                  }
+                                </td>
+
+                                <td className="px-4 py-3">
+                                  <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                                    {
+                                      row.category
+                                    }
+                                  </span>
+                                </td>
+
                                 <td className="max-w-[300px] px-4 py-3 text-slate-600">
                                   <span className="line-clamp-2">
                                     {
@@ -2227,24 +2833,29 @@ export function AdminCurrentAffairs() {
                                   </span>
                                 </td>
 
-                                <td className="max-w-[250px] px-4 py-3 text-slate-600">
+                                <td className="max-w-[300px] px-4 py-3 text-slate-600">
                                   <span className="line-clamp-2">
                                     {
-                                      row.exam_point
+                                      row.why_in_news_hi
                                     }
                                   </span>
                                 </td>
 
                                 <td className="px-4 py-3 font-bold">
                                   {
-                                    row.mcqs.length
+                                    row.mcqs
+                                      .length
                                   }
                                 </td>
+
                               </tr>
                             ),
                           )}
+
                       </tbody>
+
                     </table>
+
                   </div>
 
                   {csvRows.length >
@@ -2257,27 +2868,32 @@ export function AdminCurrentAffairs() {
                       rows will be uploaded.
                     </p>
                   )}
+
                 </div>
               )}
 
-              {/* CSV FORMAT HELP */}
+              {/* CSV HELP */}
+
               <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
 
                 <h3 className="font-bold">
                   Required CSV columns
                 </h3>
 
-                <p className="mt-2 break-words font-mono text-xs leading-6 text-slate-300">
-                  affair_date, serial_no, title, why_in_news, key_facts, exam_point, static_gk, mcqs
+                <p className="mt-3 break-words font-mono text-xs leading-6 text-slate-300">
+                  affair_date, serial_no, title, why_in_news, key_facts, exam_point, static_gk, mcqs, category, title_hi, why_in_news_hi, key_facts_hi, exam_point_hi, static_gk_hi
                 </p>
 
                 <p className="mt-3 text-xs leading-5 text-slate-400">
-                  Optional column:
-                  {" "}
+                  Optional column:{" "}
                   <code>
                     published
                   </code>
-                  . Use true/false. If omitted, it defaults to true.
+                  . If omitted, it defaults to{" "}
+                  <code>
+                    true
+                  </code>
+                  .
                 </p>
 
                 <h4 className="mt-5 text-sm font-bold">
@@ -2296,18 +2912,83 @@ export function AdminCurrentAffairs() {
     ],
     "answer": "RBI",
     "explanation": "RBI is India's central bank and manages monetary policy."
+  },
+  {
+    "question": "Where is the headquarters of RBI located?",
+    "options": [
+      "New Delhi",
+      "Mumbai",
+      "Kolkata",
+      "Chennai"
+    ],
+    "answer": "Mumbai",
+    "explanation": "The headquarters of RBI is located in Mumbai."
   }
 ]`}
                 </pre>
 
                 <p className="mt-4 text-xs leading-5 text-amber-300">
-                  Important: CSV में MCQs वाला पूरा JSON value quotes में होना चाहिए, ताकि JSON के अंदर मौजूद commas CSV columns को break न करें.
+                  Important: CSV में MCQs वाला पूरा JSON value double quotes में properly escape/quote होना चाहिए, ताकि JSON के अंदर मौजूद commas CSV columns को break न करें.
                 </p>
+
+                <p className="mt-3 text-xs leading-5 text-slate-400">
+                  Hindi columns database में directly इन fields में जाएंगे:
+                  {" "}
+                  <code>
+                    title_hi
+                  </code>
+                  ,{" "}
+                  <code>
+                    why_in_news_hi
+                  </code>
+                  ,{" "}
+                  <code>
+                    key_facts_hi
+                  </code>
+                  ,{" "}
+                  <code>
+                    exam_point_hi
+                  </code>
+                  ,{" "}
+                  <code>
+                    static_gk_hi
+                  </code>
+                  .
+                </p>
+
               </div>
+
             </div>
+
           </div>
+
         </div>
       )}
+
+    </div>
+  );
+}
+
+/* =====================================================
+   SECTION TITLE
+===================================================== */
+
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div>
+      <h3 className="text-lg font-black">
+        {title}
+      </h3>
+
+      <p className="mt-1 text-sm text-slate-500">
+        {subtitle}
+      </p>
     </div>
   );
 }
@@ -2329,7 +3010,9 @@ function StatCard({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
       <div className="flex items-center justify-between">
+
         <p className="text-sm font-medium text-slate-500">
           {label}
         </p>
@@ -2337,6 +3020,7 @@ function StatCard({
         <span className="text-xl">
           {icon}
         </span>
+
       </div>
 
       <p
@@ -2348,12 +3032,13 @@ function StatCard({
       >
         {value}
       </p>
+
     </div>
   );
 }
 
 /* =====================================================
-   INPUT FIELD
+   INPUT
 ===================================================== */
 
 function InputField({
@@ -2373,6 +3058,7 @@ function InputField({
 }) {
   return (
     <div>
+
       <label className="text-sm font-bold text-slate-700">
         {label}
       </label>
@@ -2380,7 +3066,9 @@ function InputField({
       <input
         type={type}
         value={value}
-        placeholder={placeholder}
+        placeholder={
+          placeholder
+        }
         onChange={(e) =>
           onChange(
             e.target.value,
@@ -2388,12 +3076,13 @@ function InputField({
         }
         className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
       />
+
     </div>
   );
 }
 
 /* =====================================================
-   TEXTAREA FIELD
+   TEXTAREA
 ===================================================== */
 
 function TextareaField({
@@ -2413,6 +3102,7 @@ function TextareaField({
 }) {
   return (
     <div>
+
       <label className="text-sm font-bold text-slate-700">
         {label}
       </label>
@@ -2420,7 +3110,9 @@ function TextareaField({
       <textarea
         rows={rows}
         value={value}
-        placeholder={placeholder}
+        placeholder={
+          placeholder
+        }
         onChange={(e) =>
           onChange(
             e.target.value,
@@ -2428,6 +3120,7 @@ function TextareaField({
         }
         className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
       />
+
     </div>
   );
 }
@@ -2437,7 +3130,7 @@ function TextareaField({
 ===================================================== */
 
 function normalizeMCQs(
-  values: unknown[],
+  values: unknown,
 ): MCQ[] {
   if (!Array.isArray(values)) {
     return [];
@@ -2472,6 +3165,10 @@ function normalizeMCQs(
         mcq !== null,
     );
 }
+
+/* =====================================================
+   NORMALIZE SINGLE MCQ
+===================================================== */
 
 function normalizeSingleMCQ(
   value: unknown,
@@ -2547,7 +3244,7 @@ function normalizeSingleMCQ(
 }
 
 /* =====================================================
-   ERROR MESSAGE
+   ERROR
 ===================================================== */
 
 function getErrorMessage(
@@ -2584,13 +3281,20 @@ function getErrorMessage(
     ) {
       return data.details;
     }
+
+    if (
+      typeof data.hint ===
+      "string"
+    ) {
+      return data.hint;
+    }
   }
 
   return fallback;
 }
 
 /* =====================================================
-   EXPORT
+   DEFAULT EXPORT
 ===================================================== */
 
 export default AdminCurrentAffairs;
