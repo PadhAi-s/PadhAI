@@ -163,6 +163,10 @@ export function StudentDashboard() {
     navigate("/student/ask");
   };
 
+  const handleVocabulary = () => {
+    navigate("/student/vocabulary");
+  };
+
   /* ===================================================
      EXAM BOOSTER TEXT
   =================================================== */
@@ -758,7 +762,7 @@ export function StudentDashboard() {
               badgeClass="bg-violet-600"
               className="border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 dark:border-violet-900/50 dark:from-violet-950/30 dark:via-purple-950/20 dark:to-indigo-950/30"
               actionClass="text-violet-700 dark:text-violet-400"
-              onClick={() => undefined}
+              onClick={handleVocabulary}
             />
 
             <DashboardCard
@@ -820,7 +824,7 @@ export function StudentDashboard() {
                 🤖 {t("dashboard.about.aiPowered")}
               </span>
 
-              <span className="rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-600 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <span className="rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-600 dark:border-emerald-950/50 dark:bg-emerald-950/40 dark:text-emerald-400">
                 📚 {t("dashboard.about.studentFriendly")}
               </span>
 
