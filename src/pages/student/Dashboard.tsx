@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { LanguageToggle } from "../../components/LanguageToggle";
-import { mindsetQuotes } from "../../data/mindsetQuotes";
+import { getDailyMindset } from "../../data/dailyMindsets";
 
 export function StudentDashboard() {
   const navigate = useNavigate();
@@ -20,67 +20,43 @@ export function StudentDashboard() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   /*
-   * ---------------------------------------------------------
-   * 365-DAY TODAY'S MINDSET SYSTEM
-   * ---------------------------------------------------------
-   *
-   * Jan 1      -> Quote 1
-   * Jan 2      -> Quote 2
-   * ...
-   * Dec 31     -> Quote 365
-   *
-   * Leap years:
-   * The 366th calendar day is mapped back into the
-   * 365-quote cycle.
+   * =========================================================
+   * LANGUAGE
+   * =========================================================
    */
 
-  function getDayOfYear(date: Date): number {
-    const start = new Date(date.getFullYear(), 0, 0);
-
-    const diff =
-      date.getTime() -
-      start.getTime();
-
-    const oneDay = 1000 * 60 * 60 * 24;
-
-    return Math.floor(diff / oneDay);
-  }
-
-  function getTodayMindsetIndex(date: Date): number {
-    if (mindsetQuotes.length === 0) {
-      return 0;
-    }
-
-    const dayOfYear = getDayOfYear(date);
-
-    return (dayOfYear - 1) % mindsetQuotes.length;
-  }
-
-  const mindsetIndex = getTodayMindsetIndex(today);
-
-  const mindset =
-    mindsetQuotes[mindsetIndex] ??
-    mindsetQuotes[0];
-
-  const currentLanguage =
+  const language =
     i18n.resolvedLanguage === "hi"
       ? "hi"
       : i18n.resolvedLanguage === "hinglish"
         ? "hinglish"
         : "en";
 
-  const todayQuote =
-    mindset?.[currentLanguage] ??
+  /*
+   * =========================================================
+   * TODAY'S MINDSET
+   * =========================================================
+   *
+   * dailyMindsets.ts is the single source of truth.
+   *
+   * We intentionally pass ONLY the date because
+   * getDailyMindset() now accepts one optional argument.
+   */
+
+  const mindset = getDailyMindset(today);
+
+  const mindsetQuote =
+    mindset?.[language] ??
     mindset?.en ??
     "";
 
   /*
-   * ---------------------------------------------------------
-   * UPDATE AUTOMATICALLY AT MIDNIGHT
-   * ---------------------------------------------------------
+   * =========================================================
+   * MIDNIGHT AUTO UPDATE
+   * =========================================================
    *
-   * If student keeps dashboard open overnight,
-   * the quote automatically changes after local midnight.
+   * Dashboard open rehne par midnight ke baad
+   * automatically next day's mindset show hoga.
    */
 
   useEffect(() => {
@@ -98,7 +74,7 @@ export function StudentDashboard() {
 
     const timeout = window.setTimeout(() => {
       setToday(new Date());
-    }, nextMidnight.getTime() - now.getTime());
+    }, Math.max(1000, nextMidnight.getTime() - now.getTime()));
 
     return () => {
       window.clearTimeout(timeout);
@@ -106,13 +82,13 @@ export function StudentDashboard() {
   }, [today]);
 
   /*
-   * ---------------------------------------------------------
-   * CLOSE MENU WHEN CLICKING OUTSIDE
-   * ---------------------------------------------------------
+   * =========================================================
+   * CLOSE MENU ON OUTSIDE CLICK
+   * =========================================================
    */
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleOutsideClick(event: MouseEvent) {
       if (
         menuRef.current &&
         !menuRef.current.contains(event.target as Node)
@@ -123,50 +99,74 @@ export function StudentDashboard() {
 
     document.addEventListener(
       "mousedown",
-      handleClickOutside,
+      handleOutsideClick,
     );
 
     return () => {
       document.removeEventListener(
         "mousedown",
-        handleClickOutside,
+        handleOutsideClick,
       );
     };
   }, []);
 
   /*
-   * ---------------------------------------------------------
-   * NAVIGATION
-   * ---------------------------------------------------------
+   * =========================================================
+   * STUDENT NAME
+   * =========================================================
    */
 
-  async function handleLogout() {
-    setMenuOpen(false);
+  const studentName =
+    profile?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Student";
 
-    await signOut();
+  /*
+   * =========================================================
+   * DATE
+   * =========================================================
+   */
 
-    navigate("/student/login");
-  }
+  const formattedDate = new Intl.DateTimeFormat(
+    language === "hi" ? "hi-IN" : "en-IN",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    },
+  ).format(today);
+
+  /*
+   * =========================================================
+   * HANDLERS
+   * =========================================================
+   */
 
   function handleProfile() {
     setMenuOpen(false);
-
     navigate("/student/profile");
   }
 
-  function handleDailyCurrentAffairs() {
-    navigate("/student/current-affairs");
+  async function handleLogout() {
+    setMenuOpen(false);
+    await signOut();
+    navigate("/student/login");
   }
 
-  function handleDailyNewspaper() {
-    navigate("/student/daily-newspaper");
-  }
-
-  function handleQuickRevision() {
+  function handleFastRevision() {
     navigate("/student/quick-revision");
   }
 
-  function handleAskAI() {
+  function handleCurrentAffairs() {
+    navigate("/student/current-affairs");
+  }
+
+  function handleNewspaper() {
+    navigate("/student/daily-newspaper");
+  }
+
+  function handleAskVidhya() {
     navigate("/student/ask");
   }
 
@@ -178,35 +178,6 @@ export function StudentDashboard() {
     );
   }
 
-  /*
-   * ---------------------------------------------------------
-   * STUDENT
-   * ---------------------------------------------------------
-   */
-
-  const studentName =
-    profile?.full_name ||
-    user?.email?.split("@")[0] ||
-    t("common.student");
-
-  /*
-   * ---------------------------------------------------------
-   * TODAY'S DATE
-   * ---------------------------------------------------------
-   */
-
-  const formattedDate = new Intl.DateTimeFormat(
-    currentLanguage === "hi"
-      ? "hi-IN"
-      : "en-IN",
-    {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    },
-  ).format(today);
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       {/* =====================================================
@@ -215,7 +186,7 @@ export function StudentDashboard() {
 
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
-          {/* BRAND */}
+          {/* LOGO */}
 
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-blue-500/20">
@@ -233,7 +204,7 @@ export function StudentDashboard() {
             </div>
           </div>
 
-          {/* RIGHT */}
+          {/* HEADER RIGHT */}
 
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageToggle />
@@ -245,13 +216,13 @@ export function StudentDashboard() {
                 {studentName.charAt(0).toUpperCase()}
               </div>
 
-              <div className="max-w-[190px] text-left">
+              <div className="max-w-[180px]">
                 <p className="truncate text-sm font-semibold">
                   {studentName}
                 </p>
 
                 <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {user?.email || ""}
+                  {user?.email ?? ""}
                 </p>
               </div>
             </div>
@@ -259,18 +230,18 @@ export function StudentDashboard() {
             {/* MENU */}
 
             <div
-              className="relative"
               ref={menuRef}
+              className="relative"
             >
               <button
                 type="button"
                 onClick={() =>
-                  setMenuOpen((open) => !open)
+                  setMenuOpen((value) => !value)
                 }
+                aria-expanded={menuOpen}
                 aria-label={t(
                   "dashboard.openMenu",
                 )}
-                aria-expanded={menuOpen}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-xl font-bold text-slate-600 shadow-sm transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 ⋮
@@ -278,12 +249,10 @@ export function StudentDashboard() {
 
               {menuOpen && (
                 <div className="absolute right-0 z-50 mt-3 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-                  {/* PROFILE */}
-
                   <button
                     type="button"
                     onClick={handleProfile}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <span className="text-lg">
                       👤
@@ -304,12 +273,10 @@ export function StudentDashboard() {
                     </span>
                   </button>
 
-                  {/* THEME */}
-
                   <button
                     type="button"
                     onClick={toggleTheme}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <span className="text-lg">
                       {theme === "dark"
@@ -337,8 +304,6 @@ export function StudentDashboard() {
                   </button>
 
                   <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
-
-                  {/* LOGOUT */}
 
                   <button
                     type="button"
@@ -370,44 +335,24 @@ export function StudentDashboard() {
         ==================================================== */}
 
         <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-          {/* Decorative background */}
-
           <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl" />
 
           <div className="absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
 
           <div className="relative z-10">
-            {/* TOP LABEL */}
-
-            <div className="mb-5 flex flex-wrap items-center gap-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
                 {t("dashboard.mindset.label")}
               </span>
 
-              {/* DAY NUMBER */}
-
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {currentLanguage === "hi"
-                  ? `दिन ${mindsetIndex + 1} / 365`
-                  : currentLanguage === "hinglish"
-                    ? `Day ${mindsetIndex + 1} / 365`
-                    : `Day ${mindsetIndex + 1} / 365`}
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                {formattedDate}
               </span>
             </div>
 
-            {/* DATE */}
-
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              {formattedDate}
-            </p>
-
-            {/* QUOTE */}
-
             <blockquote className="max-w-4xl text-2xl font-bold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
-              “{todayQuote}”
+              “{mindsetQuote}”
             </blockquote>
-
-            {/* SUBTITLE */}
 
             <p className="mt-4 text-sm font-medium text-slate-500 dark:text-slate-400">
               {t("dashboard.mindset.subtitle")}
@@ -435,19 +380,6 @@ export function StudentDashboard() {
                   "dashboard.welcomeDescription",
                 )}
               </p>
-
-              <button
-                type="button"
-                onClick={handleQuickRevision}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-blue-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-              >
-                ⚡{" "}
-                {t(
-                  "dashboard.fastRevision.title",
-                )}
-
-                <span>→</span>
-              </button>
             </div>
 
             <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
@@ -475,83 +407,30 @@ export function StudentDashboard() {
           />
 
           <div className="mt-5">
-            <button
-              type="button"
-              onClick={handleQuickRevision}
-              className="group relative w-full overflow-hidden rounded-[2rem] border border-purple-200 bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50 p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-purple-900/50 dark:from-purple-950/30 dark:via-violet-950/30 dark:to-indigo-950/30 sm:p-8"
-            >
-              <div className="relative z-10 flex flex-col justify-between gap-8 md:flex-row md:items-center">
-                <div className="max-w-2xl">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-3xl text-white shadow-lg">
-                      ⚡
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
-                        {t(
-                          "dashboard.fastRevision.badge",
-                        )}
-                      </p>
-
-                      <h2 className="text-2xl font-black sm:text-3xl">
-                        {t(
-                          "dashboard.fastRevision.title",
-                        )}
-                      </h2>
-                    </div>
-                  </div>
-
-                  <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                    {t(
-                      "dashboard.fastRevision.description",
-                    )}
-                  </p>
-
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-white/80 px-3 py-2 text-xs font-bold text-purple-700 shadow-sm dark:bg-slate-900/60 dark:text-purple-300">
-                      🤖{" "}
-                      {t(
-                        "dashboard.fastRevision.smartQuestions",
-                      )}
-                    </span>
-
-                    <span className="rounded-full bg-white/80 px-3 py-2 text-xs font-bold text-purple-700 shadow-sm dark:bg-slate-900/60 dark:text-purple-300">
-                      📚{" "}
-                      {t(
-                        "dashboard.fastRevision.topicWise",
-                      )}
-                    </span>
-
-                    <span className="rounded-full bg-white/80 px-3 py-2 text-xs font-bold text-purple-700 shadow-sm dark:bg-slate-900/60 dark:text-purple-300">
-                      ⚡{" "}
-                      {t(
-                        "dashboard.fastRevision.quickPractice",
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="shrink-0">
-                  <span className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition group-hover:bg-purple-700">
-                    {t(
-                      "dashboard.fastRevision.action",
-                    )}
-
-                    <span>→</span>
-                  </span>
-                </div>
-              </div>
-
-              <div className="absolute -bottom-10 -right-6 text-[150px] leading-none opacity-10 transition duration-300 group-hover:scale-110">
-                ⚡
-              </div>
-            </button>
+            <DashboardCard
+              icon="⚡"
+              title={t(
+                "dashboard.fastRevision.title",
+              )}
+              description={t(
+                "dashboard.fastRevision.description",
+              )}
+              action={t(
+                "dashboard.fastRevision.action",
+              )}
+              badge={t(
+                "dashboard.fastRevision.badge",
+              )}
+              badgeClass="bg-purple-600"
+              className="border-purple-200 bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50 dark:border-purple-900/50 dark:from-purple-950/30 dark:via-violet-950/30 dark:to-indigo-950/30"
+              actionClass="text-purple-700 dark:text-purple-400"
+              onClick={handleFastRevision}
+            />
           </div>
         </section>
 
         {/* ===================================================
-            DAILY CURRENT AFFAIRS
+            CURRENT AFFAIRS
         ==================================================== */}
 
         <section className="mt-10">
@@ -582,7 +461,7 @@ export function StudentDashboard() {
               badgeClass="bg-green-600"
               className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
               actionClass="text-green-700 dark:text-green-400"
-              onClick={handleDailyCurrentAffairs}
+              onClick={handleCurrentAffairs}
             />
           </div>
         </section>
@@ -619,7 +498,7 @@ export function StudentDashboard() {
               badgeClass="bg-blue-600"
               className="border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:via-sky-950/30 dark:to-cyan-950/20"
               actionClass="text-blue-700 dark:text-blue-400"
-              onClick={handleDailyNewspaper}
+              onClick={handleNewspaper}
             />
           </div>
         </section>
@@ -656,7 +535,7 @@ export function StudentDashboard() {
               badgeClass="bg-blue-600"
               className="border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:to-cyan-950/20"
               actionClass="text-blue-700 dark:text-blue-400"
-              onClick={handleDailyCurrentAffairs}
+              onClick={handleCurrentAffairs}
             />
 
             <DashboardCard
@@ -676,7 +555,7 @@ export function StudentDashboard() {
               badgeClass="bg-amber-500"
               className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20"
               actionClass="text-amber-700 dark:text-amber-400"
-              onClick={handleDailyCurrentAffairs}
+              onClick={handleCurrentAffairs}
             />
           </div>
         </section>
@@ -696,81 +575,30 @@ export function StudentDashboard() {
           />
 
           <div className="mt-5">
-            <button
-              type="button"
-              onClick={handleAskAI}
-              className="group relative w-full overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 p-6 text-left text-white shadow-xl transition duration-300 hover:-translate-y-1 hover:shadow-2xl sm:p-8"
-            >
-              <div className="relative z-10 flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
-                <div className="max-w-2xl">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500 text-3xl shadow-lg shadow-blue-500/20">
-                      🤖
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-blue-300">
-                        {t(
-                          "dashboard.askVidhya.badge",
-                        )}
-                      </p>
-
-                      <h2 className="text-2xl font-black sm:text-3xl">
-                        {t(
-                          "dashboard.askVidhya.title",
-                        )}
-                      </h2>
-                    </div>
-                  </div>
-
-                  <p className="mt-5 text-sm leading-7 text-slate-300 sm:text-base">
-                    {t(
-                      "dashboard.askVidhya.description",
-                    )}
-                  </p>
-
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100">
-                      💬{" "}
-                      {t(
-                        "dashboard.askVidhya.askAnything",
-                      )}
-                    </span>
-
-                    <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100">
-                      🧠{" "}
-                      {t(
-                        "dashboard.askVidhya.easyExplanations",
-                      )}
-                    </span>
-
-                    <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100">
-                      📖{" "}
-                      {t(
-                        "dashboard.askVidhya.studyHelp",
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-blue-700 shadow-lg transition group-hover:-translate-y-0.5">
-                  {t(
-                    "dashboard.askVidhya.action",
-                  )}
-
-                  <span>→</span>
-                </span>
-              </div>
-
-              <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
-
-              <div className="absolute -bottom-20 right-24 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl" />
-            </button>
+            <DashboardCard
+              icon="🤖"
+              title={t(
+                "dashboard.askVidhya.title",
+              )}
+              description={t(
+                "dashboard.askVidhya.description",
+              )}
+              action={t(
+                "dashboard.askVidhya.action",
+              )}
+              badge={t(
+                "dashboard.askVidhya.badge",
+              )}
+              badgeClass="bg-indigo-600"
+              className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 dark:border-indigo-900/50 dark:from-indigo-950/30 dark:to-blue-950/20"
+              actionClass="text-indigo-700 dark:text-indigo-400"
+              onClick={handleAskVidhya}
+            />
           </div>
         </section>
 
         {/* ===================================================
-            ENGLISH VOCABULARY
+            VOCABULARY
         ==================================================== */}
 
         <section className="mt-10">
@@ -807,7 +635,7 @@ export function StudentDashboard() {
         </section>
 
         {/* ===================================================
-            VIDEO
+            VIDEOS
         ==================================================== */}
 
         <section className="mt-10">
@@ -837,10 +665,8 @@ export function StudentDashboard() {
               )}
               badgeClass="bg-slate-600"
               className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
-              actionClass="text-slate-500 dark:text-slate-400"
-              onClick={() =>
-                alert(t("common.comingSoon"))
-              }
+              actionClass="text-slate-600 dark:text-slate-400"
+              onClick={() => undefined}
             />
           </div>
         </section>
@@ -852,23 +678,15 @@ export function StudentDashboard() {
         <section className="mt-10 pb-10">
           <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
             <div className="relative z-10 max-w-3xl">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-lg font-black text-white shadow-lg">
-                  V
-                </div>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                {t("dashboard.about.label")}
+              </p>
 
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">
-                    {t("dashboard.about.label")}
-                  </p>
+              <h2 className="mt-2 text-2xl font-black">
+                {t("dashboard.about.title")}
+              </h2>
 
-                  <h2 className="text-2xl font-black">
-                    {t("dashboard.about.title")}
-                  </h2>
-                </div>
-              </div>
-
-              <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
+              <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
                 {t(
                   "dashboard.about.description",
                 )}
@@ -897,10 +715,6 @@ export function StudentDashboard() {
                 </span>
               </div>
             </div>
-
-            <div className="absolute -bottom-20 -right-10 text-[180px] font-black leading-none text-blue-600/5">
-              V
-            </div>
           </div>
         </section>
       </main>
@@ -915,8 +729,8 @@ export function StudentDashboard() {
             VIDYZEN
           </p>
 
-          <p className="text-xs text-slate-500 dark:text-slate-500">
-            {t("dashboard.brandTagline")}
+          <p className="text-xs text-slate-500">
+            {t("dashboard.footer.tagline")}
           </p>
         </div>
       </footer>
@@ -959,11 +773,11 @@ interface DashboardCardProps {
   title: string;
   description: string;
   action: string;
+  badge?: string;
+  badgeClass?: string;
   className: string;
   actionClass: string;
   onClick: () => void;
-  badge?: string;
-  badgeClass?: string;
 }
 
 function DashboardCard({
@@ -971,11 +785,11 @@ function DashboardCard({
   title,
   description,
   action,
+  badge,
+  badgeClass = "",
   className,
   actionClass,
   onClick,
-  badge,
-  badgeClass,
 }: DashboardCardProps) {
   return (
     <button
@@ -990,7 +804,7 @@ function DashboardCard({
 
         {badge && (
           <span
-            className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white ${badgeClass ?? ""}`}
+            className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white ${badgeClass}`}
           >
             {badge}
           </span>
@@ -1009,6 +823,7 @@ function DashboardCard({
         className={`relative z-10 mt-5 inline-flex items-center gap-2 text-sm font-black ${actionClass}`}
       >
         {action}
+        <span>→</span>
       </span>
 
       <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-white/20 transition duration-500 group-hover:scale-150 dark:bg-white/5" />
