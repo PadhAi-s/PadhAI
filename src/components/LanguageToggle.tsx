@@ -1,20 +1,32 @@
+```tsx
 import { useTranslation } from "react-i18next";
+
+type Language = "en" | "hi" | "hinglish";
 
 export function LanguageToggle() {
   const { i18n } = useTranslation();
 
-  const currentLanguage = i18n.language;
+  const currentLanguage = (
+    i18n.resolvedLanguage || i18n.language || "en"
+  ) as Language;
 
-  function changeLanguage(language: string) {
+  function changeLanguage(language: Language) {
     i18n.changeLanguage(language);
-    localStorage.setItem("padhai-language", language);
+
+    // Keep language preference saved for the next visit.
+    localStorage.setItem("vidyzen-language", language);
   }
 
   return (
-    <div className="flex items-center rounded-full border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800">
+    <div
+      className="flex items-center rounded-full border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800"
+      role="group"
+      aria-label="Language"
+    >
       <button
         type="button"
         onClick={() => changeLanguage("en")}
+        aria-pressed={currentLanguage === "en"}
         className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
           currentLanguage === "en"
             ? "bg-white text-blue-600 shadow dark:bg-slate-700 dark:text-blue-400"
@@ -27,6 +39,7 @@ export function LanguageToggle() {
       <button
         type="button"
         onClick={() => changeLanguage("hi")}
+        aria-pressed={currentLanguage === "hi"}
         className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
           currentLanguage === "hi"
             ? "bg-white text-blue-600 shadow dark:bg-slate-700 dark:text-blue-400"
@@ -39,6 +52,7 @@ export function LanguageToggle() {
       <button
         type="button"
         onClick={() => changeLanguage("hinglish")}
+        aria-pressed={currentLanguage === "hinglish"}
         className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
           currentLanguage === "hinglish"
             ? "bg-white text-blue-600 shadow dark:bg-slate-700 dark:text-blue-400"
@@ -52,3 +66,4 @@ export function LanguageToggle() {
 }
 
 export default LanguageToggle;
+```
