@@ -1,4 +1,3 @@
-```tsx
 import { useTranslation } from "react-i18next";
 
 type Language = "en" | "hi" | "hinglish";
@@ -6,16 +5,17 @@ type Language = "en" | "hi" | "hinglish";
 export function LanguageToggle() {
   const { i18n } = useTranslation();
 
-  const currentLanguage = (
-    i18n.resolvedLanguage || i18n.language || "en"
-  ) as Language;
+  const currentLanguage: Language =
+    i18n.resolvedLanguage === "hi"
+      ? "hi"
+      : i18n.resolvedLanguage === "hinglish"
+        ? "hinglish"
+        : "en";
 
-  function changeLanguage(language: Language) {
+  const changeLanguage = (language: Language) => {
     i18n.changeLanguage(language);
-
-    // Keep language preference saved for the next visit.
     localStorage.setItem("vidyzen-language", language);
-  }
+  };
 
   return (
     <div
@@ -66,4 +66,3 @@ export function LanguageToggle() {
 }
 
 export default LanguageToggle;
-```
