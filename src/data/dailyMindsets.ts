@@ -1192,7 +1192,6 @@ export function getMindsetText(
   language: MindsetLanguage = "en",
   date = new Date()
 ): string {
-  const mindset = getDailyMindset(language, date);
-
+const mindset = getDailyMindset(date);
   return mindset[language] ?? mindset.en;
 }
