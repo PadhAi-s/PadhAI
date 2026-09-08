@@ -1,10 +1,11 @@
 import {
   useEffect,
+  useMemo,
   useState,
   type ChangeEvent,
+  type FormEvent,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 
 /* =====================================================
@@ -19,8 +20,7 @@ interface MCQ {
 }
 
 interface CurrentAffair {
-  id?: string;
-
+  id: string;
   affair_date: string;
   serial_no: number;
 
@@ -40,10 +40,39 @@ interface CurrentAffair {
   key_facts_hi: string;
   exam_point_hi: string;
   static_gk_hi: string;
+
+  created_at?: string;
+  updated_at?: string;
 }
 
 /* =====================================================
-   CONSTANTS
+   FORM TYPE
+===================================================== */
+
+interface AffairForm {
+  affair_date: string;
+  serial_no: string;
+
+  title: string;
+  why_in_news: string;
+  key_facts: string;
+  exam_point: string;
+  static_gk: string;
+
+  title_hi: string;
+  why_in_news_hi: string;
+  key_facts_hi: string;
+  exam_point_hi: string;
+  static_gk_hi: string;
+
+  category: string;
+  published: boolean;
+
+  mcqs: MCQ[];
+}
+
+/* =====================================================
+   CATEGORIES
 ===================================================== */
 
 const CATEGORIES = [
@@ -66,281 +95,398 @@ const CATEGORIES = [
    EMPTY FORM
 ===================================================== */
 
-function createEmptyForm(): CurrentAffair {
-  return {
-    affair_date: new Date()
-      .toISOString()
-      .slice(0, 10),
+const EMPTY_FORM: AffairForm = {
+  affair_date: "",
+  serial_no: "1",
 
-    serial_no: 1,
+  title: "",
+  why_in_news: "",
+  key_facts: "",
+  exam_point: "",
+  static_gk: "",
 
-    title: "",
-    why_in_news: "",
-    key_facts: "",
-    exam_point: "",
-    static_gk: "",
+  title_hi: "",
+  why_in_news_hi: "",
+  key_facts_hi: "",
+  exam_point_hi: "",
+  static_gk_hi: "",
 
-    mcqs: [],
+  category: "National",
+  published: true,
 
-    published: true,
-    category: "National",
-
-    title_hi: "",
-    why_in_news_hi: "",
-    key_facts_hi: "",
-    exam_point_hi: "",
-    static_gk_hi: "",
-  };
-}
+  mcqs: [],
+};
 
 /* =====================================================
-   MAIN COMPONENT
+   TABLE ACCESS
+   -----------------------------------------------------
+   `as any` intentionally avoids stale generated
+   Supabase Database types causing GenericStringError.
+===================================================== */
+
+const currentAffairsTable = () =>
+  supabase.from("current_affairs") as any;
+
+/* =====================================================
+   COMPONENT
 ===================================================== */
 
 export function AdminCurrentAffairs() {
   const navigate = useNavigate();
 
-  const {
-    user,
-    profile,
-    signOut,
-  } = useAuth();
+  const [affairs, setAffairs] = useState<
+    CurrentAffair[]
+  >([]);
 
-  const [records, setRecords] =
-    useState<CurrentAffair[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] =
+    useState<string | null>(null);
 
-  const [form, setForm] =
-    useState<CurrentAffair>(
-      createEmptyForm(),
-    );
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [search, setSearch] = useState("");
 
-  const [loadingRecords, setLoadingRecords] =
+  const [showForm, setShowForm] =
     useState(false);
 
   const [editingId, setEditingId] =
     useState<string | null>(null);
 
-  const [showForm, setShowForm] =
+  const [form, setForm] =
+    useState<AffairForm>(EMPTY_FORM);
+
+  const [csvLoading, setCsvLoading] =
     useState(false);
 
-  const [showCSV, setShowCSV] =
-    useState(false);
+  /* =====================================================
+     INITIAL LOAD
+  ===================================================== */
 
-  const [message, setMessage] =
-    useState("");
+  useEffect(() => {
+    document.title =
+      "Admin Current Affairs | VIDYZEN";
 
-  const [error, setError] =
-    useState("");
-
-  const [csvFileName, setCSVFileName] =
-    useState("");
-
-  const [csvRows, setCSVRows] =
-    useState<CurrentAffair[]>([]);
+    void loadCurrentAffairs();
+  }, []);
 
   /* =====================================================
      LOAD
   ===================================================== */
 
-  useEffect(() => {
-    void loadCurrentAffairs();
-  }, []);
-
-  function clearMessages() {
-    setMessage("");
-    setError("");
-  }
-
-  function setSuccess(text: string) {
-    setError("");
-    setMessage(text);
-  }
-
-  function setFailure(text: string) {
-    setMessage("");
-    setError(text);
-  }
-
   async function loadCurrentAffairs() {
-    setLoadingRecords(true);
+    setLoading(true);
+    setError("");
+
+    console.log(
+      "[AdminCurrentAffairs] Loading current_affairs...",
+    );
 
     try {
-      const {
-        data,
-        error: fetchError,
-      } = await supabase
-        .from("current_affairs")
-        .select(
-          [
-            "id",
-            "affair_date",
-            "serial_no",
-            "title",
-            "why_in_news",
-            "key_facts",
-            "exam_point",
-            "static_gk",
-            "mcqs",
-            "published",
-            "category",
-            "title_hi",
-            "why_in_news_hi",
-            "key_facts_hi",
-            "exam_point_hi",
-            "static_gk_hi",
-          ].join(","),
-        )
-        .order("affair_date", {
-          ascending: false,
-        })
-        .order("serial_no", {
-          ascending: true,
-        });
+      /*
+       * IMPORTANT:
+       * select("*") intentionally used.
+       *
+       * Dynamic `.select(array.join(","))`
+       * can produce GenericStringError in Supabase
+       * TypeScript inference.
+       */
+      const { data, error: fetchError } =
+        await currentAffairsTable()
+          .select("*")
+          .order("affair_date", {
+            ascending: false,
+          })
+          .order("serial_no", {
+            ascending: true,
+          });
+
+      console.log(
+        "[AdminCurrentAffairs] Supabase response:",
+        {
+          data,
+          error: fetchError,
+        },
+      );
 
       if (fetchError) {
         throw fetchError;
       }
 
-      const normalized =
-        (data ?? []).map((row) => ({
-          id: row.id,
+      const formatted: CurrentAffair[] = (
+        data ?? []
+      ).map(normalizeCurrentAffair);
 
-          affair_date:
-            row.affair_date ?? "",
+      setAffairs(formatted);
 
-          serial_no:
-            Number(row.serial_no ?? 1),
-
-          title:
-            row.title ?? "",
-
-          why_in_news:
-            row.why_in_news ?? "",
-
-          key_facts:
-            row.key_facts ?? "",
-
-          exam_point:
-            row.exam_point ?? "",
-
-          static_gk:
-            row.static_gk ?? "",
-
-          mcqs: normalizeMCQs(
-            row.mcqs,
-          ),
-
-          published:
-            typeof row.published ===
-            "boolean"
-              ? row.published
-              : true,
-
-          category:
-            row.category ||
-            "Other",
-
-          title_hi:
-            row.title_hi ?? "",
-
-          why_in_news_hi:
-            row.why_in_news_hi ?? "",
-
-          key_facts_hi:
-            row.key_facts_hi ?? "",
-
-          exam_point_hi:
-            row.exam_point_hi ?? "",
-
-          static_gk_hi:
-            row.static_gk_hi ?? "",
-        }));
-
-      setRecords(normalized);
+      console.log(
+        `[AdminCurrentAffairs] Loaded ${formatted.length} rows.`,
+      );
     } catch (err) {
       console.error(
-        "Load current affairs error:",
+        "[AdminCurrentAffairs] Load Error:",
         err,
       );
 
-      setFailure(
-        getErrorMessage(
-          err,
-          "Unable to load current affairs.",
-        ),
+      setAffairs([]);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Current affairs load nahi ho paye.",
       );
     } finally {
-      setLoadingRecords(false);
+      setLoading(false);
     }
   }
 
   /* =====================================================
-     AUTH
-  ===================================================== */
+     NORMALIZE CURRENT AFFAIR
+===================================================== */
 
-  async function handleLogout() {
-    await signOut();
-    navigate("/admin/login");
+  function normalizeCurrentAffair(
+    row: any,
+  ): CurrentAffair {
+    return {
+      id: String(row?.id ?? ""),
+
+      affair_date:
+        String(row?.affair_date ?? ""),
+
+      serial_no:
+        Number(row?.serial_no ?? 1),
+
+      title:
+        String(row?.title ?? ""),
+
+      why_in_news:
+        String(row?.why_in_news ?? ""),
+
+      key_facts:
+        String(row?.key_facts ?? ""),
+
+      exam_point:
+        String(row?.exam_point ?? ""),
+
+      static_gk:
+        String(row?.static_gk ?? ""),
+
+      mcqs:
+        normalizeMCQs(row?.mcqs),
+
+      published:
+        typeof row?.published === "boolean"
+          ? row.published
+          : true,
+
+      category:
+        String(
+          row?.category ?? "Other",
+        ),
+
+      title_hi:
+        String(row?.title_hi ?? ""),
+
+      why_in_news_hi:
+        String(
+          row?.why_in_news_hi ?? "",
+        ),
+
+      key_facts_hi:
+        String(
+          row?.key_facts_hi ?? "",
+        ),
+
+      exam_point_hi:
+        String(
+          row?.exam_point_hi ?? "",
+        ),
+
+      static_gk_hi:
+        String(
+          row?.static_gk_hi ?? "",
+        ),
+
+      created_at:
+        row?.created_at
+          ? String(row.created_at)
+          : undefined,
+
+      updated_at:
+        row?.updated_at
+          ? String(row.updated_at)
+          : undefined,
+    };
   }
 
   /* =====================================================
-     FORM
-  ===================================================== */
+     FILTER
+===================================================== */
+
+  const filteredAffairs = useMemo(() => {
+    const query =
+      search.trim().toLowerCase();
+
+    if (!query) {
+      return affairs;
+    }
+
+    return affairs.filter((item) => {
+      const text = [
+        item.affair_date,
+        item.serial_no,
+        item.title,
+        item.why_in_news,
+        item.key_facts,
+        item.exam_point,
+        item.static_gk,
+
+        item.title_hi,
+        item.why_in_news_hi,
+        item.key_facts_hi,
+        item.exam_point_hi,
+        item.static_gk_hi,
+
+        item.category,
+      ]
+        .map(String)
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(query);
+    });
+  }, [affairs, search]);
+
+  /* =====================================================
+     OPEN ADD
+===================================================== */
 
   function openAddForm() {
-    clearMessages();
-
     setEditingId(null);
-    setForm(createEmptyForm());
-    setShowForm(true);
-  }
-
-  function openEditForm(
-    row: CurrentAffair,
-  ) {
-    clearMessages();
-
-    setEditingId(
-      row.id ?? null,
-    );
 
     setForm({
-      ...row,
-
-      mcqs: normalizeMCQs(
-        row.mcqs,
-      ),
-
-      published:
-        row.published !== false,
-
-      category:
-        row.category ||
-        "Other",
+      ...EMPTY_FORM,
+      affair_date:
+        new Date()
+          .toISOString()
+          .slice(0, 10),
     });
 
+    setError("");
+    setSuccess("");
     setShowForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
+  /* =====================================================
+     OPEN EDIT
+===================================================== */
+
+  function openEditForm(
+    affair: CurrentAffair,
+  ) {
+    setEditingId(affair.id);
+
+    setForm({
+      affair_date:
+        affair.affair_date,
+
+      serial_no:
+        String(affair.serial_no),
+
+      title:
+        affair.title,
+
+      why_in_news:
+        affair.why_in_news,
+
+      key_facts:
+        affair.key_facts,
+
+      exam_point:
+        affair.exam_point,
+
+      static_gk:
+        affair.static_gk,
+
+      title_hi:
+        affair.title_hi,
+
+      why_in_news_hi:
+        affair.why_in_news_hi,
+
+      key_facts_hi:
+        affair.key_facts_hi,
+
+      exam_point_hi:
+        affair.exam_point_hi,
+
+      static_gk_hi:
+        affair.static_gk_hi,
+
+      category:
+        affair.category ||
+        "Other",
+
+      published:
+        affair.published,
+
+      mcqs:
+        affair.mcqs.map(
+          (mcq) => ({
+            question:
+              mcq.question,
+
+            options: [
+              ...(mcq.options ?? []),
+            ],
+
+            answer:
+              mcq.answer,
+
+            explanation:
+              mcq.explanation ??
+              "",
+          }),
+        ),
+    });
+
+    setError("");
+    setSuccess("");
+    setShowForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  /* =====================================================
+     CLOSE FORM
+===================================================== */
+
   function closeForm() {
-    if (loading) {
+    if (saving) {
       return;
     }
 
     setShowForm(false);
     setEditingId(null);
-    setForm(createEmptyForm());
+    setForm(EMPTY_FORM);
   }
 
-  function updateForm(
-    field: keyof CurrentAffair,
-    value:
-      | string
-      | number
-      | boolean,
+  /* =====================================================
+     FORM FIELD
+===================================================== */
+
+  function updateField(
+    field: keyof AffairForm,
+    value: string | boolean,
   ) {
     setForm((previous) => ({
       ...previous,
@@ -349,51 +495,411 @@ export function AdminCurrentAffairs() {
   }
 
   /* =====================================================
-     MCQ
-  ===================================================== */
+     VALIDATE
+===================================================== */
+
+  function validateForm(): string {
+    if (!form.affair_date.trim()) {
+      return "Affair date required hai.";
+    }
+
+    if (!form.serial_no.trim()) {
+      return "Serial number required hai.";
+    }
+
+    if (
+      Number.isNaN(
+        Number(form.serial_no),
+      )
+    ) {
+      return "Serial number valid number hona chahiye.";
+    }
+
+    if (!form.title.trim()) {
+      return "English title required hai.";
+    }
+
+    if (!form.why_in_news.trim()) {
+      return "Why in News required hai.";
+    }
+
+    if (!form.key_facts.trim()) {
+      return "Key Facts required hai.";
+    }
+
+    if (!form.exam_point.trim()) {
+      return "Exam Point required hai.";
+    }
+
+    if (!form.static_gk.trim()) {
+      return "Static GK required hai.";
+    }
+
+    if (!form.category.trim()) {
+      return "Category required hai.";
+    }
+
+    if (!form.title_hi.trim()) {
+      return "Hindi title required hai.";
+    }
+
+    if (!form.why_in_news_hi.trim()) {
+      return "Hindi Why in News required hai.";
+    }
+
+    if (!form.key_facts_hi.trim()) {
+      return "Hindi Key Facts required hai.";
+    }
+
+    if (!form.exam_point_hi.trim()) {
+      return "Hindi Exam Point required hai.";
+    }
+
+    if (!form.static_gk_hi.trim()) {
+      return "Hindi Static GK required hai.";
+    }
+
+    for (
+      let index = 0;
+      index < form.mcqs.length;
+      index++
+    ) {
+      const mcq =
+        form.mcqs[index];
+
+      if (!mcq.question.trim()) {
+        return `MCQ ${index + 1}: question required hai.`;
+      }
+
+      if (
+        mcq.options.length !== 4
+      ) {
+        return `MCQ ${index + 1}: exactly 4 options required hain.`;
+      }
+
+      if (
+        mcq.options.some(
+          (option) =>
+            !option.trim(),
+        )
+      ) {
+        return `MCQ ${index + 1}: saare options fill karo.`;
+      }
+
+      if (!mcq.answer.trim()) {
+        return `MCQ ${index + 1}: correct answer required hai.`;
+      }
+
+      if (
+        !mcq.options.includes(
+          mcq.answer,
+        )
+      ) {
+        return `MCQ ${index + 1}: answer exactly kisi ek option ke same hona chahiye.`;
+      }
+    }
+
+    return "";
+  }
+
+  /* =====================================================
+     SAVE
+===================================================== */
+
+  async function handleSubmit(
+    event: FormEvent,
+  ) {
+    event.preventDefault();
+
+    setError("");
+    setSuccess("");
+
+    const validationError =
+      validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    const payload = {
+      affair_date:
+        form.affair_date.trim(),
+
+      serial_no:
+        Number(form.serial_no),
+
+      title:
+        form.title.trim(),
+
+      why_in_news:
+        form.why_in_news.trim(),
+
+      key_facts:
+        form.key_facts.trim(),
+
+      exam_point:
+        form.exam_point.trim(),
+
+      static_gk:
+        form.static_gk.trim(),
+
+      mcqs:
+        form.mcqs.map(
+          (mcq) => ({
+            question:
+              mcq.question.trim(),
+
+            options:
+              mcq.options.map(
+                (option) =>
+                  option.trim(),
+              ),
+
+            answer:
+              mcq.answer.trim(),
+
+            explanation:
+              mcq.explanation?.trim() ||
+              "",
+          }),
+        ),
+
+      published:
+        form.published,
+
+      category:
+        form.category.trim(),
+
+      title_hi:
+        form.title_hi.trim(),
+
+      why_in_news_hi:
+        form.why_in_news_hi.trim(),
+
+      key_facts_hi:
+        form.key_facts_hi.trim(),
+
+      exam_point_hi:
+        form.exam_point_hi.trim(),
+
+      static_gk_hi:
+        form.static_gk_hi.trim(),
+    };
+
+    console.log(
+      "[AdminCurrentAffairs] Save payload:",
+      payload,
+    );
+
+    try {
+      if (editingId) {
+        const {
+          data,
+          error: updateError,
+        } =
+          await currentAffairsTable()
+            .update(payload)
+            .eq(
+              "id",
+              editingId,
+            )
+            .select("*")
+            .single();
+
+        console.log(
+          "[AdminCurrentAffairs] Update response:",
+          {
+            data,
+            updateError,
+          },
+        );
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setSuccess(
+          "Current affair successfully update ho gaya.",
+        );
+      } else {
+        const {
+          data,
+          error: insertError,
+        } =
+          await currentAffairsTable()
+            .insert(payload)
+            .select("*")
+            .single();
+
+        console.log(
+          "[AdminCurrentAffairs] Insert response:",
+          {
+            data,
+            insertError,
+          },
+        );
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        setSuccess(
+          "Current affair successfully add ho gaya.",
+        );
+      }
+
+      await loadCurrentAffairs();
+
+      setShowForm(false);
+      setEditingId(null);
+      setForm(EMPTY_FORM);
+    } catch (err) {
+      console.error(
+        "[AdminCurrentAffairs] Save Error:",
+        err,
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Current affair save nahi ho paya.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /* =====================================================
+     DELETE
+===================================================== */
+
+  async function deleteAffair(
+    id: string,
+  ) {
+    const confirmed =
+      window.confirm(
+        "Kya aap is current affair ko permanently delete karna chahte ho?",
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(id);
+    setError("");
+    setSuccess("");
+
+    console.log(
+      "[AdminCurrentAffairs] Deleting:",
+      id,
+    );
+
+    try {
+      const {
+        error: deleteError,
+      } =
+        await currentAffairsTable()
+          .delete()
+          .eq("id", id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      setAffairs(
+        (previous) =>
+          previous.filter(
+            (item) =>
+              item.id !== id,
+          ),
+      );
+
+      setSuccess(
+        "Current affair delete ho gaya.",
+      );
+    } catch (err) {
+      console.error(
+        "[AdminCurrentAffairs] Delete Error:",
+        err,
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Delete nahi ho paya.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  /* =====================================================
+     MCQ ADD
+===================================================== */
 
   function addMCQ() {
     setForm((previous) => ({
       ...previous,
-
       mcqs: [
         ...previous.mcqs,
         {
           question: "",
-
           options: [
             "",
             "",
             "",
             "",
           ],
-
           answer: "",
-
           explanation: "",
         },
       ],
     }));
   }
 
+  /* =====================================================
+     MCQ REMOVE
+===================================================== */
+
+  function removeMCQ(
+    index: number,
+  ) {
+    setForm((previous) => ({
+      ...previous,
+      mcqs:
+        previous.mcqs.filter(
+          (_, mcqIndex) =>
+            mcqIndex !== index,
+        ),
+    }));
+  }
+
+  /* =====================================================
+     MCQ UPDATE
+===================================================== */
+
   function updateMCQ(
-    mcqIndex: number,
-    field: keyof MCQ,
-    value:
-      | string
-      | string[],
+    index: number,
+    field:
+      | "question"
+      | "answer"
+      | "explanation",
+    value: string,
   ) {
     setForm((previous) => {
       const mcqs = [
         ...previous.mcqs,
       ];
 
-      if (!mcqs[mcqIndex]) {
-        return previous;
-      }
-
-      mcqs[mcqIndex] = {
-        ...mcqs[mcqIndex],
+      mcqs[index] = {
+        ...mcqs[index],
         [field]: value,
       };
 
@@ -403,6 +909,10 @@ export function AdminCurrentAffairs() {
       };
     });
   }
+
+  /* =====================================================
+     MCQ OPTION UPDATE
+===================================================== */
 
   function updateMCQOption(
     mcqIndex: number,
@@ -414,12 +924,9 @@ export function AdminCurrentAffairs() {
         ...previous.mcqs,
       ];
 
-      if (!mcqs[mcqIndex]) {
-        return previous;
-      }
-
       const options = [
-        ...mcqs[mcqIndex].options,
+        ...mcqs[mcqIndex]
+          .options,
       ];
 
       options[optionIndex] =
@@ -437,1042 +944,13 @@ export function AdminCurrentAffairs() {
     });
   }
 
-  function removeMCQ(
-    mcqIndex: number,
-  ) {
-    setForm((previous) => ({
-      ...previous,
-
-      mcqs:
-        previous.mcqs.filter(
-          (_, index) =>
-            index !== mcqIndex,
-        ),
-    }));
-  }
-
-  function validateMCQs(
-    mcqs: MCQ[],
-    rowPrefix = "",
-  ): string | null {
-    for (
-      let i = 0;
-      i < mcqs.length;
-      i++
-    ) {
-      const mcq = mcqs[i];
-
-      if (
-        !mcq ||
-        !mcq.question?.trim()
-      ) {
-        return `${rowPrefix}MCQ ${
-          i + 1
-        }: question is required.`;
-      }
-
-      if (
-        !Array.isArray(
-          mcq.options,
-        ) ||
-        mcq.options.length !== 4
-      ) {
-        return `${rowPrefix}MCQ ${
-          i + 1
-        }: exactly 4 options are required.`;
-      }
-
-      if (
-        mcq.options.some(
-          (option) =>
-            typeof option !==
-              "string" ||
-            !option.trim(),
-        )
-      ) {
-        return `${rowPrefix}MCQ ${
-          i + 1
-        }: all 4 options are required.`;
-      }
-
-      if (
-        !mcq.answer?.trim()
-      ) {
-        return `${rowPrefix}MCQ ${
-          i + 1
-        }: correct answer is required.`;
-      }
-
-      const answerExists =
-        mcq.options.some(
-          (option) =>
-            option.trim() ===
-            mcq.answer.trim(),
-        );
-
-      if (!answerExists) {
-        return `${rowPrefix}MCQ ${
-          i + 1
-        }: answer must exactly match one of the options.`;
-      }
-    }
-
-    return null;
-  }
-
-  /* =====================================================
-     FORM VALIDATION
-  ===================================================== */
-
-  function validateForm():
-    string | null {
-    if (!form.affair_date) {
-      return "Affair date is required.";
-    }
-
-    if (
-      !Number.isFinite(
-        Number(form.serial_no),
-      ) ||
-      Number(form.serial_no) < 1
-    ) {
-      return "Serial number must be a valid positive number.";
-    }
-
-    if (!form.title.trim()) {
-      return "English title is required.";
-    }
-
-    if (
-      !form.why_in_news.trim()
-    ) {
-      return "English Why in News is required.";
-    }
-
-    if (!form.key_facts.trim()) {
-      return "English Key Facts are required.";
-    }
-
-    if (!form.exam_point.trim()) {
-      return "English Exam Point is required.";
-    }
-
-    if (!form.static_gk.trim()) {
-      return "English Static GK is required.";
-    }
-
-    if (!form.category.trim()) {
-      return "Category is required.";
-    }
-
-    if (!form.title_hi.trim()) {
-      return "Hindi title is required.";
-    }
-
-    if (
-      !form.why_in_news_hi.trim()
-    ) {
-      return "Hindi Why in News is required.";
-    }
-
-    if (
-      !form.key_facts_hi.trim()
-    ) {
-      return "Hindi Key Facts are required.";
-    }
-
-    if (
-      !form.exam_point_hi.trim()
-    ) {
-      return "Hindi Exam Point is required.";
-    }
-
-    if (
-      !form.static_gk_hi.trim()
-    ) {
-      return "Hindi Static GK is required.";
-    }
-
-    return validateMCQs(
-      form.mcqs,
-    );
-  }
-
-  /* =====================================================
-     SAVE
-  ===================================================== */
-
-  async function handleSave() {
-    clearMessages();
-
-    const validationError =
-      validateForm();
-
-    if (validationError) {
-      setFailure(
-        validationError,
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const payload = {
-        affair_date:
-          form.affair_date,
-
-        serial_no:
-          Number(form.serial_no),
-
-        title:
-          form.title.trim(),
-
-        why_in_news:
-          form.why_in_news.trim(),
-
-        key_facts:
-          form.key_facts.trim(),
-
-        exam_point:
-          form.exam_point.trim(),
-
-        static_gk:
-          form.static_gk.trim(),
-
-        mcqs:
-          normalizeMCQs(
-            form.mcqs,
-          ),
-
-        published:
-          form.published,
-
-        category:
-          form.category.trim(),
-
-        title_hi:
-          form.title_hi.trim(),
-
-        why_in_news_hi:
-          form.why_in_news_hi.trim(),
-
-        key_facts_hi:
-          form.key_facts_hi.trim(),
-
-        exam_point_hi:
-          form.exam_point_hi.trim(),
-
-        static_gk_hi:
-          form.static_gk_hi.trim(),
-      };
-
-      if (editingId) {
-        const {
-          error: updateError,
-        } = await supabase
-          .from("current_affairs")
-          .update(payload)
-          .eq(
-            "id",
-            editingId,
-          );
-
-        if (updateError) {
-          throw updateError;
-        }
-
-        setSuccess(
-          "Current affair updated successfully.",
-        );
-      } else {
-        const {
-          error: insertError,
-        } = await supabase
-          .from("current_affairs")
-          .insert(
-            payload,
-          );
-
-        if (insertError) {
-          throw insertError;
-        }
-
-        setSuccess(
-          "Current affair added successfully.",
-        );
-      }
-
-      setShowForm(false);
-      setEditingId(null);
-      setForm(createEmptyForm());
-
-      await loadCurrentAffairs();
-    } catch (err) {
-      console.error(
-        "Save current affair error:",
-        err,
-      );
-
-      setFailure(
-        getErrorMessage(
-          err,
-          "Unable to save current affair.",
-        ),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /* =====================================================
-     DELETE
-  ===================================================== */
-
-  async function handleDelete(
-    id: string,
-  ) {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this current affair?",
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    clearMessages();
-    setLoading(true);
-
-    try {
-      const {
-        error: deleteError,
-      } = await supabase
-        .from("current_affairs")
-        .delete()
-        .eq("id", id);
-
-      if (deleteError) {
-        throw deleteError;
-      }
-
-      setSuccess(
-        "Current affair deleted successfully.",
-      );
-
-      await loadCurrentAffairs();
-    } catch (err) {
-      console.error(
-        "Delete current affair error:",
-        err,
-      );
-
-      setFailure(
-        getErrorMessage(
-          err,
-          "Unable to delete current affair.",
-        ),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /* =====================================================
-     CSV PARSER
-  ===================================================== */
-
-  function parseCSVRows(
-    text: string,
-  ): string[][] {
-    const rows: string[][] = [];
-
-    let row: string[] = [];
-    let value = "";
-    let insideQuotes = false;
-
-    for (
-      let i = 0;
-      i < text.length;
-      i++
-    ) {
-      const char = text[i];
-      const nextChar =
-        text[i + 1];
-
-      if (char === '"') {
-        if (
-          insideQuotes &&
-          nextChar === '"'
-        ) {
-          value += '"';
-          i++;
-        } else {
-          insideQuotes =
-            !insideQuotes;
-        }
-
-        continue;
-      }
-
-      if (
-        char === "," &&
-        !insideQuotes
-      ) {
-        row.push(
-          value.trim(),
-        );
-
-        value = "";
-
-        continue;
-      }
-
-      if (
-        (char === "\n" ||
-          char === "\r") &&
-        !insideQuotes
-      ) {
-        if (
-          char === "\r" &&
-          nextChar === "\n"
-        ) {
-          i++;
-        }
-
-        row.push(
-          value.trim(),
-        );
-
-        if (
-          row.some(
-            (cell) =>
-              cell.trim() !== "",
-          )
-        ) {
-          rows.push(row);
-        }
-
-        row = [];
-        value = "";
-
-        continue;
-      }
-
-      value += char;
-    }
-
-    row.push(value.trim());
-
-    if (
-      row.some(
-        (cell) =>
-          cell.trim() !== "",
-      )
-    ) {
-      rows.push(row);
-    }
-
-    return rows;
-  }
-
-  function normalizeHeader(
-    header: string,
-  ): string {
-    return header
-      .replace(/^\uFEFF/, "")
-      .trim()
-      .toLowerCase()
-      .replace(
-        /[\s-]+/g,
-        "_",
-      );
-  }
-
-  function parseBoolean(
-    value: string,
-  ): boolean {
-    return [
-      "true",
-      "1",
-      "yes",
-      "y",
-      "published",
-    ].includes(
-      value
-        .trim()
-        .toLowerCase(),
-    );
-  }
-
-  /* =====================================================
-     CSV MCQ JSON
-  ===================================================== */
-
-  function parseMCQsFromCSV(
-    text: string,
-    rowNumber: number,
-  ): MCQ[] {
-    if (!text.trim()) {
-      return [];
-    }
-
-    let parsed: unknown;
-
-    try {
-      parsed = JSON.parse(
-        text.trim(),
-      );
-    } catch {
-      throw new Error(
-        `Row ${rowNumber}: mcqs contains invalid JSON.`,
-      );
-    }
-
-    if (!Array.isArray(parsed)) {
-      throw new Error(
-        `Row ${rowNumber}: mcqs must be a JSON array.`,
-      );
-    }
-
-    const mcqs: MCQ[] = [];
-
-    parsed.forEach(
-      (item, index) => {
-        if (
-          !item ||
-          typeof item !==
-            "object" ||
-          Array.isArray(item)
-        ) {
-          throw new Error(
-            `Row ${rowNumber}: MCQ ${
-              index + 1
-            } is invalid.`,
-          );
-        }
-
-        const data =
-          item as Record<
-            string,
-            unknown
-          >;
-
-        const question =
-          typeof data.question ===
-          "string"
-            ? data.question.trim()
-            : "";
-
-        const options =
-          Array.isArray(
-            data.options,
-          )
-            ? data.options
-                .filter(
-                  (
-                    option,
-                  ): option is string =>
-                    typeof option ===
-                    "string",
-                )
-                .map(
-                  (option) =>
-                    option.trim(),
-                )
-            : [];
-
-        const answer =
-          typeof data.answer ===
-          "string"
-            ? data.answer.trim()
-            : "";
-
-        const explanation =
-          typeof data.explanation ===
-          "string"
-            ? data.explanation.trim()
-            : "";
-
-        mcqs.push({
-          question,
-          options,
-          answer,
-          explanation,
-        });
-      },
-    );
-
-    const validationError =
-      validateMCQs(
-        mcqs,
-        `Row ${rowNumber}: `,
-      );
-
-    if (validationError) {
-      throw new Error(
-        validationError,
-      );
-    }
-
-    return mcqs;
-  }
-
-  /* =====================================================
-     CSV FIELD ALIASES
-  ===================================================== */
-
-  function parseCSV(
-    text: string,
-  ): CurrentAffair[] {
-    const rows =
-      parseCSVRows(
-        text.replace(
-          /^\uFEFF/,
-          "",
-        ),
-      );
-
-    if (rows.length < 2) {
-      throw new Error(
-        "CSV must contain a header and at least one data row.",
-      );
-    }
-
-    const headers =
-      rows[0].map(
-        normalizeHeader,
-      );
-
-    const aliases = {
-      affair_date: [
-        "affair_date",
-        "date",
-        "affairdate",
-      ],
-
-      serial_no: [
-        "serial_no",
-        "serial",
-        "serial_number",
-        "serialno",
-        "sr_no",
-        "sr",
-        "s_no",
-      ],
-
-      title: [
-        "title",
-        "heading",
-      ],
-
-      why_in_news: [
-        "why_in_news",
-        "why_innews",
-        "why_news",
-        "why",
-      ],
-
-      key_facts: [
-        "key_facts",
-        "keyfacts",
-        "facts",
-      ],
-
-      exam_point: [
-        "exam_point",
-        "exam_points",
-        "exampoint",
-      ],
-
-      static_gk: [
-        "static_gk",
-        "staticgk",
-        "gk",
-      ],
-
-      mcqs: [
-        "mcqs",
-        "mcq",
-      ],
-
-      published: [
-        "published",
-        "is_published",
-      ],
-
-      category: [
-        "category",
-        "categories",
-      ],
-
-      title_hi: [
-        "title_hi",
-        "title_hindi",
-        "hindi_title",
-      ],
-
-      why_in_news_hi: [
-        "why_in_news_hi",
-        "why_in_news_hindi",
-        "hindi_why_in_news",
-      ],
-
-      key_facts_hi: [
-        "key_facts_hi",
-        "key_facts_hindi",
-        "hindi_key_facts",
-      ],
-
-      exam_point_hi: [
-        "exam_point_hi",
-        "exam_point_hindi",
-        "hindi_exam_point",
-      ],
-
-      static_gk_hi: [
-        "static_gk_hi",
-        "static_gk_hindi",
-        "hindi_static_gk",
-      ],
-    };
-
-    const requiredFields = [
-      "affair_date",
-      "serial_no",
-      "title",
-      "why_in_news",
-      "key_facts",
-      "exam_point",
-      "static_gk",
-      "mcqs",
-      "category",
-      "title_hi",
-      "why_in_news_hi",
-      "key_facts_hi",
-      "exam_point_hi",
-      "static_gk_hi",
-    ] as const;
-
-    const columnIndexes =
-      new Map<
-        string,
-        number
-      >();
-
-    Object.entries(
-      aliases,
-    ).forEach(
-      ([field, fieldAliases]) => {
-        const index =
-          headers.findIndex(
-            (header) =>
-              fieldAliases.includes(
-                header,
-              ),
-          );
-
-        if (index >= 0) {
-          columnIndexes.set(
-            field,
-            index,
-          );
-        }
-      },
-    );
-
-    for (const field of requiredFields) {
-      if (
-        !columnIndexes.has(
-          field,
-        )
-      ) {
-        throw new Error(
-          `Missing CSV column: ${field}.`,
-        );
-      }
-    }
-
-    const result: CurrentAffair[] =
-      [];
-
-    rows
-      .slice(1)
-      .forEach(
-        (values, index) => {
-          const rowNumber =
-            index + 2;
-
-          if (
-            values.every(
-              (value) =>
-                !value.trim(),
-            )
-          ) {
-            return;
-          }
-
-          const getColumn =
-            (
-              field: string,
-            ) => {
-              const columnIndex =
-                columnIndexes.get(
-                  field,
-                );
-
-              if (
-                columnIndex ===
-                undefined
-              ) {
-                return "";
-              }
-
-              return (
-                values[
-                  columnIndex
-                ]?.trim() ?? ""
-              );
-            };
-
-          const affairDate =
-            getColumn(
-              "affair_date",
-            );
-
-          const serialText =
-            getColumn(
-              "serial_no",
-            );
-
-          const title =
-            getColumn(
-              "title",
-            );
-
-          const whyInNews =
-            getColumn(
-              "why_in_news",
-            );
-
-          const keyFacts =
-            getColumn(
-              "key_facts",
-            );
-
-          const examPoint =
-            getColumn(
-              "exam_point",
-            );
-
-          const staticGK =
-            getColumn(
-              "static_gk",
-            );
-
-          const mcqsText =
-            getColumn("mcqs");
-
-          const publishedText =
-            getColumn(
-              "published",
-            );
-
-          const category =
-            getColumn(
-              "category",
-            );
-
-          const titleHi =
-            getColumn(
-              "title_hi",
-            );
-
-          const whyInNewsHi =
-            getColumn(
-              "why_in_news_hi",
-            );
-
-          const keyFactsHi =
-            getColumn(
-              "key_facts_hi",
-            );
-
-          const examPointHi =
-            getColumn(
-              "exam_point_hi",
-            );
-
-          const staticGKHi =
-            getColumn(
-              "static_gk_hi",
-            );
-
-          if (!affairDate) {
-            throw new Error(
-              `Row ${rowNumber}: affair_date is required.`,
-            );
-          }
-
-          if (!serialText) {
-            throw new Error(
-              `Row ${rowNumber}: serial_no is required.`,
-            );
-          }
-
-          const serialNo =
-            Number(serialText);
-
-          if (
-            !Number.isFinite(
-              serialNo,
-            )
-          ) {
-            throw new Error(
-              `Row ${rowNumber}: serial_no must be a valid number.`,
-            );
-          }
-
-          if (!title) {
-            throw new Error(
-              `Row ${rowNumber}: title is required.`,
-            );
-          }
-
-          if (!whyInNews) {
-            throw new Error(
-              `Row ${rowNumber}: why_in_news is required.`,
-            );
-          }
-
-          if (!keyFacts) {
-            throw new Error(
-              `Row ${rowNumber}: key_facts is required.`,
-            );
-          }
-
-          if (!examPoint) {
-            throw new Error(
-              `Row ${rowNumber}: exam_point is required.`,
-            );
-          }
-
-          if (!staticGK) {
-            throw new Error(
-              `Row ${rowNumber}: static_gk is required.`,
-            );
-          }
-
-          if (!category) {
-            throw new Error(
-              `Row ${rowNumber}: category is required.`,
-            );
-          }
-
-          if (!titleHi) {
-            throw new Error(
-              `Row ${rowNumber}: title_hi is required.`,
-            );
-          }
-
-          if (!whyInNewsHi) {
-            throw new Error(
-              `Row ${rowNumber}: why_in_news_hi is required.`,
-            );
-          }
-
-          if (!keyFactsHi) {
-            throw new Error(
-              `Row ${rowNumber}: key_facts_hi is required.`,
-            );
-          }
-
-          if (!examPointHi) {
-            throw new Error(
-              `Row ${rowNumber}: exam_point_hi is required.`,
-            );
-          }
-
-          if (!staticGKHi) {
-            throw new Error(
-              `Row ${rowNumber}: static_gk_hi is required.`,
-            );
-          }
-
-          const mcqs =
-            parseMCQsFromCSV(
-              mcqsText,
-              rowNumber,
-            );
-
-          result.push({
-            affair_date:
-              affairDate,
-
-            serial_no:
-              serialNo,
-
-            title,
-
-            why_in_news:
-              whyInNews,
-
-            key_facts:
-              keyFacts,
-
-            exam_point:
-              examPoint,
-
-            static_gk:
-              staticGK,
-
-            mcqs,
-
-            published:
-              publishedText
-                ? parseBoolean(
-                    publishedText,
-                  )
-                : true,
-
-            category,
-
-            title_hi:
-              titleHi,
-
-            why_in_news_hi:
-              whyInNewsHi,
-
-            key_facts_hi:
-              keyFactsHi,
-
-            exam_point_hi:
-              examPointHi,
-
-            static_gk_hi:
-              staticGKHi,
-          });
-        },
-      );
-
-    if (!result.length) {
-      throw new Error(
-        "No valid data rows found in CSV.",
-      );
-    }
-
-    return result;
-  }
-
   /* =====================================================
      CSV FILE
-  ===================================================== */
+===================================================== */
 
   async function handleCSVFile(
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    clearMessages();
-
     const file =
       event.target.files?.[0];
 
@@ -1480,21 +958,9 @@ export function AdminCurrentAffairs() {
       return;
     }
 
-    if (
-      !file.name
-        .toLowerCase()
-        .endsWith(".csv")
-    ) {
-      setFailure(
-        "Please select a valid CSV file.",
-      );
-
-      return;
-    }
-
-    setCSVFileName(
-      file.name,
-    );
+    setCsvLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
       const text =
@@ -1503,299 +969,286 @@ export function AdminCurrentAffairs() {
       const rows =
         parseCSV(text);
 
-      setCSVRows(rows);
+      if (rows.length < 2) {
+        throw new Error(
+          "CSV me header aur kam se kam 1 data row required hai.",
+        );
+      }
 
-      setSuccess(
-        `${rows.length} current affair${
-          rows.length === 1
-            ? ""
-            : "s"
-        } loaded successfully.`,
-      );
-    } catch (err) {
-      console.error(
-        "CSV parse error:",
-        err,
-      );
+      const headers =
+        rows[0].map((header) =>
+          normalizeCSVHeader(
+            header,
+          ),
+        );
 
-      setCSVRows([]);
-      setCSVFileName("");
+      const requiredHeaders = [
+        "affair_date",
+        "serial_no",
+        "title",
+        "why_in_news",
+        "key_facts",
+        "exam_point",
+        "static_gk",
+        "mcqs",
+        "category",
+        "title_hi",
+        "why_in_news_hi",
+        "key_facts_hi",
+        "exam_point_hi",
+        "static_gk_hi",
+      ];
 
-      setFailure(
-        getErrorMessage(
-          err,
-          "Unable to read CSV file.",
-        ),
-      );
-    }
-  }
+      const missing =
+        requiredHeaders.filter(
+          (header) =>
+            !headers.includes(
+              header,
+            ),
+        );
 
-  /* =====================================================
-     CSV UPLOAD
-  ===================================================== */
+      if (missing.length > 0) {
+        throw new Error(
+          `CSV me ye columns missing hain: ${missing.join(", ")}`,
+        );
+      }
 
-  async function handleCSVUpload() {
-    clearMessages();
+      const imported: Array<
+        Omit<
+          CurrentAffair,
+          "id"
+        >
+      > = [];
 
-    if (!csvRows.length) {
-      setFailure(
-        "Please select a valid CSV file first.",
-      );
+      for (
+        let rowIndex = 1;
+        rowIndex < rows.length;
+        rowIndex++
+      ) {
+        const values =
+          rows[rowIndex];
 
-      return;
-    }
+        if (
+          values.every(
+            (value) =>
+              !value.trim(),
+          )
+        ) {
+          continue;
+        }
 
-    setLoading(true);
+        const record: Record<
+          string,
+          string
+        > = {};
 
-    try {
-      const payload =
-        csvRows.map((row) => ({
+        headers.forEach(
+          (
+            header,
+            index,
+          ) => {
+            record[header] =
+              values[index] ??
+              "";
+          },
+        );
+
+        const mcqs =
+          parseMCQJSON(
+            record.mcqs,
+          );
+
+        if (
+          record.mcqs.trim() &&
+          mcqs === null
+        ) {
+          throw new Error(
+            `Row ${rowIndex}: mcqs contains invalid JSON.`,
+          );
+        }
+
+        const serial =
+          Number(
+            record.serial_no,
+          );
+
+        if (
+          !Number.isFinite(
+            serial,
+          )
+        ) {
+          throw new Error(
+            `Row ${rowIndex}: serial_no invalid hai.`,
+          );
+        }
+
+        imported.push({
           affair_date:
-            row.affair_date,
+            record.affair_date.trim(),
 
           serial_no:
-            Number(row.serial_no),
+            serial,
 
           title:
-            row.title.trim(),
+            record.title.trim(),
 
           why_in_news:
-            row.why_in_news.trim(),
+            record.why_in_news.trim(),
 
           key_facts:
-            row.key_facts.trim(),
+            record.key_facts.trim(),
 
           exam_point:
-            row.exam_point.trim(),
+            record.exam_point.trim(),
 
           static_gk:
-            row.static_gk.trim(),
+            record.static_gk.trim(),
 
           mcqs:
-            normalizeMCQs(
-              row.mcqs,
-            ),
+            mcqs ?? [],
 
           published:
-            row.published,
+            parseBoolean(
+              record.published,
+              true,
+            ),
 
           category:
-            row.category.trim(),
+            record.category.trim() ||
+            "Other",
 
           title_hi:
-            row.title_hi.trim(),
+            record.title_hi.trim(),
 
           why_in_news_hi:
-            row.why_in_news_hi.trim(),
+            record.why_in_news_hi.trim(),
 
           key_facts_hi:
-            row.key_facts_hi.trim(),
+            record.key_facts_hi.trim(),
 
           exam_point_hi:
-            row.exam_point_hi.trim(),
+            record.exam_point_hi.trim(),
 
           static_gk_hi:
-            row.static_gk_hi.trim(),
-        }));
+            record.static_gk_hi.trim(),
+        });
+      }
 
-      const {
-        error: insertError,
-      } = await supabase
-        .from("current_affairs")
-        .insert(payload);
+      if (
+        imported.length === 0
+      ) {
+        throw new Error(
+          "CSV me koi valid data row nahi mili.",
+        );
+      }
+
+      console.log(
+        "[AdminCurrentAffairs] CSV parsed:",
+        imported,
+      );
+
+      const confirmed =
+        window.confirm(
+          `${imported.length} current affairs CSV se import karne hain. Continue?`,
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const { error: insertError } =
+        await currentAffairsTable()
+          .insert(
+            imported.map(
+              (item) => ({
+                affair_date:
+                  item.affair_date,
+
+                serial_no:
+                  item.serial_no,
+
+                title:
+                  item.title,
+
+                why_in_news:
+                  item.why_in_news,
+
+                key_facts:
+                  item.key_facts,
+
+                exam_point:
+                  item.exam_point,
+
+                static_gk:
+                  item.static_gk,
+
+                mcqs:
+                  item.mcqs,
+
+                published:
+                  item.published,
+
+                category:
+                  item.category,
+
+                title_hi:
+                  item.title_hi,
+
+                why_in_news_hi:
+                  item.why_in_news_hi,
+
+                key_facts_hi:
+                  item.key_facts_hi,
+
+                exam_point_hi:
+                  item.exam_point_hi,
+
+                static_gk_hi:
+                  item.static_gk_hi,
+              }),
+            ),
+          );
 
       if (insertError) {
         throw insertError;
       }
 
       setSuccess(
-        `${payload.length} current affair${
-          payload.length === 1
-            ? ""
-            : "s"
-        } uploaded successfully.`,
+        `${imported.length} current affairs successfully import ho gaye.`,
       );
-
-      setCSVRows([]);
-      setCSVFileName("");
-      setShowCSV(false);
 
       await loadCurrentAffairs();
     } catch (err) {
       console.error(
-        "CSV upload error:",
+        "[AdminCurrentAffairs] CSV Error:",
         err,
       );
 
-      setFailure(
-        getErrorMessage(
-          err,
-          "Unable to upload CSV.",
-        ),
+      setError(
+        err instanceof Error
+          ? err.message
+          : "CSV import nahi ho paya.",
       );
     } finally {
-      setLoading(false);
+      setCsvLoading(false);
+
+      event.target.value = "";
     }
   }
 
   /* =====================================================
-     STATS
-  ===================================================== */
-
-  const today =
-    new Date()
-      .toISOString()
-      .slice(0, 10);
-
-  const todayRecords =
-    records.filter(
-      (record) =>
-        record.affair_date ===
-        today,
-    );
-
-  const publishedCount =
-    records.filter(
-      (record) =>
-        record.published,
-    ).length;
-
-  const hindiCompleteCount =
-    records.filter(
-      (record) =>
-        record.title_hi &&
-        record.why_in_news_hi &&
-        record.key_facts_hi &&
-        record.exam_point_hi &&
-        record.static_gk_hi,
-    ).length;
-
-  /* =====================================================
      UI
-  ===================================================== */
+===================================================== */
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
 
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-
-          <div>
-            <div className="text-2xl font-black tracking-tight text-blue-600">
-              VIDYZEN
-            </div>
-
-            <p className="text-sm text-slate-500">
-              Admin · Current Affairs
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={
-              handleLogout
-            }
-            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-          >
-            Logout
-          </button>
-
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-
-        {/* WELCOME */}
-
-        <div className="mb-8 overflow-hidden rounded-3xl bg-slate-900 p-6 text-white sm:p-8">
-
-          <p className="text-sm text-slate-400">
-            Welcome Admin
-          </p>
-
-          <h1 className="mt-1 text-2xl font-black sm:text-3xl">
-            {profile?.full_name ||
-              user?.email ||
-              "Administrator"}
-          </h1>
-
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Manage English + Hindi exam-focused current affairs for VIDYZEN students.
-          </p>
-
-        </div>
-
-        {/* STATS */}
-
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-
-          <StatCard
-            label="Total Affairs"
-            value={records.length}
-            icon="📰"
-          />
-
-          <StatCard
-            label="Today"
-            value={
-              todayRecords.length
-            }
-            icon="📅"
-            accent
-          />
-
-          <StatCard
-            label="Published"
-            value={
-              publishedCount
-            }
-            icon="🌐"
-          />
-
-          <StatCard
-            label="Hindi Ready"
-            value={
-              hindiCompleteCount
-            }
-            icon="🇮🇳"
-          />
-
-          <StatCard
-            label="Target / Day"
-            value={10}
-            icon="🎯"
-          />
-
-        </div>
-
-        {/* ACTIONS */}
-
-        <div className="mb-6 flex flex-wrap gap-3">
-
-          <button
-            type="button"
-            onClick={
-              openAddForm
-            }
-            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
-          >
-            + Add Current Affair
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              clearMessages();
-              setCSVRows([]);
-              setCSVFileName("");
-              setShowCSV(true);
-            }}
-            className="rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700"
-          >
-            📄 Upload CSV
-          </button>
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
 
           <button
             type="button"
@@ -1804,1493 +1257,1586 @@ export function AdminCurrentAffairs() {
                 "/admin/dashboard",
               )
             }
-            className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+            className="flex items-center gap-3"
           >
-            ← Dashboard
-          </button>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 font-black text-white shadow">
+              V
+            </div>
 
-        </div>
+            <div className="text-left">
+              <h1 className="text-lg font-black">
+                VIDYZEN
+              </h1>
 
-        {/* MESSAGES */}
-
-        {error && (
-          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            ❌ {error}
-          </div>
-        )}
-
-        {message && (
-          <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-            ✅ {message}
-          </div>
-        )}
-
-        {/* TABLE */}
-
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
-
-            <div>
-              <h2 className="text-xl font-black">
-                Current Affairs
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                English + Hindi content
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Admin • Current Affairs
               </p>
             </div>
+          </button>
+
+          <div className="flex items-center gap-2">
 
             <button
               type="button"
               onClick={() =>
-                void loadCurrentAffairs()
+                navigate(
+                  "/admin/dashboard",
+                )
               }
-              disabled={
-                loadingRecords
-              }
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold transition hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              {loadingRecords
-                ? "Loading..."
-                : "Refresh"}
+              ← Dashboard
+            </button>
+
+            <button
+              type="button"
+              onClick={
+                openAddForm
+              }
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              + Add Current Affair
             </button>
 
           </div>
 
-          {loadingRecords ? (
-            <div className="p-12 text-center text-sm text-slate-500">
-              Loading current affairs...
-            </div>
-          ) : records.length ===
-            0 ? (
-            <div className="p-12 text-center">
-
-              <div className="text-5xl">
-                📰
-              </div>
-
-              <h3 className="mt-4 font-bold">
-                No current affairs yet
-              </h3>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Add today's current affairs or upload a CSV.
-              </p>
-
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-
-              <table className="min-w-[1250px] w-full text-left text-sm">
-
-                <thead className="bg-slate-100">
-                  <tr>
-
-                    <th className="px-4 py-3 font-bold">
-                      Date
-                    </th>
-
-                    <th className="px-4 py-3 font-bold">
-                      #
-                    </th>
-
-                    <th className="px-4 py-3 font-bold">
-                      English
-                    </th>
-
-                    <th className="px-4 py-3 font-bold">
-                      Hindi
-                    </th>
-
-                    <th className="px-4 py-3 font-bold">
-                      Category
-                    </th>
-
-                    <th className="px-4 py-3 font-bold">
-                      MCQs
-                    </th>
-
-                    <th className="px-4 py-3 font-bold">
-                      Status
-                    </th>
-
-                    <th className="px-4 py-3 font-bold">
-                      Actions
-                    </th>
-
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  {records.map(
-                    (record) => (
-                      <tr
-                        key={
-                          record.id
-                        }
-                        className="border-t border-slate-100 transition hover:bg-slate-50"
-                      >
-
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          {
-                            record.affair_date
-                          }
-                        </td>
-
-                        <td className="px-4 py-4 font-black">
-                          {
-                            record.serial_no
-                          }
-                        </td>
-
-                        <td className="max-w-[280px] px-4 py-4">
-
-                          <p className="font-bold">
-                            {
-                              record.title
-                            }
-                          </p>
-
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-                            {
-                              record.why_in_news
-                            }
-                          </p>
-
-                        </td>
-
-                        <td className="max-w-[280px] px-4 py-4">
-
-                          <p className="font-bold">
-                            {
-                              record.title_hi ||
-                              "—"
-                            }
-                          </p>
-
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-                            {
-                              record.why_in_news_hi ||
-                              "—"
-                            }
-                          </p>
-
-                        </td>
-
-                        <td className="px-4 py-4">
-
-                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                            {
-                              record.category
-                            }
-                          </span>
-
-                        </td>
-
-                        <td className="px-4 py-4 font-semibold">
-                          {
-                            record.mcqs
-                              .length
-                          }
-                        </td>
-
-                        <td className="px-4 py-4">
-
-                          {record.published ? (
-                            <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
-                              Published
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-                              Draft
-                            </span>
-                          )}
-
-                        </td>
-
-                        <td className="px-4 py-4">
-
-                          <div className="flex gap-2">
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openEditForm(
-                                  record,
-                                )
-                              }
-                              className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              disabled={
-                                loading
-                              }
-                              onClick={() => {
-                                if (
-                                  record.id
-                                ) {
-                                  void handleDelete(
-                                    record.id,
-                                  );
-                                }
-                              }}
-                              className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
-                            >
-                              Delete
-                            </button>
-
-                          </div>
-
-                        </td>
-
-                      </tr>
-                    ),
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
-          )}
-
-        </section>
-
-      </main>
+        </div>
+      </header>
 
       {/* =================================================
-          ADD / EDIT MODAL
+          MAIN
       ================================================= */}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
 
-          <div className="mx-auto my-6 max-w-6xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:my-10">
+        {/* =================================================
+            ALERTS
+        ================================================= */}
 
-            {/* MODAL HEADER */}
+        {error && (
+          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950/30">
 
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+            <div className="flex items-start gap-3">
 
-              <div>
-                <h2 className="text-xl font-black">
-                  {editingId
-                    ? "Edit Current Affair"
-                    : "Add Current Affair"}
-                </h2>
+              <span className="text-xl">
+                ⚠️
+              </span>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  English + Hindi content
+              <div className="min-w-0 flex-1">
+
+                <p className="font-bold text-red-700 dark:text-red-300">
+                  Error
                 </p>
+
+                <p className="mt-1 break-words text-sm leading-6 text-red-600 dark:text-red-400">
+                  {error}
+                </p>
+
               </div>
 
               <button
                 type="button"
-                disabled={
-                  loading
+                onClick={() =>
+                  setError("")
                 }
-                onClick={
-                  closeForm
-                }
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl transition hover:bg-slate-200 disabled:opacity-50"
+                className="text-red-500"
               >
-                ×
+                ✕
               </button>
 
             </div>
 
-            <div className="space-y-8 p-6">
+          </div>
+        )}
 
-              {/* BASIC */}
+        {success && (
+          <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-5 dark:border-green-900 dark:bg-green-950/30">
 
-              <section>
+            <div className="flex items-center justify-between gap-3">
 
-                <SectionTitle
-                  title="Basic Information"
-                  subtitle="Date, serial number, category and publication status"
-                />
+              <p className="font-semibold text-green-700 dark:text-green-300">
+                ✅ {success}
+              </p>
 
-                <div className="mt-5 grid gap-5 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setSuccess("")
+                }
+                className="text-green-600"
+              >
+                ✕
+              </button>
 
-                  <InputField
-                    label="Affair Date"
-                    type="date"
-                    value={
-                      form.affair_date
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "affair_date",
-                        value,
-                      )
-                    }
-                  />
+            </div>
 
-                  <InputField
-                    label="Serial Number"
-                    type="number"
-                    value={String(
-                      form.serial_no,
-                    )}
-                    onChange={(value) =>
-                      updateForm(
-                        "serial_no",
-                        Number(value),
-                      )
-                    }
-                  />
+          </div>
+        )}
 
-                  <div>
+        {/* =================================================
+            FORM
+        ================================================= */}
 
-                    <label className="text-sm font-bold text-slate-700">
-                      Category
-                    </label>
+        {showForm && (
+          <form
+            onSubmit={
+              handleSubmit
+            }
+            className="mb-8 rounded-3xl border border-blue-200 bg-white p-5 shadow-sm dark:border-blue-900/50 dark:bg-slate-900 sm:p-7"
+          >
 
-                    <select
-                      value={
-                        form.category
-                      }
-                      onChange={(e) =>
-                        updateForm(
-                          "category",
-                          e.target.value,
-                        )
-                      }
-                      className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    >
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-                      {CATEGORIES.map(
-                        (category) => (
-                          <option
-                            key={
-                              category
-                            }
-                            value={
-                              category
-                            }
-                          >
-                            {
-                              category
-                            }
-                          </option>
-                        ),
-                      )}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                  {editingId
+                    ? "Edit"
+                    : "Create"}
+                </p>
 
-                    </select>
+                <h2 className="mt-1 text-2xl font-black">
+                  {editingId
+                    ? "Edit Current Affair"
+                    : "Add Current Affair"}
+                </h2>
+              </div>
 
-                  </div>
+              <button
+                type="button"
+                onClick={
+                  closeForm
+                }
+                disabled={saving}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold dark:border-slate-700"
+              >
+                Cancel
+              </button>
 
-                </div>
+            </div>
 
-                <label className="mt-5 flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            {/* BASIC */}
 
-                  <input
-                    type="checkbox"
-                    checked={
-                      form.published
-                    }
-                    onChange={(e) =>
-                      updateForm(
-                        "published",
-                        e.target
-                          .checked,
-                      )
-                    }
-                    className="h-4 w-4"
-                  />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-                  <div>
-                    <p className="text-sm font-bold">
-                      Publish this current affair
-                    </p>
+              <Field
+                label="Affair Date"
+                type="date"
+                value={
+                  form.affair_date
+                }
+                onChange={(value) =>
+                  updateField(
+                    "affair_date",
+                    value,
+                  )
+                }
+              />
 
-                    <p className="text-xs text-slate-500">
-                      Published affairs can appear on the student side.
-                    </p>
-                  </div>
+              <Field
+                label="Serial No."
+                type="number"
+                value={
+                  form.serial_no
+                }
+                onChange={(value) =>
+                  updateField(
+                    "serial_no",
+                    value,
+                  )
+                }
+              />
 
+              <div>
+                <label className="mb-2 block text-sm font-bold">
+                  Category
                 </label>
 
-              </section>
+                <select
+                  value={
+                    form.category
+                  }
+                  onChange={(event) =>
+                    updateField(
+                      "category",
+                      event.target
+                        .value,
+                    )
+                  }
+                  className={inputClass}
+                >
+                  {CATEGORIES.map(
+                    (category) => (
+                      <option
+                        key={
+                          category
+                        }
+                        value={
+                          category
+                        }
+                      >
+                        {category}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
 
-              {/* ENGLISH */}
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
 
-              <section className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
-
-                <SectionTitle
-                  title="🇬🇧 English Content"
-                  subtitle="Main English current affair content"
+                <input
+                  type="checkbox"
+                  checked={
+                    form.published
+                  }
+                  onChange={(event) =>
+                    updateField(
+                      "published",
+                      event.target
+                        .checked,
+                    )
+                  }
+                  className="h-5 w-5"
                 />
 
-                <div className="mt-5 space-y-5">
+                <span>
+                  <span className="block text-sm font-bold">
+                    Published
+                  </span>
 
-                  <InputField
-                    label="Title"
-                    value={
-                      form.title
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "title",
-                        value,
-                      )
-                    }
-                    placeholder="Enter current affair title"
-                  />
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">
+                    Student ko visible
+                  </span>
+                </span>
 
-                  <TextareaField
-                    label="Why in News"
-                    value={
-                      form.why_in_news
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "why_in_news",
-                        value,
-                      )
-                    }
-                    rows={4}
-                    placeholder="Why is this topic in the news?"
-                  />
+              </label>
 
-                  <TextareaField
-                    label="Key Facts"
-                    value={
-                      form.key_facts
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "key_facts",
-                        value,
-                      )
-                    }
-                    rows={5}
-                    placeholder="Important facts"
-                  />
+            </div>
 
-                  <TextareaField
-                    label="Exam Point"
-                    value={
-                      form.exam_point
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "exam_point",
-                        value,
-                      )
-                    }
-                    rows={4}
-                    placeholder="Important exam-oriented points"
-                  />
+            {/* ENGLISH */}
 
-                  <TextareaField
-                    label="Static GK"
-                    value={
-                      form.static_gk
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "static_gk",
-                        value,
-                      )
-                    }
-                    rows={4}
-                    placeholder="Related static GK"
-                  />
+            <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50/50 p-5 dark:border-blue-900/50 dark:bg-blue-950/20">
 
-                </div>
+              <h3 className="mb-5 text-lg font-black text-blue-700 dark:text-blue-300">
+                🇬🇧 English Content
+              </h3>
 
-              </section>
+              <div className="space-y-4">
 
-              {/* HINDI */}
-
-              <section className="rounded-2xl border border-orange-100 bg-orange-50/40 p-5">
-
-                <SectionTitle
-                  title="🇮🇳 Hindi Content"
-                  subtitle="Hindi translation/content stored in separate database columns"
+                <TextArea
+                  label="Title"
+                  value={
+                    form.title
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "title",
+                      value,
+                    )
+                  }
+                  rows={2}
                 />
 
-                <div className="mt-5 space-y-5">
+                <TextArea
+                  label="Why in News"
+                  value={
+                    form.why_in_news
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "why_in_news",
+                      value,
+                    )
+                  }
+                  rows={5}
+                />
 
-                  <InputField
-                    label="Title (Hindi)"
-                    value={
-                      form.title_hi
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "title_hi",
-                        value,
-                      )
-                    }
-                    placeholder="हिंदी शीर्षक"
-                  />
+                <TextArea
+                  label="Key Facts"
+                  value={
+                    form.key_facts
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "key_facts",
+                      value,
+                    )
+                  }
+                  rows={6}
+                />
 
-                  <TextareaField
-                    label="Why in News (Hindi)"
-                    value={
-                      form.why_in_news_hi
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "why_in_news_hi",
-                        value,
-                      )
-                    }
-                    rows={4}
-                    placeholder="यह खबर चर्चा में क्यों है?"
-                  />
+                <TextArea
+                  label="Exam Point"
+                  value={
+                    form.exam_point
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "exam_point",
+                      value,
+                    )
+                  }
+                  rows={4}
+                />
 
-                  <TextareaField
-                    label="Key Facts (Hindi)"
-                    value={
-                      form.key_facts_hi
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "key_facts_hi",
-                        value,
-                      )
-                    }
-                    rows={5}
-                    placeholder="महत्वपूर्ण तथ्य"
-                  />
+                <TextArea
+                  label="Static GK"
+                  value={
+                    form.static_gk
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "static_gk",
+                      value,
+                    )
+                  }
+                  rows={5}
+                />
 
-                  <TextareaField
-                    label="Exam Point (Hindi)"
-                    value={
-                      form.exam_point_hi
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "exam_point_hi",
-                        value,
-                      )
-                    }
-                    rows={4}
-                    placeholder="परीक्षा के लिए महत्वपूर्ण बिंदु"
-                  />
+              </div>
 
-                  <TextareaField
-                    label="Static GK (Hindi)"
-                    value={
-                      form.static_gk_hi
-                    }
-                    onChange={(value) =>
-                      updateForm(
-                        "static_gk_hi",
-                        value,
-                      )
-                    }
-                    rows={4}
-                    placeholder="संबंधित Static GK"
-                  />
+            </div>
 
+            {/* HINDI */}
+
+            <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50/50 p-5 dark:border-orange-900/50 dark:bg-orange-950/20">
+
+              <h3 className="mb-5 text-lg font-black text-orange-700 dark:text-orange-300">
+                🇮🇳 Hindi Content
+              </h3>
+
+              <div className="space-y-4">
+
+                <TextArea
+                  label="Hindi Title"
+                  value={
+                    form.title_hi
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "title_hi",
+                      value,
+                    )
+                  }
+                  rows={2}
+                />
+
+                <TextArea
+                  label="Hindi Why in News"
+                  value={
+                    form.why_in_news_hi
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "why_in_news_hi",
+                      value,
+                    )
+                  }
+                  rows={5}
+                />
+
+                <TextArea
+                  label="Hindi Key Facts"
+                  value={
+                    form.key_facts_hi
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "key_facts_hi",
+                      value,
+                    )
+                  }
+                  rows={6}
+                />
+
+                <TextArea
+                  label="Hindi Exam Point"
+                  value={
+                    form.exam_point_hi
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "exam_point_hi",
+                      value,
+                    )
+                  }
+                  rows={4}
+                />
+
+                <TextArea
+                  label="Hindi Static GK"
+                  value={
+                    form.static_gk_hi
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "static_gk_hi",
+                      value,
+                    )
+                  }
+                  rows={5}
+                />
+
+              </div>
+
+            </div>
+
+            {/* MCQS */}
+
+            <div className="mt-6 rounded-2xl border border-green-200 bg-green-50/40 p-5 dark:border-green-900/50 dark:bg-green-950/20">
+
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                <div>
+                  <h3 className="text-lg font-black text-green-700 dark:text-green-300">
+                    📝 MCQs
+                  </h3>
+
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Har MCQ me exactly 4 options hone chahiye.
+                  </p>
                 </div>
 
-              </section>
+                <button
+                  type="button"
+                  onClick={
+                    addMCQ
+                  }
+                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700"
+                >
+                  + Add MCQ
+                </button>
 
-              {/* MCQs */}
+              </div>
 
-              <section className="rounded-2xl bg-slate-50 p-5">
-
-                <div className="flex flex-wrap items-center justify-between gap-3">
-
-                  <div>
-
-                    <h3 className="font-black">
-                      MCQs
-                    </h3>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Exactly 4 options are required for every MCQ.
-                    </p>
-
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={
-                      addMCQ
-                    }
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
-                  >
-                    + Add MCQ
-                  </button>
-
+              {form.mcqs.length ===
+                0 && (
+                <div className="rounded-xl border border-dashed border-green-300 bg-white p-6 text-center text-sm text-slate-500 dark:border-green-800 dark:bg-slate-900 dark:text-slate-400">
+                  No MCQs added.
                 </div>
+              )}
 
-                <div className="mt-5 space-y-5">
+              <div className="space-y-5">
 
-                  {form.mcqs.length ===
-                  0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-                      No MCQs added.
-                    </div>
-                  ) : (
-                    form.mcqs.map(
-                      (
-                        mcq,
-                        mcqIndex,
-                      ) => (
-                        <div
-                          key={
-                            mcqIndex
+                {form.mcqs.map(
+                  (
+                    mcq,
+                    index,
+                  ) => (
+                    <div
+                      key={
+                        index
+                      }
+                      className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900"
+                    >
+
+                      <div className="mb-4 flex items-center justify-between">
+
+                        <h4 className="font-black">
+                          MCQ #
+                          {index +
+                            1}
+                        </h4>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeMCQ(
+                              index,
+                            )
                           }
-                          className="rounded-2xl border border-slate-200 bg-white p-5"
+                          className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-300"
                         >
+                          Remove
+                        </button>
 
-                          <div className="mb-4 flex items-center justify-between">
+                      </div>
 
-                            <h4 className="font-black">
-                              MCQ{" "}
-                              {mcqIndex +
-                                1}
-                            </h4>
+                      <TextArea
+                        label="Question"
+                        value={
+                          mcq.question
+                        }
+                        onChange={(
+                          value,
+                        ) =>
+                          updateMCQ(
+                            index,
+                            "question",
+                            value,
+                          )
+                        }
+                        rows={
+                          3
+                        }
+                      />
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeMCQ(
-                                  mcqIndex,
-                                )
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+                        {mcq.options.map(
+                          (
+                            option,
+                            optionIndex,
+                          ) => (
+                            <div
+                              key={
+                                optionIndex
                               }
-                              className="text-sm font-bold text-red-600 hover:text-red-700"
                             >
-                              Remove
-                            </button>
+                              <label className="mb-2 block text-sm font-bold">
+                                Option{" "}
+                                {String.fromCharCode(
+                                  65 +
+                                    optionIndex,
+                                )}
+                              </label>
 
-                          </div>
+                              <input
+                                type="text"
+                                value={
+                                  option
+                                }
+                                onChange={(
+                                  event,
+                                ) =>
+                                  updateMCQOption(
+                                    index,
+                                    optionIndex,
+                                    event
+                                      .target
+                                      .value,
+                                  )
+                                }
+                                className={inputClass}
+                              />
+                            </div>
+                          ),
+                        )}
 
-                          <input
-                            type="text"
+                      </div>
+
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+                        <div>
+                          <label className="mb-2 block text-sm font-bold">
+                            Correct Answer
+                          </label>
+
+                          <select
                             value={
-                              mcq.question
+                              mcq.answer
                             }
-                            onChange={(e) =>
+                            onChange={(
+                              event,
+                            ) =>
                               updateMCQ(
-                                mcqIndex,
-                                "question",
-                                e.target
+                                index,
+                                "answer",
+                                event
+                                  .target
                                   .value,
                               )
                             }
-                            placeholder="Question"
-                            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
-                          />
-
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            className={inputClass}
+                          >
+                            <option value="">
+                              Select correct answer
+                            </option>
 
                             {mcq.options.map(
                               (
                                 option,
                                 optionIndex,
                               ) => (
-                                <input
+                                <option
                                   key={
                                     optionIndex
                                   }
-                                  type="text"
                                   value={
                                     option
                                   }
-                                  onChange={(
-                                    e,
-                                  ) =>
-                                    updateMCQOption(
-                                      mcqIndex,
-                                      optionIndex,
-                                      e.target
-                                        .value,
-                                    )
+                                  disabled={
+                                    !option.trim()
                                   }
-                                  placeholder={`Option ${
-                                    String.fromCharCode(
-                                      65 +
-                                        optionIndex,
-                                    )
-                                  }`}
-                                  className="rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
-                                />
+                                >
+                                  {String.fromCharCode(
+                                    65 +
+                                      optionIndex,
+                                  )}
+                                  {" - "}
+                                  {option ||
+                                    `Option ${
+                                      optionIndex +
+                                      1
+                                    }`}
+                                </option>
                               ),
                             )}
-
-                          </div>
-
-                          <input
-                            type="text"
-                            value={
-                              mcq.answer
-                            }
-                            onChange={(e) =>
-                              updateMCQ(
-                                mcqIndex,
-                                "answer",
-                                e.target
-                                  .value,
-                              )
-                            }
-                            placeholder="Correct answer — must exactly match one option"
-                            className="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
-                          />
-
-                          <textarea
-                            rows={3}
-                            value={
-                              mcq.explanation ||
-                              ""
-                            }
-                            onChange={(e) =>
-                              updateMCQ(
-                                mcqIndex,
-                                "explanation",
-                                e.target
-                                  .value,
-                              )
-                            }
-                            placeholder="Explanation (optional)"
-                            className="mt-4 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
-                          />
-
+                          </select>
                         </div>
-                      ),
-                    )
-                  )}
 
-                </div>
+                        <TextArea
+                          label="Explanation"
+                          value={
+                            mcq.explanation ??
+                            ""
+                          }
+                          onChange={(
+                            value,
+                          ) =>
+                            updateMCQ(
+                              index,
+                              "explanation",
+                              value,
+                            )
+                          }
+                          rows={
+                            3
+                          }
+                        />
 
-              </section>
+                      </div>
+
+                    </div>
+                  ),
+                )}
+
+              </div>
 
             </div>
 
-            {/* FOOTER */}
+            {/* SAVE */}
 
-            <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-6 py-4">
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 
               <button
                 type="button"
-                disabled={
-                  loading
-                }
                 onClick={
                   closeForm
                 }
-                className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50"
+                disabled={saving}
+                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold dark:border-slate-700"
               >
                 Cancel
               </button>
 
               <button
-                type="button"
-                disabled={
-                  loading
-                }
-                onClick={() =>
-                  void handleSave()
-                }
-                className="rounded-xl bg-green-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-green-700 disabled:opacity-50"
+                type="submit"
+                disabled={saving}
+                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading
+                {saving
                   ? "Saving..."
                   : editingId
-                    ? "Update Affair"
-                    : "Save Affair"}
+                    ? "Update Current Affair"
+                    : "Save Current Affair"}
               </button>
 
             </div>
 
-          </div>
+          </form>
+        )}
 
-        </div>
-      )}
+        {/* =================================================
+            LIST HEADER
+        ================================================= */}
 
-      {/* =================================================
-          CSV MODAL
-      ================================================= */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-      {showCSV && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-          <div className="mx-auto my-6 max-w-7xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:my-10">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                Content Manager
+              </p>
 
-            {/* HEADER */}
+              <h2 className="mt-1 text-2xl font-black">
+                Current Affairs
+              </h2>
 
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {affairs.length} total records •{" "}
+                {
+                  affairs.filter(
+                    (item) =>
+                      item.published,
+                  ).length
+                }{" "}
+                published
+              </p>
+            </div>
 
-              <div>
-                <h2 className="text-xl font-black">
-                  📄 Current Affairs CSV Upload
-                </h2>
+            <div className="flex flex-col gap-2 sm:flex-row">
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Upload English + Hindi current affairs together.
-                </p>
+              <div className="relative">
+
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+                  🔎
+                </span>
+
+                <input
+                  type="text"
+                  value={
+                    search
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    setSearch(
+                      event
+                        .target
+                        .value,
+                    )
+                  }
+                  placeholder="Search..."
+                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 sm:w-64 dark:border-slate-700 dark:bg-slate-950"
+                />
+
               </div>
 
-              <button
-                type="button"
-                disabled={
-                  loading
-                }
-                onClick={() => {
-                  setShowCSV(
-                    false,
-                  );
-                  setCSVRows([]);
-                  setCSVFileName(
-                    "",
-                  );
-                }}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl"
-              >
-                ×
-              </button>
+              <label className="cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-bold transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-800">
 
-            </div>
-
-            <div className="p-6">
-
-              {/* FILE */}
-
-              <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-
-                <div className="text-4xl">
-                  📁
-                </div>
-
-                <h3 className="mt-3 font-black">
-                  Select CSV file
-                </h3>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  CSV must contain English, Hindi, category and MCQ columns.
-                </p>
+                {csvLoading
+                  ? "Importing..."
+                  : "📄 Import CSV"}
 
                 <input
                   type="file"
                   accept=".csv,text/csv"
+                  className="hidden"
+                  disabled={
+                    csvLoading
+                  }
                   onChange={
                     handleCSVFile
                   }
-                  className="mx-auto mt-5 block w-full max-w-md text-sm"
                 />
 
-                {csvFileName && (
-                  <p className="mt-3 text-sm font-bold text-blue-600">
-                    Selected:{" "}
-                    {
-                      csvFileName
-                    }
-                  </p>
-                )}
+              </label>
 
-              </div>
-
-              {/* PREVIEW */}
-
-              {csvRows.length >
-                0 && (
-                <div className="mt-6">
-
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-
-                    <div>
-
-                      <h3 className="font-black">
-                        CSV Preview
-                      </h3>
-
-                      <p className="text-sm text-slate-500">
-                        {
-                          csvRows.length
-                        }{" "}
-                        rows ready for upload.
-                      </p>
-
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={
-                        loading
-                      }
-                      onClick={() =>
-                        void handleCSVUpload()
-                      }
-                      className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                    >
-                      {loading
-                        ? "Uploading..."
-                        : "Upload All"}
-                    </button>
-
-                  </div>
-
-                  <div className="max-h-[450px] overflow-auto rounded-2xl border border-slate-200">
-
-                    <table className="min-w-[1800px] w-full text-left text-sm">
-
-                      <thead className="sticky top-0 bg-slate-100">
-
-                        <tr>
-
-                          <th className="px-4 py-3">
-                            Date
-                          </th>
-
-                          <th className="px-4 py-3">
-                            #
-                          </th>
-
-                          <th className="px-4 py-3">
-                            English Title
-                          </th>
-
-                          <th className="px-4 py-3">
-                            Hindi Title
-                          </th>
-
-                          <th className="px-4 py-3">
-                            Category
-                          </th>
-
-                          <th className="px-4 py-3">
-                            English Why
-                          </th>
-
-                          <th className="px-4 py-3">
-                            Hindi Why
-                          </th>
-
-                          <th className="px-4 py-3">
-                            MCQs
-                          </th>
-
-                        </tr>
-
-                      </thead>
-
-                      <tbody>
-
-                        {csvRows
-                          .slice(
-                            0,
-                            100,
-                          )
-                          .map(
-                            (
-                              row,
-                              index,
-                            ) => (
-                              <tr
-                                key={`${row.affair_date}-${row.serial_no}-${index}`}
-                                className="border-t border-slate-100"
-                              >
-
-                                <td className="px-4 py-3">
-                                  {
-                                    row.affair_date
-                                  }
-                                </td>
-
-                                <td className="px-4 py-3 font-black">
-                                  {
-                                    row.serial_no
-                                  }
-                                </td>
-
-                                <td className="max-w-[300px] px-4 py-3 font-semibold">
-                                  {
-                                    row.title
-                                  }
-                                </td>
-
-                                <td className="max-w-[300px] px-4 py-3 font-semibold">
-                                  {
-                                    row.title_hi
-                                  }
-                                </td>
-
-                                <td className="px-4 py-3">
-                                  <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
-                                    {
-                                      row.category
-                                    }
-                                  </span>
-                                </td>
-
-                                <td className="max-w-[300px] px-4 py-3 text-slate-600">
-                                  <span className="line-clamp-2">
-                                    {
-                                      row.why_in_news
-                                    }
-                                  </span>
-                                </td>
-
-                                <td className="max-w-[300px] px-4 py-3 text-slate-600">
-                                  <span className="line-clamp-2">
-                                    {
-                                      row.why_in_news_hi
-                                    }
-                                  </span>
-                                </td>
-
-                                <td className="px-4 py-3 font-bold">
-                                  {
-                                    row.mcqs
-                                      .length
-                                  }
-                                </td>
-
-                              </tr>
-                            ),
-                          )}
-
-                      </tbody>
-
-                    </table>
-
-                  </div>
-
-                  {csvRows.length >
-                    100 && (
-                    <p className="mt-2 text-xs text-slate-500">
-                      Showing first 100 rows in preview. All{" "}
-                      {
-                        csvRows.length
-                      }{" "}
-                      rows will be uploaded.
-                    </p>
-                  )}
-
-                </div>
-              )}
-
-              {/* CSV HELP */}
-
-              <div className="mt-6 rounded-2xl bg-slate-900 p-5 text-white">
-
-                <h3 className="font-bold">
-                  Required CSV columns
-                </h3>
-
-                <p className="mt-3 break-words font-mono text-xs leading-6 text-slate-300">
-                  affair_date, serial_no, title, why_in_news, key_facts, exam_point, static_gk, mcqs, category, title_hi, why_in_news_hi, key_facts_hi, exam_point_hi, static_gk_hi
-                </p>
-
-                <p className="mt-3 text-xs leading-5 text-slate-400">
-                  Optional column:{" "}
-                  <code>
-                    published
-                  </code>
-                  . If omitted, it defaults to{" "}
-                  <code>
-                    true
-                  </code>
-                  .
-                </p>
-
-                <h4 className="mt-5 text-sm font-bold">
-                  MCQ JSON example
-                </h4>
-
-                <pre className="mt-2 overflow-x-auto rounded-xl bg-black/30 p-4 text-[11px] leading-5 text-slate-300">
-{`[
-  {
-    "question": "Which organization regulates monetary policy in India?",
-    "options": [
-      "SEBI",
-      "RBI",
-      "NABARD",
-      "IRDAI"
-    ],
-    "answer": "RBI",
-    "explanation": "RBI is India's central bank and manages monetary policy."
-  },
-  {
-    "question": "Where is the headquarters of RBI located?",
-    "options": [
-      "New Delhi",
-      "Mumbai",
-      "Kolkata",
-      "Chennai"
-    ],
-    "answer": "Mumbai",
-    "explanation": "The headquarters of RBI is located in Mumbai."
-  }
-]`}
-                </pre>
-
-                <p className="mt-4 text-xs leading-5 text-amber-300">
-                  Important: CSV में MCQs वाला पूरा JSON value double quotes में properly escape/quote होना चाहिए, ताकि JSON के अंदर मौजूद commas CSV columns को break न करें.
-                </p>
-
-                <p className="mt-3 text-xs leading-5 text-slate-400">
-                  Hindi columns database में directly इन fields में जाएंगे:
-                  {" "}
-                  <code>
-                    title_hi
-                  </code>
-                  ,{" "}
-                  <code>
-                    why_in_news_hi
-                  </code>
-                  ,{" "}
-                  <code>
-                    key_facts_hi
-                  </code>
-                  ,{" "}
-                  <code>
-                    exam_point_hi
-                  </code>
-                  ,{" "}
-                  <code>
-                    static_gk_hi
-                  </code>
-                  .
-                </p>
-
-              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  void loadCurrentAffairs()
+                }
+                disabled={
+                  loading
+                }
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+              >
+                ↻ Refresh
+              </button>
 
             </div>
 
           </div>
 
-        </div>
-      )}
+          {/* =================================================
+              LOADING
+          ================================================= */}
+
+          {loading && (
+            <div className="py-16 text-center">
+
+              <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
+
+              <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                Current affairs loading...
+              </p>
+
+            </div>
+          )}
+
+          {/* =================================================
+              EMPTY
+          ================================================= */}
+
+          {!loading &&
+            filteredAffairs.length ===
+              0 && (
+              <div className="mt-6 rounded-2xl bg-slate-50 p-10 text-center dark:bg-slate-800">
+
+                <div className="text-5xl">
+                  📰
+                </div>
+
+                <h3 className="mt-4 font-bold">
+                  {search
+                    ? "No matching current affairs"
+                    : "No current affairs found"}
+                </h3>
+
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  Add a new current affair
+                  or import CSV.
+                </p>
+
+              </div>
+            )}
+
+          {/* =================================================
+              TABLE / CARDS
+          ================================================= */}
+
+          {!loading &&
+            filteredAffairs.length >
+              0 && (
+              <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
+
+                {/* DESKTOP TABLE */}
+
+                <div className="hidden overflow-x-auto md:block">
+
+                  <table className="w-full text-left">
+
+                    <thead className="bg-slate-50 dark:bg-slate-800">
+
+                      <tr>
+
+                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
+                          Date
+                        </th>
+
+                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
+                          Title
+                        </th>
+
+                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
+                          Category
+                        </th>
+
+                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
+                          MCQs
+                        </th>
+
+                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
+                          Status
+                        </th>
+
+                        <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-wide">
+                          Actions
+                        </th>
+
+                      </tr>
+
+                    </thead>
+
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+
+                      {filteredAffairs.map(
+                        (
+                          item,
+                        ) => (
+                          <tr
+                            key={
+                              item.id
+                            }
+                            className="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          >
+
+                            <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold">
+                              {formatDate(
+                                item.affair_date,
+                              )}
+                            </td>
+
+                            <td className="max-w-md px-4 py-4">
+
+                              <p className="line-clamp-2 font-bold">
+                                {item.title}
+                              </p>
+
+                              <p className="mt-1 line-clamp-1 text-xs text-slate-400">
+                                #{item.serial_no}
+                              </p>
+
+                            </td>
+
+                            <td className="px-4 py-4">
+
+                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                                {item.category ||
+                                  "Other"}
+                              </span>
+
+                            </td>
+
+                            <td className="px-4 py-4 text-sm font-semibold">
+                              {item.mcqs.length}
+                            </td>
+
+                            <td className="px-4 py-4">
+
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-bold ${
+                                  item.published
+                                    ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300"
+                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                                }`}
+                              >
+                                {item.published
+                                  ? "Published"
+                                  : "Draft"}
+                              </span>
+
+                            </td>
+
+                            <td className="px-4 py-4">
+
+                              <div className="flex justify-end gap-2">
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openEditForm(
+                                      item,
+                                    )
+                                  }
+                                  className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void deleteAffair(
+                                      item.id,
+                                    )
+                                  }
+                                  disabled={
+                                    deletingId ===
+                                    item.id
+                                  }
+                                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:bg-red-950/40 dark:text-red-300"
+                                >
+                                  {deletingId ===
+                                  item.id
+                                    ? "..."
+                                    : "Delete"}
+                                </button>
+
+                              </div>
+
+                            </td>
+
+                          </tr>
+                        ),
+                      )}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+                {/* MOBILE CARDS */}
+
+                <div className="divide-y divide-slate-200 md:hidden dark:divide-slate-700">
+
+                  {filteredAffairs.map(
+                    (
+                      item,
+                    ) => (
+                      <div
+                        key={
+                          item.id
+                        }
+                        className="p-4"
+                      >
+
+                        <div className="flex items-start justify-between gap-3">
+
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                            {item.category ||
+                              "Other"}
+                          </span>
+
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                              item.published
+                                ? "bg-green-100 text-green-700"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {item.published
+                              ? "Published"
+                              : "Draft"}
+                          </span>
+
+                        </div>
+
+                        <h3 className="mt-3 font-black leading-6">
+                          {item.title}
+                        </h3>
+
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+
+                          <span>
+                            📅{" "}
+                            {formatDate(
+                              item.affair_date,
+                            )}
+                          </span>
+
+                          <span>
+                            #{item.serial_no}
+                          </span>
+
+                          <span>
+                            📝{" "}
+                            {
+                              item
+                                .mcqs
+                                .length
+                            }{" "}
+                            MCQs
+                          </span>
+
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openEditForm(
+                                item,
+                              )
+                            }
+                            className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void deleteAffair(
+                                item.id,
+                              )
+                            }
+                            disabled={
+                              deletingId ===
+                              item.id
+                            }
+                            className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                          >
+                            {deletingId ===
+                            item.id
+                              ? "..."
+                              : "Delete"}
+                          </button>
+
+                        </div>
+
+                      </div>
+                    ),
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+        </section>
+
+      </main>
 
     </div>
   );
 }
 
 /* =====================================================
-   SECTION TITLE
+   FIELD COMPONENT
 ===================================================== */
 
-function SectionTitle({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div>
-      <h3 className="text-lg font-black">
-        {title}
-      </h3>
-
-      <p className="mt-1 text-sm text-slate-500">
-        {subtitle}
-      </p>
-    </div>
-  );
-}
-
-/* =====================================================
-   STAT CARD
-===================================================== */
-
-function StatCard({
+function Field({
   label,
-  value,
-  icon,
-  accent = false,
-}: {
-  label: string;
-  value: number;
-  icon: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
-      <div className="flex items-center justify-between">
-
-        <p className="text-sm font-medium text-slate-500">
-          {label}
-        </p>
-
-        <span className="text-xl">
-          {icon}
-        </span>
-
-      </div>
-
-      <p
-        className={`mt-3 text-3xl font-black ${
-          accent
-            ? "text-blue-600"
-            : "text-slate-900"
-        }`}
-      >
-        {value}
-      </p>
-
-    </div>
-  );
-}
-
-/* =====================================================
-   INPUT
-===================================================== */
-
-function InputField({
-  label,
+  type = "text",
   value,
   onChange,
-  type = "text",
-  placeholder,
 }: {
   label: string;
+  type?: string;
   value: string;
   onChange: (
     value: string,
   ) => void;
-  type?: string;
-  placeholder?: string;
 }) {
   return (
     <div>
-
-      <label className="text-sm font-bold text-slate-700">
+      <label className="mb-2 block text-sm font-bold">
         {label}
       </label>
 
       <input
         type={type}
         value={value}
-        placeholder={
-          placeholder
-        }
-        onChange={(e) =>
+        onChange={(event) =>
           onChange(
-            e.target.value,
+            event.target.value,
           )
         }
-        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        className={inputClass}
       />
-
     </div>
   );
 }
 
 /* =====================================================
-   TEXTAREA
+   TEXT AREA
 ===================================================== */
 
-function TextareaField({
+function TextArea({
   label,
   value,
   onChange,
-  rows,
-  placeholder,
+  rows = 4,
 }: {
   label: string;
   value: string;
   onChange: (
     value: string,
   ) => void;
-  rows: number;
-  placeholder?: string;
+  rows?: number;
 }) {
   return (
     <div>
-
-      <label className="text-sm font-bold text-slate-700">
+      <label className="mb-2 block text-sm font-bold">
         {label}
       </label>
 
       <textarea
-        rows={rows}
         value={value}
-        placeholder={
-          placeholder
-        }
-        onChange={(e) =>
+        rows={rows}
+        onChange={(event) =>
           onChange(
-            e.target.value,
+            event.target.value,
           )
         }
-        className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        className={`${inputClass} resize-y`}
       />
-
     </div>
   );
 }
 
 /* =====================================================
-   NORMALIZE MCQs
+   INPUT CLASS
+===================================================== */
+
+const inputClass =
+  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white";
+
+/* =====================================================
+   MCQ NORMALIZER
 ===================================================== */
 
 function normalizeMCQs(
-  values: unknown,
+  value: unknown,
 ): MCQ[] {
-  if (!Array.isArray(values)) {
+  let parsed =
+    value;
+
+  /*
+   * Supabase kabhi JSONB ko array deta hai,
+   * kabhi string form me mil sakta hai.
+   */
+  if (
+    typeof parsed ===
+    "string"
+  ) {
+    try {
+      parsed =
+        JSON.parse(
+          parsed,
+        );
+    } catch {
+      return [];
+    }
+  }
+
+  if (
+    !Array.isArray(parsed)
+  ) {
     return [];
   }
 
-  return values
-    .map((value) => {
+  return parsed
+    .map((item) => {
       if (
-        typeof value ===
-        "string"
+        !item ||
+        typeof item !==
+          "object" ||
+        Array.isArray(item)
       ) {
-        try {
-          const parsed =
-            JSON.parse(value);
-
-          return normalizeSingleMCQ(
-            parsed,
-          );
-        } catch {
-          return null;
-        }
+        return null;
       }
 
-      return normalizeSingleMCQ(
-        value,
-      );
+      const row =
+        item as Record<
+          string,
+          unknown
+        >;
+
+      const question =
+        typeof row.question ===
+        "string"
+          ? row.question.trim()
+          : "";
+
+      const options =
+        Array.isArray(
+          row.options,
+        )
+          ? row.options
+              .filter(
+                (
+                  option,
+                ): option is string =>
+                  typeof option ===
+                  "string",
+              )
+              .map(
+                (
+                  option,
+                ) =>
+                  option.trim(),
+              )
+          : [];
+
+      const answer =
+        typeof row.answer ===
+        "string"
+          ? row.answer.trim()
+          : "";
+
+      const explanation =
+        typeof row.explanation ===
+        "string"
+          ? row.explanation.trim()
+          : "";
+
+      if (
+        !question ||
+        options.length !==
+          4 ||
+        options.some(
+          (option) =>
+            !option,
+        ) ||
+        !answer
+      ) {
+        return null;
+      }
+
+      return {
+        question,
+        options,
+        answer,
+        explanation,
+      };
     })
     .filter(
       (
-        mcq,
-      ): mcq is MCQ =>
-        mcq !== null,
+        item,
+      ): item is MCQ =>
+        item !== null,
     );
 }
 
 /* =====================================================
-   NORMALIZE SINGLE MCQ
+   MCQ JSON PARSER
 ===================================================== */
 
-function normalizeSingleMCQ(
-  value: unknown,
-): MCQ | null {
-  if (
-    !value ||
-    typeof value !==
-      "object" ||
-    Array.isArray(value)
-  ) {
+function parseMCQJSON(
+  value: string,
+): MCQ[] | null {
+  const trimmed =
+    value.trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed =
+      JSON.parse(trimmed);
+  } catch {
     return null;
   }
 
-  const data =
-    value as Record<
-      string,
-      unknown
-    >;
+  const normalized =
+    normalizeMCQs(
+      parsed,
+    );
 
-  const question =
-    typeof data.question ===
-    "string"
-      ? data.question.trim()
-      : "";
-
-  const options =
+  if (
     Array.isArray(
-      data.options,
-    )
-      ? data.options
-          .filter(
-            (
-              option,
-            ): option is string =>
-              typeof option ===
-              "string",
-          )
-          .map(
-            (option) =>
-              option.trim(),
-          )
-      : [];
-
-  const answer =
-    typeof data.answer ===
-    "string"
-      ? data.answer.trim()
-      : "";
-
-  const explanation =
-    typeof data.explanation ===
-    "string"
-      ? data.explanation.trim()
-      : "";
-
-  if (
-    !question ||
-    options.length !== 4 ||
-    options.some(
-      (option) => !option,
-    ) ||
-    !answer
+      parsed,
+    ) &&
+    normalized.length !==
+      parsed.length
   ) {
     return null;
   }
 
-  return {
-    question,
-    options,
-    answer,
-    explanation,
-  };
+  return normalized;
 }
 
 /* =====================================================
-   ERROR
+   CSV PARSER
 ===================================================== */
 
-function getErrorMessage(
-  error: unknown,
-  fallback: string,
-): string {
-  if (
-    error instanceof Error &&
-    error.message
+function parseCSV(
+  text: string,
+): string[][] {
+  const rows: string[][] = [];
+
+  let row: string[] = [];
+  let cell = "";
+  let insideQuotes = false;
+
+  for (
+    let i = 0;
+    i < text.length;
+    i++
   ) {
-    return error.message;
+    const char =
+      text[i];
+
+    const next =
+      text[i + 1];
+
+    if (
+      char === '"' &&
+      insideQuotes &&
+      next === '"'
+    ) {
+      cell += '"';
+      i++;
+      continue;
+    }
+
+    if (
+      char === '"'
+    ) {
+      insideQuotes =
+        !insideQuotes;
+      continue;
+    }
+
+    if (
+      char === "," &&
+      !insideQuotes
+    ) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if (
+      (char === "\n" ||
+        char === "\r") &&
+      !insideQuotes
+    ) {
+      if (
+        char === "\r" &&
+        next === "\n"
+      ) {
+        i++;
+      }
+
+      row.push(cell);
+      cell = "";
+
+      if (
+        row.some(
+          (value) =>
+            value.trim(),
+        )
+      ) {
+        rows.push(
+          row,
+        );
+      }
+
+      row = [];
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell);
+
+  if (
+    row.some(
+      (value) =>
+        value.trim(),
+    )
+  ) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+/* =====================================================
+   CSV HEADER NORMALIZER
+===================================================== */
+
+function normalizeCSVHeader(
+  value: string,
+): string {
+  const normalized =
+    value
+      .trim()
+      .toLowerCase()
+      .replace(
+        /^\uFEFF/,
+        "",
+      )
+      .replace(
+        /[\s-]+/g,
+        "_",
+      );
+
+  const aliases: Record<
+    string,
+    string
+  > = {
+    date: "affair_date",
+    affairdate:
+      "affair_date",
+
+    serial:
+      "serial_no",
+    serialnumber:
+      "serial_no",
+    serial_number:
+      "serial_no",
+
+    why:
+      "why_in_news",
+    why_in_news_en:
+      "why_in_news",
+
+    keyfacts:
+      "key_facts",
+    key_facts_en:
+      "key_facts",
+
+    exampoint:
+      "exam_point",
+    exam_point_en:
+      "exam_point",
+
+    staticgk:
+      "static_gk",
+    static_gk_en:
+      "static_gk",
+
+    titlehindi:
+      "title_hi",
+    hindi_title:
+      "title_hi",
+
+    why_in_news_hindi:
+      "why_in_news_hi",
+
+    key_facts_hindi:
+      "key_facts_hi",
+
+    exam_point_hindi:
+      "exam_point_hi",
+
+    static_gk_hindi:
+      "static_gk_hi",
+  };
+
+  return (
+    aliases[normalized] ??
+    normalized
+  );
+}
+
+/* =====================================================
+   BOOLEAN PARSER
+===================================================== */
+
+function parseBoolean(
+  value: string,
+  fallback: boolean,
+): boolean {
+  const normalized =
+    value
+      .trim()
+      .toLowerCase();
+
+  if (
+    [
+      "true",
+      "1",
+      "yes",
+      "published",
+    ].includes(
+      normalized,
+    )
+  ) {
+    return true;
   }
 
   if (
-    typeof error === "object" &&
-    error !== null
+    [
+      "false",
+      "0",
+      "no",
+      "draft",
+      "unpublished",
+    ].includes(
+      normalized,
+    )
   ) {
-    const data =
-      error as Record<
-        string,
-        unknown
-      >;
-
-    if (
-      typeof data.message ===
-      "string"
-    ) {
-      return data.message;
-    }
-
-    if (
-      typeof data.details ===
-      "string"
-    ) {
-      return data.details;
-    }
-
-    if (
-      typeof data.hint ===
-      "string"
-    ) {
-      return data.hint;
-    }
+    return false;
   }
 
   return fallback;
+}
+
+/* =====================================================
+   DATE FORMAT
+===================================================== */
+
+function formatDate(
+  date: string,
+): string {
+  if (!date) {
+    return "-";
+  }
+
+  const parsed =
+    new Date(
+      `${date}T00:00:00`,
+    );
+
+  if (
+    Number.isNaN(
+      parsed.getTime(),
+    )
+  ) {
+    return date;
+  }
+
+  return parsed.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  );
 }
 
 /* =====================================================
