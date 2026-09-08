@@ -549,11 +549,11 @@ export function StudentDashboard() {
               </div>
 
               <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                VIDYZEN is built to make exam preparation simpler, smarter
+                VIDYZEN is built by Harsh Singh to make exam preparation simpler, smarter
                 and more focused. From daily current affairs and daily
                 newspaper reading to fast revision, AI-powered learning and
                 vocabulary building, everything is designed to help students
-                learn consistently.
+                learn consistently. @2026
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2">
@@ -689,4 +689,4 @@ function DashboardCard({
 }
 
 export default StudentDashboard;
-```
+
