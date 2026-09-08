@@ -421,7 +421,7 @@ export function StudentDashboard() {
                       </p>
 
                       <h2 className="text-2xl font-black sm:text-3xl">
-                        Ask PadhAI
+                        Ask Vidhya
                       </h2>
                     </div>
                   </div>
@@ -448,7 +448,7 @@ export function StudentDashboard() {
                 </div>
 
                 <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-blue-700 shadow-lg transition group-hover:-translate-y-0.5">
-                  Ask AI
+                  Ask Vidhya
                   <span>→</span>
                 </span>
               </div>
