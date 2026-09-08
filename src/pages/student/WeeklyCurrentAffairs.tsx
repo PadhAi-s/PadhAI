@@ -66,13 +66,9 @@ export function WeeklyCurrentAffairs() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
-  const [affairs, setAffairs] = useState<
-    CurrentAffair[]
-  >([]);
-
+  const [affairs, setAffairs] = useState<CurrentAffair[]>([]);
   const [selectedCategory, setSelectedCategory] =
     useState("All");
-
   const [search, setSearch] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -83,8 +79,7 @@ export function WeeklyCurrentAffairs() {
   ===================================================== */
 
   useEffect(() => {
-    document.title =
-      "Daily Current Affairs | VIDYZEN";
+    document.title = "Daily Current Affairs | VIDYZEN";
 
     void loadCurrentAffairs();
   }, []);
@@ -94,15 +89,9 @@ export function WeeklyCurrentAffairs() {
   ===================================================== */
 
   async function loadCurrentAffairs() {
-    console.log(
-      "========================================",
-    );
-    console.log(
-      "📚 CURRENT AFFAIRS LOAD START",
-    );
-    console.log(
-      "========================================",
-    );
+    console.log("========================================");
+    console.log("📚 CURRENT AFFAIRS LOAD START");
+    console.log("========================================");
 
     setLoading(true);
     setError("");
@@ -119,9 +108,7 @@ export function WeeklyCurrentAffairs() {
 
       console.log(
         "🔐 Session:",
-        session
-          ? "SESSION FOUND"
-          : "NO SESSION",
+        session ? "SESSION FOUND" : "NO SESSION",
       );
 
       if (sessionError) {
@@ -167,9 +154,6 @@ export function WeeklyCurrentAffairs() {
 
       /* -----------------------------------------------
          TIMEOUT
-         
-         Agar Supabase kisi reason se request hang kare,
-         page forever loading nahi karega.
       ----------------------------------------------- */
 
       const timeoutPromise =
@@ -264,45 +248,37 @@ export function WeeklyCurrentAffairs() {
         data.map((row) => ({
           id: String(row.id ?? ""),
 
-          affair_date:
-            String(
-              row.affair_date ?? "",
-            ),
+          affair_date: String(
+            row.affair_date ?? "",
+          ),
 
-          serial_no:
-            Number(
-              row.serial_no ?? 1,
-            ),
+          serial_no: Number(
+            row.serial_no ?? 1,
+          ),
 
-          title:
-            String(
-              row.title ?? "",
-            ),
+          title: String(
+            row.title ?? "",
+          ),
 
-          why_in_news:
-            String(
-              row.why_in_news ?? "",
-            ),
+          why_in_news: String(
+            row.why_in_news ?? "",
+          ),
 
-          key_facts:
-            String(
-              row.key_facts ?? "",
-            ),
+          key_facts: String(
+            row.key_facts ?? "",
+          ),
 
-          exam_point:
-            String(
-              row.exam_point ?? "",
-            ),
+          exam_point: String(
+            row.exam_point ?? "",
+          ),
 
-          static_gk:
-            String(
-              row.static_gk ?? "",
-            ),
+          static_gk: String(
+            row.static_gk ?? "",
+          ),
 
-          mcqs:
-            normalizeMCQs(
-              row.mcqs,
-            ),
+          mcqs: normalizeMCQs(
+            row.mcqs,
+          ),
 
           published:
             typeof row.published ===
@@ -312,39 +288,30 @@ export function WeeklyCurrentAffairs() {
 
           category:
             typeof row.category ===
-            "string" &&
+              "string" &&
             row.category.trim()
               ? row.category.trim()
               : "Other",
 
-          title_hi:
-            String(
-              row.title_hi ?? "",
-            ),
+          title_hi: String(
+            row.title_hi ?? "",
+          ),
 
-          why_in_news_hi:
-            String(
-              row.why_in_news_hi ??
-                "",
-            ),
+          why_in_news_hi: String(
+            row.why_in_news_hi ?? "",
+          ),
 
-          key_facts_hi:
-            String(
-              row.key_facts_hi ??
-                "",
-            ),
+          key_facts_hi: String(
+            row.key_facts_hi ?? "",
+          ),
 
-          exam_point_hi:
-            String(
-              row.exam_point_hi ??
-                "",
-            ),
+          exam_point_hi: String(
+            row.exam_point_hi ?? "",
+          ),
 
-          static_gk_hi:
-            String(
-              row.static_gk_hi ??
-                "",
-            ),
+          static_gk_hi: String(
+            row.static_gk_hi ?? "",
+          ),
         }));
 
       console.log(
@@ -366,9 +333,7 @@ export function WeeklyCurrentAffairs() {
         "❌ CURRENT AFFAIRS LOAD ERROR",
       );
 
-      console.error(
-        err,
-      );
+      console.error(err);
 
       console.error(
         "========================================",
@@ -425,22 +390,18 @@ export function WeeklyCurrentAffairs() {
         item.key_facts,
         item.exam_point,
         item.static_gk,
-
         item.title_hi,
         item.why_in_news_hi,
         item.key_facts_hi,
         item.exam_point_hi,
         item.static_gk_hi,
-
         item.category,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
-      return searchableText.includes(
-        query,
-      );
+      return searchableText.includes(query);
     });
   }, [
     affairs,
@@ -452,9 +413,7 @@ export function WeeklyCurrentAffairs() {
      DATE FORMAT
   ===================================================== */
 
-  function formatDate(
-    date: string,
-  ) {
+  function formatDate(date: string) {
     if (!date) {
       return "";
     }
@@ -485,9 +444,7 @@ export function WeeklyCurrentAffairs() {
      OPEN DETAIL
   ===================================================== */
 
-  function openAffair(
-    id: string,
-  ) {
+  function openAffair(id: string) {
     navigate(
       `/student/current-affairs/${id}`,
     );
@@ -675,8 +632,7 @@ export function WeeklyCurrentAffairs() {
 
           <span className="shrink-0 text-sm font-medium text-slate-500 dark:text-slate-400">
             {filteredAffairs.length}{" "}
-            {filteredAffairs.length ===
-            1
+            {filteredAffairs.length === 1
               ? "topic"
               : "topics"}
           </span>
@@ -707,42 +663,41 @@ export function WeeklyCurrentAffairs() {
             ERROR
         ================================================= */}
 
-        {!loading &&
-          error && (
-            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
+        {!loading && error && (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
 
-              <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3">
 
-                <div className="text-2xl">
-                  ⚠️
-                </div>
+              <div className="text-2xl">
+                ⚠️
+              </div>
 
-                <div className="min-w-0">
+              <div className="min-w-0">
 
-                  <h3 className="font-bold text-red-700 dark:text-red-300">
-                    Unable to load current affairs
-                  </h3>
+                <h3 className="font-bold text-red-700 dark:text-red-300">
+                  Unable to load current affairs
+                </h3>
 
-                  <p className="mt-2 break-words text-sm leading-6 text-red-600 dark:text-red-400">
-                    {error}
-                  </p>
+                <p className="mt-2 break-words text-sm leading-6 text-red-600 dark:text-red-400">
+                  {error}
+                </p>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void loadCurrentAffairs()
-                    }
-                    className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
-                  >
-                    Try Again
-                  </button>
-
-                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void loadCurrentAffairs()
+                  }
+                  className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
+                >
+                  Try Again
+                </button>
 
               </div>
 
             </div>
-          )}
+
+          </div>
+        )}
 
         {/* =================================================
             EMPTY
@@ -750,8 +705,7 @@ export function WeeklyCurrentAffairs() {
 
         {!loading &&
           !error &&
-          filteredAffairs.length ===
-            0 && (
+          filteredAffairs.length === 0 && (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
               <div className="text-5xl">
@@ -773,9 +727,7 @@ export function WeeklyCurrentAffairs() {
                   "All") && (
                 <button
                   type="button"
-                  onClick={
-                    clearFilters
-                  }
+                  onClick={clearFilters}
                   className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
                 >
                   Clear Filters
@@ -791,8 +743,7 @@ export function WeeklyCurrentAffairs() {
 
         {!loading &&
           !error &&
-          filteredAffairs.length >
-            0 && (
+          filteredAffairs.length > 0 && (
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
               {filteredAffairs.map(
@@ -831,18 +782,13 @@ export function WeeklyCurrentAffairs() {
                           #{item.serial_no}
                         </span>
 
-                        {item.mcqs
-                          .length >
+                        {item.mcqs.length >
                           0 && (
                           <span className="rounded-md bg-green-50 px-2 py-1 font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300">
                             📝{" "}
-                            {
-                              item.mcqs
-                                .length
-                            }{" "}
+                            {item.mcqs.length}{" "}
                             MCQ
-                            {item.mcqs
-                              .length !==
+                            {item.mcqs.length !==
                             1
                               ? "s"
                               : ""}
@@ -1017,14 +963,18 @@ export function WeeklyCurrentAffairs() {
 function normalizeMCQs(
   value: unknown,
 ): MCQ[] {
-  let parsedValue = value;
+  let parsedValue: unknown = value;
 
-  /* Supabase kabhi JSON string return kare
-     to usko parse karne ki koshish */
+  /* -----------------------------------------------------
+     Supabase agar JSON string return kare,
+     to usko parse karo.
+  ----------------------------------------------------- */
+
   if (typeof parsedValue === "string") {
     try {
-      parsedValue =
-        JSON.parse(parsedValue);
+      parsedValue = JSON.parse(
+        parsedValue,
+      );
     } catch {
       return [];
     }
@@ -1034,84 +984,130 @@ function normalizeMCQs(
     return [];
   }
 
-  return parsedValue
-    .map((item) => {
-      if (
-        !item ||
-        typeof item !==
-          "object" ||
-        Array.isArray(item)
-      ) {
-        return null;
+  /*
+   * IMPORTANT:
+   *
+   * Yahan map() + filter(type predicate)
+   * intentionally use nahi kiya gaya.
+   *
+   * Isse ye dono TypeScript errors solve hote hain:
+   *
+   * 1. Type '(... | null)[]' is not assignable to type 'MCQ[]'
+   *
+   * 2. A type predicate's type must be assignable
+   *    to its parameter's type.
+   */
+
+  const result: MCQ[] = [];
+
+  for (const item of parsedValue) {
+    /* ---------------------------------------------------
+       BASIC OBJECT CHECK
+    --------------------------------------------------- */
+
+    if (
+      !item ||
+      typeof item !== "object" ||
+      Array.isArray(item)
+    ) {
+      continue;
+    }
+
+    const row =
+      item as Record<
+        string,
+        unknown
+      >;
+
+    /* ---------------------------------------------------
+       QUESTION
+    --------------------------------------------------- */
+
+    const question =
+      typeof row.question === "string"
+        ? row.question.trim()
+        : "";
+
+    if (!question) {
+      continue;
+    }
+
+    /* ---------------------------------------------------
+       OPTIONS
+    --------------------------------------------------- */
+
+    const options: string[] = [];
+
+    if (Array.isArray(row.options)) {
+      for (const option of row.options) {
+        if (
+          typeof option !==
+          "string"
+        ) {
+          continue;
+        }
+
+        const cleanedOption =
+          option.trim();
+
+        if (cleanedOption) {
+          options.push(
+            cleanedOption,
+          );
+        }
       }
+    }
 
-      const row =
-        item as Record<
-          string,
-          unknown
-        >;
+    /* Exactly 4 options required */
 
-      const question =
-        typeof row.question ===
-        "string"
-          ? row.question.trim()
-          : "";
+    if (options.length !== 4) {
+      continue;
+    }
 
-      const options =
-        Array.isArray(
-          row.options,
-        )
-          ? row.options
-              .filter(
-                (
-                  option,
-                ): option is string =>
-                  typeof option ===
-                  "string",
-              )
-              .map((option) =>
-                option.trim(),
-              )
-          : [];
+    /* ---------------------------------------------------
+       ANSWER
+    --------------------------------------------------- */
 
-      const answer =
-        typeof row.answer ===
-        "string"
-          ? row.answer.trim()
-          : "";
+    const answer =
+      typeof row.answer === "string"
+        ? row.answer.trim()
+        : "";
 
-      const explanation =
-        typeof row.explanation ===
-        "string"
-          ? row.explanation.trim()
-          : "";
+    if (!answer) {
+      continue;
+    }
 
-      if (
-        !question ||
-        options.length !==
-          4 ||
-        options.some(
-          (option) =>
-            !option,
-        ) ||
-        !answer
-      ) {
-        return null;
-      }
+    /* ---------------------------------------------------
+       ANSWER MUST MATCH ONE OPTION
+    --------------------------------------------------- */
 
-      return {
-        question,
-        options,
-        answer,
-        explanation,
-      };
-    })
-    .filter(
-      (
-        item,
-      ): item is MCQ =>
-        item !== null,
-    );
+    if (!options.includes(answer)) {
+      continue;
+    }
+
+    /* ---------------------------------------------------
+       EXPLANATION
+    --------------------------------------------------- */
+
+    const explanation =
+      typeof row.explanation ===
+      "string"
+        ? row.explanation.trim()
+        : "";
+
+    /* ---------------------------------------------------
+       PUSH VALID MCQ
+    --------------------------------------------------- */
+
+    result.push({
+      question,
+      options,
+      answer,
+      explanation,
+    });
+  }
+
+  return result;
 }
 
 /* =====================================================
