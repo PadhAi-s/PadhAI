@@ -14,22 +14,40 @@ interface CurrentAffair {
   id: string;
   affair_date: string;
   serial_no: number;
+
   title: string;
   why_in_news: string;
   key_facts: string;
   exam_point: string;
   static_gk: string;
+
   mcqs: MCQ[];
+
+  published: boolean;
+  category: string;
+
+  title_hi: string;
+  why_in_news_hi: string;
+  key_facts_hi: string;
+  exam_point_hi: string;
+  static_gk_hi: string;
 }
 
 const CATEGORIES = [
   "All",
   "National",
   "International",
-  "Science & Tech",
   "Economy",
+  "Science & Technology",
+  "Environment",
+  "Defence",
   "Sports",
   "Awards",
+  "Appointments",
+  "Government Schemes",
+  "Reports & Index",
+  "Important Days",
+  "Other",
 ];
 
 export function WeeklyCurrentAffairs() {
@@ -43,6 +61,10 @@ export function WeeklyCurrentAffairs() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /* =====================================================
+     PAGE SETUP
+  ===================================================== */
 
   useEffect(() => {
     document.title = "Daily Current Affairs | VIDYZEN";
@@ -61,7 +83,24 @@ export function WeeklyCurrentAffairs() {
       const { data, error: fetchError } = await supabase
         .from("current_affairs")
         .select(
-          "id,affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs,published",
+          [
+            "id",
+            "affair_date",
+            "serial_no",
+            "title",
+            "why_in_news",
+            "key_facts",
+            "exam_point",
+            "static_gk",
+            "mcqs",
+            "published",
+            "category",
+            "title_hi",
+            "why_in_news_hi",
+            "key_facts_hi",
+            "exam_point_hi",
+            "static_gk_hi",
+          ].join(","),
         )
         .eq("published", true)
         .order("affair_date", {
@@ -75,21 +114,60 @@ export function WeeklyCurrentAffairs() {
         throw fetchError;
       }
 
-      const formatted: CurrentAffair[] = (data ?? []).map(
-        (row) => ({
-          id: String(row.id),
-          affair_date: row.affair_date ?? "",
-          serial_no: Number(row.serial_no ?? 1),
-          title: row.title ?? "",
-          why_in_news: row.why_in_news ?? "",
-          key_facts: row.key_facts ?? "",
-          exam_point: row.exam_point ?? "",
-          static_gk: row.static_gk ?? "",
-          mcqs: Array.isArray(row.mcqs)
-            ? row.mcqs
-            : [],
-        }),
-      );
+      const formatted: CurrentAffair[] = (
+        data ?? []
+      ).map((row) => ({
+        id: String(row.id),
+
+        affair_date:
+          row.affair_date ?? "",
+
+        serial_no:
+          Number(row.serial_no ?? 1),
+
+        title:
+          row.title ?? "",
+
+        why_in_news:
+          row.why_in_news ?? "",
+
+        key_facts:
+          row.key_facts ?? "",
+
+        exam_point:
+          row.exam_point ?? "",
+
+        static_gk:
+          row.static_gk ?? "",
+
+        mcqs:
+          normalizeMCQs(row.mcqs),
+
+        published:
+          typeof row.published ===
+          "boolean"
+            ? row.published
+            : true,
+
+        category:
+          row.category ||
+          "Other",
+
+        title_hi:
+          row.title_hi ?? "",
+
+        why_in_news_hi:
+          row.why_in_news_hi ?? "",
+
+        key_facts_hi:
+          row.key_facts_hi ?? "",
+
+        exam_point_hi:
+          row.exam_point_hi ?? "",
+
+        static_gk_hi:
+          row.static_gk_hi ?? "",
+      }));
 
       setAffairs(formatted);
     } catch (err) {
@@ -109,87 +187,50 @@ export function WeeklyCurrentAffairs() {
   }
 
   /* =====================================================
-     CATEGORY DETECTION
-  ===================================================== */
-
-  function getCategory(affair: CurrentAffair) {
-    const text =
-      `${affair.title} ${affair.why_in_news} ${affair.key_facts} ${affair.exam_point}`
-        .toLowerCase();
-
-    if (
-      /sports|cricket|football|hockey|tennis|olympic|athlete|tournament|medal|championship|fifa|icc/.test(
-        text,
-      )
-    ) {
-      return "Sports";
-    }
-
-    if (
-      /award|awards|honour|honor|appointment|appointed|chairman|chairperson|president|ceo|director|prize/.test(
-        text,
-      )
-    ) {
-      return "Awards";
-    }
-
-    if (
-      /economy|economic|rbi|reserve bank|bank|banking|finance|financial|inflation|gdp|sebi|market|budget|business|fiscal|monetary/.test(
-        text,
-      )
-    ) {
-      return "Economy";
-    }
-
-    if (
-      /science|technology|tech|ai|artificial intelligence|space|isro|nasa|satellite|research|innovation|quantum|digital|cyber|semiconductor|mission/.test(
-        text,
-      )
-    ) {
-      return "Science & Tech";
-    }
-
-    if (
-      /international|united nations|un\b|usa|america|china|russia|uk\b|britain|france|japan|germany|global|world bank|imf|foreign|europe|asia|africa/.test(
-        text,
-      )
-    ) {
-      return "International";
-    }
-
-    return "National";
-  }
-
-  /* =====================================================
      FILTER
   ===================================================== */
 
   const filteredAffairs = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query =
+      search.trim().toLowerCase();
 
     return affairs.filter((item) => {
-      const category = getCategory(item);
+      const category =
+        item.category || "Other";
 
       const matchesCategory =
         selectedCategory === "All" ||
         category === selectedCategory;
 
-      if (!query) {
-        return matchesCategory;
+      if (!matchesCategory) {
+        return false;
       }
 
-      const searchableText =
-        `${item.title}
-        ${item.why_in_news}
-        ${item.key_facts}
-        ${item.exam_point}
-        ${item.static_gk}
-        ${category}`
-          .toLowerCase();
+      if (!query) {
+        return true;
+      }
 
-      return (
-        matchesCategory &&
-        searchableText.includes(query)
+      const searchableText = [
+        item.title,
+        item.why_in_news,
+        item.key_facts,
+        item.exam_point,
+        item.static_gk,
+
+        item.title_hi,
+        item.why_in_news_hi,
+        item.key_facts_hi,
+        item.exam_point_hi,
+        item.static_gk_hi,
+
+        item.category,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(
+        query,
       );
     });
   }, [
@@ -202,7 +243,9 @@ export function WeeklyCurrentAffairs() {
      DATE
   ===================================================== */
 
-  function formatDate(date: string) {
+  function formatDate(
+    date: string,
+  ) {
     if (!date) {
       return "";
     }
@@ -211,22 +254,31 @@ export function WeeklyCurrentAffairs() {
       `${date}T00:00:00`,
     );
 
-    if (Number.isNaN(parsed.getTime())) {
+    if (
+      Number.isNaN(
+        parsed.getTime(),
+      )
+    ) {
       return date;
     }
 
-    return parsed.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return parsed.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      },
+    );
   }
 
   /* =====================================================
      OPEN DETAIL
   ===================================================== */
 
-  function openAffair(id: string) {
+  function openAffair(
+    id: string,
+  ) {
     navigate(
       `/student/current-affairs/${id}`,
     );
@@ -238,7 +290,9 @@ export function WeeklyCurrentAffairs() {
 
   function clearFilters() {
     setSearch("");
-    setSelectedCategory("All");
+    setSelectedCategory(
+      "All",
+    );
   }
 
   /* =====================================================
@@ -257,9 +311,9 @@ export function WeeklyCurrentAffairs() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
 
-      {/* =====================================================
+      {/* =================================================
           HEADER
-      ===================================================== */}
+      ================================================= */}
 
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
@@ -267,7 +321,9 @@ export function WeeklyCurrentAffairs() {
           <button
             type="button"
             onClick={() =>
-              navigate("/student/dashboard")
+              navigate(
+                "/student/dashboard",
+              )
             }
             className="flex items-center gap-3"
           >
@@ -289,7 +345,9 @@ export function WeeklyCurrentAffairs() {
           <button
             type="button"
             onClick={() =>
-              navigate("/student/dashboard")
+              navigate(
+                "/student/dashboard",
+              )
             }
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
@@ -299,15 +357,15 @@ export function WeeklyCurrentAffairs() {
         </div>
       </header>
 
-      {/* =====================================================
+      {/* =================================================
           MAIN
-      ===================================================== */}
+      ================================================= */}
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
 
-        {/* =====================================================
+        {/* =================================================
             HERO
-        ===================================================== */}
+        ================================================= */}
 
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-6 text-white shadow-lg sm:p-8">
 
@@ -324,9 +382,10 @@ export function WeeklyCurrentAffairs() {
               </h2>
 
               <p className="mt-3 text-sm leading-6 text-blue-100 sm:text-base">
-                Stay updated with exam-focused current
-                affairs, important facts, exam points,
-                static GK and practice MCQs.
+                Stay updated with exam-focused
+                current affairs, important facts,
+                exam points, static GK and practice
+                MCQs.
               </p>
 
               <p className="mt-4 text-sm font-semibold text-blue-100">
@@ -343,9 +402,9 @@ export function WeeklyCurrentAffairs() {
 
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             SEARCH + FILTER
-        ===================================================== */}
+        ================================================= */}
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
@@ -359,7 +418,9 @@ export function WeeklyCurrentAffairs() {
               type="text"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value,
+                )
               }
               placeholder="Search current affairs..."
               className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
@@ -369,30 +430,35 @@ export function WeeklyCurrentAffairs() {
 
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
 
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() =>
-                  setSelectedCategory(category)
-                }
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+            {CATEGORIES.map(
+              (category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() =>
+                    setSelectedCategory(
+                      category,
+                    )
+                  }
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${
+                    selectedCategory ===
+                    category
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {category}
+                </button>
+              ),
+            )}
 
           </div>
 
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             SECTION HEADER
-        ===================================================== */}
+        ================================================= */}
 
         <div className="mt-8 flex items-end justify-between gap-4">
 
@@ -408,16 +474,17 @@ export function WeeklyCurrentAffairs() {
 
           <span className="shrink-0 text-sm font-medium text-slate-500 dark:text-slate-400">
             {filteredAffairs.length}{" "}
-            {filteredAffairs.length === 1
+            {filteredAffairs.length ===
+            1
               ? "topic"
               : "topics"}
           </span>
 
         </div>
 
-        {/* =====================================================
+        {/* =================================================
             LOADING
-        ===================================================== */}
+        ================================================= */}
 
         {loading && (
           <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -431,53 +498,56 @@ export function WeeklyCurrentAffairs() {
           </div>
         )}
 
-        {/* =====================================================
+        {/* =================================================
             ERROR
-        ===================================================== */}
+        ================================================= */}
 
-        {!loading && error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
+        {!loading &&
+          error && (
+            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
 
-            <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3">
 
-              <div className="text-2xl">
-                ⚠️
-              </div>
+                <div className="text-2xl">
+                  ⚠️
+                </div>
 
-              <div className="min-w-0">
+                <div className="min-w-0">
 
-                <h3 className="font-bold text-red-700 dark:text-red-300">
-                  Unable to load current affairs
-                </h3>
+                  <h3 className="font-bold text-red-700 dark:text-red-300">
+                    Unable to load current
+                    affairs
+                  </h3>
 
-                <p className="mt-2 break-words text-sm leading-6 text-red-600 dark:text-red-400">
-                  {error}
-                </p>
+                  <p className="mt-2 break-words text-sm leading-6 text-red-600 dark:text-red-400">
+                    {error}
+                  </p>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    void loadCurrentAffairs()
-                  }
-                  className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
-                >
-                  Try Again
-                </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void loadCurrentAffairs()
+                    }
+                    className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
+                  >
+                    Try Again
+                  </button>
+
+                </div>
 
               </div>
 
             </div>
+          )}
 
-          </div>
-        )}
-
-        {/* =====================================================
+        {/* =================================================
             EMPTY
-        ===================================================== */}
+        ================================================= */}
 
         {!loading &&
           !error &&
-          filteredAffairs.length === 0 && (
+          filteredAffairs.length ===
+            0 && (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
               <div className="text-5xl">
@@ -489,15 +559,19 @@ export function WeeklyCurrentAffairs() {
               </h3>
 
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Try another search term or choose a
-                different category.
+                Try another search term
+                or choose a different
+                category.
               </p>
 
               {(search ||
-                selectedCategory !== "All") && (
+                selectedCategory !==
+                  "All") && (
                 <button
                   type="button"
-                  onClick={clearFilters}
+                  onClick={
+                    clearFilters
+                  }
                   className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
                 >
                   Clear Filters
@@ -507,118 +581,138 @@ export function WeeklyCurrentAffairs() {
             </div>
           )}
 
-        {/* =====================================================
+        {/* =================================================
             AFFAIRS GRID
-        ===================================================== */}
+        ================================================= */}
 
         {!loading &&
           !error &&
-          filteredAffairs.length > 0 && (
+          filteredAffairs.length >
+            0 && (
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-              {filteredAffairs.map((item) => {
-                const category =
-                  getCategory(item);
+              {filteredAffairs.map(
+                (item) => {
+                  const category =
+                    item.category ||
+                    "Other";
 
-                return (
-                  <article
-                    key={item.id}
-                    className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
-                  >
+                  return (
+                    <article
+                      key={item.id}
+                      className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+                    >
 
-                    {/* CARD TOP */}
+                      {/* CARD TOP */}
 
-                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-3">
 
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                        {category}
-                      </span>
-
-                      <span className="shrink-0 text-xs font-medium text-slate-400">
-                        {formatDate(
-                          item.affair_date,
-                        )}
-                      </span>
-
-                    </div>
-
-                    {/* META */}
-
-                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-
-                      <span className="rounded-md bg-slate-100 px-2 py-1 font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                        #{item.serial_no}
-                      </span>
-
-                      {item.mcqs.length > 0 && (
-                        <span className="rounded-md bg-green-50 px-2 py-1 font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300">
-                          📝 {item.mcqs.length} MCQ
-                          {item.mcqs.length !== 1
-                            ? "s"
-                            : ""}
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                          {category}
                         </span>
-                      )}
 
-                    </div>
-
-                    {/* TITLE */}
-
-                    <h3 className="mt-4 line-clamp-3 text-lg font-black leading-7 text-slate-900 dark:text-white">
-                      {item.title}
-                    </h3>
-
-                    {/* WHY IN NEWS */}
-
-                    <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                      {item.why_in_news ||
-                        "Current affair details are available inside."}
-                    </p>
-
-                    {/* EXAM POINT */}
-
-                    {item.exam_point && (
-                      <div className="mt-4 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
-
-                        <p className="text-[11px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                          🎯 Exam Point
-                        </p>
-
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-blue-800 dark:text-blue-300">
-                          {item.exam_point}
-                        </p>
+                        <span className="shrink-0 text-xs font-medium text-slate-400">
+                          {formatDate(
+                            item.affair_date,
+                          )}
+                        </span>
 
                       </div>
-                    )}
 
-                    {/* READ MORE */}
+                      {/* META */}
 
-                    <div className="mt-auto pt-5">
+                      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAffair(item.id)
-                        }
-                        className="flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 group-hover:shadow-md"
-                      >
-                        Read Full Current Affair
-                        <span className="ml-2">
-                          →
+                        <span className="rounded-md bg-slate-100 px-2 py-1 font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                          #{item.serial_no}
                         </span>
-                      </button>
 
-                    </div>
+                        {item.mcqs
+                          .length >
+                          0 && (
+                          <span className="rounded-md bg-green-50 px-2 py-1 font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+                            📝{" "}
+                            {
+                              item.mcqs
+                                .length
+                            }{" "}
+                            MCQ
+                            {item.mcqs
+                              .length !==
+                            1
+                              ? "s"
+                              : ""}
+                          </span>
+                        )}
 
-                  </article>
-                );
-              })}
+                      </div>
+
+                      {/* TITLE */}
+
+                      <h3 className="mt-4 line-clamp-3 text-lg font-black leading-7 text-slate-900 dark:text-white">
+                        {item.title}
+                      </h3>
+
+                      {/* WHY IN NEWS */}
+
+                      <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        {stripHtml(
+                          item.why_in_news,
+                        ) ||
+                          "Current affair details are available inside."}
+                      </p>
+
+                      {/* EXAM POINT */}
+
+                      {item.exam_point && (
+                        <div className="mt-4 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                            🎯 Exam Point
+                          </p>
+
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-blue-800 dark:text-blue-300">
+                            {stripHtml(
+                              item.exam_point,
+                            )}
+                          </p>
+
+                        </div>
+                      )}
+
+                      {/* READ MORE */}
+
+                      <div className="mt-auto pt-5">
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openAffair(
+                              item.id,
+                            )
+                          }
+                          className="flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 group-hover:shadow-md"
+                        >
+                          Read Full Current Affair
+
+                          <span className="ml-2">
+                            →
+                          </span>
+                        </button>
+
+                      </div>
+
+                    </article>
+                  );
+                },
+              )}
 
             </div>
           )}
 
-        {/* =====================================================
+        {/* =================================================
             DAILY NEWSPAPER
-        ===================================================== */}
+        ================================================= */}
 
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
@@ -643,9 +737,9 @@ export function WeeklyCurrentAffairs() {
               </div>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Daily curated newspaper with exam-focused
-                important news, available for premium
-                students.
+                Daily curated newspaper with
+                exam-focused important news,
+                available for premium students.
               </p>
 
             </div>
@@ -666,9 +760,9 @@ export function WeeklyCurrentAffairs() {
 
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             EXAM TIP
-        ===================================================== */}
+        ================================================= */}
 
         <section className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5 dark:border-blue-900/50 dark:bg-blue-950/30">
 
@@ -678,23 +772,26 @@ export function WeeklyCurrentAffairs() {
 
           <p className="mt-2 text-sm leading-6 text-blue-800 dark:text-blue-300">
             Current affairs ko sirf read mat karo.
-            Important names, dates, awards, appointments,
-            places aur numbers ko revise karo. Regular
-            revision se retention better hoti hai.
+            Important names, dates, awards,
+            appointments, places aur numbers ko
+            revise karo. Regular revision se
+            retention better hoti hai.
           </p>
 
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             BACK TO DASHBOARD
-        ===================================================== */}
+        ================================================= */}
 
         <div className="mt-8 flex justify-center">
 
           <button
             type="button"
             onClick={() =>
-              navigate("/student/dashboard")
+              navigate(
+                "/student/dashboard",
+              )
             }
             className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
@@ -708,5 +805,147 @@ export function WeeklyCurrentAffairs() {
     </div>
   );
 }
+
+/* =====================================================
+   MCQ NORMALIZER
+===================================================== */
+
+function normalizeMCQs(
+  value: unknown,
+): MCQ[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (
+        !item ||
+        typeof item !==
+          "object" ||
+        Array.isArray(item)
+      ) {
+        return null;
+      }
+
+      const row =
+        item as Record<
+          string,
+          unknown
+        >;
+
+      const question =
+        typeof row.question ===
+        "string"
+          ? row.question.trim()
+          : "";
+
+      const options =
+        Array.isArray(
+          row.options,
+        )
+          ? row.options
+              .filter(
+                (
+                  option,
+                ): option is string =>
+                  typeof option ===
+                  "string",
+              )
+              .map((option) =>
+                option.trim(),
+              )
+          : [];
+
+      const answer =
+        typeof row.answer ===
+        "string"
+          ? row.answer.trim()
+          : "";
+
+      const explanation =
+        typeof row.explanation ===
+        "string"
+          ? row.explanation.trim()
+          : "";
+
+      if (
+        !question ||
+        options.length !==
+          4 ||
+        options.some(
+          (option) =>
+            !option,
+        ) ||
+        !answer
+      ) {
+        return null;
+      }
+
+      return {
+        question,
+        options,
+        answer,
+        explanation,
+      };
+    })
+    .filter(
+      (
+        item,
+      ): item is MCQ =>
+        item !== null,
+    );
+}
+
+/* =====================================================
+   STRIP HTML
+===================================================== */
+
+function stripHtml(
+  value: string,
+): string {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .replace(
+      /<br\s*\/?>/gi,
+      " ",
+    )
+    .replace(
+      /<\/p>/gi,
+      " ",
+    )
+    .replace(
+      /<[^>]+>/g,
+      "",
+    )
+    .replace(
+      /&nbsp;/gi,
+      " ",
+    )
+    .replace(
+      /&amp;/gi,
+      "&",
+    )
+    .replace(
+      /&quot;/gi,
+      '"',
+    )
+    .replace(
+      /&#39;/gi,
+      "'",
+    )
+    .replace(
+      /\s+/g,
+      " ",
+    )
+    .trim();
+}
+
+/* =====================================================
+   DEFAULT EXPORT
+===================================================== */
 
 export default WeeklyCurrentAffairs;
