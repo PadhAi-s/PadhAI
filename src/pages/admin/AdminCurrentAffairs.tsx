@@ -3,14 +3,9 @@ import {
   useMemo,
   useState,
   type ChangeEvent,
-  type FormEvent,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-
-/* =====================================================
-   TYPES
-===================================================== */
 
 interface MCQ {
   question: string;
@@ -40,40 +35,7 @@ interface CurrentAffair {
   key_facts_hi: string;
   exam_point_hi: string;
   static_gk_hi: string;
-
-  created_at?: string;
-  updated_at?: string;
 }
-
-/* =====================================================
-   FORM TYPE
-===================================================== */
-
-interface AffairForm {
-  affair_date: string;
-  serial_no: string;
-
-  title: string;
-  why_in_news: string;
-  key_facts: string;
-  exam_point: string;
-  static_gk: string;
-
-  title_hi: string;
-  why_in_news_hi: string;
-  key_facts_hi: string;
-  exam_point_hi: string;
-  static_gk_hi: string;
-
-  category: string;
-  published: boolean;
-
-  mcqs: MCQ[];
-}
-
-/* =====================================================
-   CATEGORIES
-===================================================== */
 
 const CATEGORIES = [
   "National",
@@ -91,13 +53,10 @@ const CATEGORIES = [
   "Other",
 ];
 
-/* =====================================================
-   EMPTY FORM
-===================================================== */
-
-const EMPTY_FORM: AffairForm = {
+const EMPTY_FORM: CurrentAffair = {
+  id: "",
   affair_date: "",
-  serial_no: "1",
+  serial_no: 1,
 
   title: "",
   why_in_news: "",
@@ -105,63 +64,65 @@ const EMPTY_FORM: AffairForm = {
   exam_point: "",
   static_gk: "",
 
+  mcqs: [],
+
+  published: true,
+  category: "National",
+
   title_hi: "",
   why_in_news_hi: "",
   key_facts_hi: "",
   exam_point_hi: "",
   static_gk_hi: "",
-
-  category: "National",
-  published: true,
-
-  mcqs: [],
 };
 
 /* =====================================================
-   TABLE ACCESS
-   -----------------------------------------------------
-   `as any` intentionally avoids stale generated
-   Supabase Database types causing GenericStringError.
-===================================================== */
-
-const currentAffairsTable = () =>
-  supabase.from("current_affairs") as any;
-
-/* =====================================================
-   COMPONENT
+   PAGE
 ===================================================== */
 
 export function AdminCurrentAffairs() {
   const navigate = useNavigate();
 
-  const [affairs, setAffairs] = useState<
-    CurrentAffair[]
-  >([]);
+  const [affairs, setAffairs] =
+    useState<CurrentAffair[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] =
-    useState<string | null>(null);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const [search, setSearch] = useState("");
-
-  const [showForm, setShowForm] =
+  const [saving, setSaving] =
     useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [search, setSearch] =
+    useState("");
+
+  const [selectedCategory, setSelectedCategory] =
+    useState("All");
 
   const [editingId, setEditingId] =
     useState<string | null>(null);
 
   const [form, setForm] =
-    useState<AffairForm>(EMPTY_FORM);
+    useState<CurrentAffair>(
+      EMPTY_FORM,
+    );
 
-  const [csvLoading, setCsvLoading] =
+  const [showForm, setShowForm] =
     useState(false);
 
+  const [csvText, setCsvText] =
+    useState("");
+
+  const [csvError, setCsvError] =
+    useState("");
+
+  const [csvPreview, setCsvPreview] =
+    useState<CurrentAffair[]>([]);
+
   /* =====================================================
-     INITIAL LOAD
+     LOAD
   ===================================================== */
 
   useEffect(() => {
@@ -171,42 +132,40 @@ export function AdminCurrentAffairs() {
     void loadCurrentAffairs();
   }, []);
 
-  /* =====================================================
-     LOAD
-  ===================================================== */
-
   async function loadCurrentAffairs() {
     setLoading(true);
     setError("");
 
-    console.log(
-      "[AdminCurrentAffairs] Loading current_affairs...",
-    );
-
     try {
       /*
        * IMPORTANT:
-       * select("*") intentionally used.
+       * Supabase generated Database type mein
+       * current_affairs kabhi GenericStringError
+       * infer ho raha tha.
        *
-       * Dynamic `.select(array.join(","))`
-       * can produce GenericStringError in Supabase
-       * TypeScript inference.
+       * Isliye query ko any boundary par rakha.
+       * Baaki application strongly typed hai.
        */
-      const { data, error: fetchError } =
-        await currentAffairsTable()
-          .select("*")
-          .order("affair_date", {
-            ascending: false,
-          })
-          .order("serial_no", {
-            ascending: true,
-          });
+      const db = supabase as any;
+
+      const {
+        data: rawData,
+        error: fetchError,
+      } = await db
+        .from("current_affairs")
+        .select("*")
+        .order("affair_date", {
+          ascending: false,
+        })
+        .order("serial_no", {
+          ascending: true,
+        });
 
       console.log(
-        "[AdminCurrentAffairs] Supabase response:",
+        "Admin Current Affairs Response:",
         {
-          data,
-          error: fetchError,
+          rawData,
+          fetchError,
         },
       );
 
@@ -214,18 +173,25 @@ export function AdminCurrentAffairs() {
         throw fetchError;
       }
 
-      const formatted: CurrentAffair[] = (
-        data ?? []
-      ).map(normalizeCurrentAffair);
+      const rows =
+        Array.isArray(rawData)
+          ? rawData
+          : [];
+
+      const formatted =
+        rows
+          .map(normalizeCurrentAffair)
+          .filter(
+            (
+              item,
+            ): item is CurrentAffair =>
+              item !== null,
+          );
 
       setAffairs(formatted);
-
-      console.log(
-        `[AdminCurrentAffairs] Loaded ${formatted.length} rows.`,
-      );
     } catch (err) {
       console.error(
-        "[AdminCurrentAffairs] Load Error:",
+        "Admin Current Affairs Load Error:",
         err,
       );
 
@@ -234,7 +200,7 @@ export function AdminCurrentAffairs() {
       setError(
         err instanceof Error
           ? err.message
-          : "Current affairs load nahi ho paye.",
+          : "Current affairs load nahi ho paya.",
       );
     } finally {
       setLoading(false);
@@ -242,223 +208,125 @@ export function AdminCurrentAffairs() {
   }
 
   /* =====================================================
-     NORMALIZE CURRENT AFFAIR
-===================================================== */
+     FILTER
+  ===================================================== */
 
-  function normalizeCurrentAffair(
-    row: any,
-  ): CurrentAffair {
-    return {
-      id: String(row?.id ?? ""),
+  const filteredAffairs =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-      affair_date:
-        String(row?.affair_date ?? ""),
+      return affairs.filter(
+        (item) => {
+          const category =
+            item.category ||
+            "Other";
 
-      serial_no:
-        Number(row?.serial_no ?? 1),
+          if (
+            selectedCategory !==
+              "All" &&
+            category !==
+              selectedCategory
+          ) {
+            return false;
+          }
 
-      title:
-        String(row?.title ?? ""),
+          if (!query) {
+            return true;
+          }
 
-      why_in_news:
-        String(row?.why_in_news ?? ""),
+          const searchableText = [
+            item.title,
+            item.why_in_news,
+            item.key_facts,
+            item.exam_point,
+            item.static_gk,
+            item.title_hi,
+            item.why_in_news_hi,
+            item.key_facts_hi,
+            item.exam_point_hi,
+            item.static_gk_hi,
+            item.category,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
 
-      key_facts:
-        String(row?.key_facts ?? ""),
+          return searchableText.includes(
+            query,
+          );
+        },
+      );
+    }, [
+      affairs,
+      search,
+      selectedCategory,
+    ]);
 
-      exam_point:
-        String(row?.exam_point ?? ""),
+  /* =====================================================
+     FORM
+  ===================================================== */
 
-      static_gk:
-        String(row?.static_gk ?? ""),
-
-      mcqs:
-        normalizeMCQs(row?.mcqs),
-
-      published:
-        typeof row?.published === "boolean"
-          ? row.published
-          : true,
-
-      category:
-        String(
-          row?.category ?? "Other",
-        ),
-
-      title_hi:
-        String(row?.title_hi ?? ""),
-
-      why_in_news_hi:
-        String(
-          row?.why_in_news_hi ?? "",
-        ),
-
-      key_facts_hi:
-        String(
-          row?.key_facts_hi ?? "",
-        ),
-
-      exam_point_hi:
-        String(
-          row?.exam_point_hi ?? "",
-        ),
-
-      static_gk_hi:
-        String(
-          row?.static_gk_hi ?? "",
-        ),
-
-      created_at:
-        row?.created_at
-          ? String(row.created_at)
-          : undefined,
-
-      updated_at:
-        row?.updated_at
-          ? String(row.updated_at)
-          : undefined,
-    };
+  function updateForm(
+    field: keyof CurrentAffair,
+    value: unknown,
+  ) {
+    setForm(
+      (previous) => ({
+        ...previous,
+        [field]: value,
+      }),
+    );
   }
 
-  /* =====================================================
-     FILTER
-===================================================== */
+  function startAdd() {
+    const nextSerial =
+      affairs.length > 0
+        ? Math.max(
+            ...affairs.map(
+              (item) =>
+                item.serial_no,
+            ),
+          ) + 1
+        : 1;
 
-  const filteredAffairs = useMemo(() => {
-    const query =
-      search.trim().toLowerCase();
-
-    if (!query) {
-      return affairs;
-    }
-
-    return affairs.filter((item) => {
-      const text = [
-        item.affair_date,
-        item.serial_no,
-        item.title,
-        item.why_in_news,
-        item.key_facts,
-        item.exam_point,
-        item.static_gk,
-
-        item.title_hi,
-        item.why_in_news_hi,
-        item.key_facts_hi,
-        item.exam_point_hi,
-        item.static_gk_hi,
-
-        item.category,
-      ]
-        .map(String)
-        .join(" ")
-        .toLowerCase();
-
-      return text.includes(query);
-    });
-  }, [affairs, search]);
-
-  /* =====================================================
-     OPEN ADD
-===================================================== */
-
-  function openAddForm() {
     setEditingId(null);
 
     setForm({
       ...EMPTY_FORM,
+      serial_no:
+        nextSerial,
       affair_date:
         new Date()
           .toISOString()
           .slice(0, 10),
     });
 
-    setError("");
-    setSuccess("");
     setShowForm(true);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    setError("");
   }
 
-  /* =====================================================
-     OPEN EDIT
-===================================================== */
-
-  function openEditForm(
-    affair: CurrentAffair,
+  function startEdit(
+    item: CurrentAffair,
   ) {
-    setEditingId(affair.id);
+    setEditingId(item.id);
 
     setForm({
-      affair_date:
-        affair.affair_date,
-
-      serial_no:
-        String(affair.serial_no),
-
-      title:
-        affair.title,
-
-      why_in_news:
-        affair.why_in_news,
-
-      key_facts:
-        affair.key_facts,
-
-      exam_point:
-        affair.exam_point,
-
-      static_gk:
-        affair.static_gk,
-
-      title_hi:
-        affair.title_hi,
-
-      why_in_news_hi:
-        affair.why_in_news_hi,
-
-      key_facts_hi:
-        affair.key_facts_hi,
-
-      exam_point_hi:
-        affair.exam_point_hi,
-
-      static_gk_hi:
-        affair.static_gk_hi,
-
-      category:
-        affair.category ||
-        "Other",
-
-      published:
-        affair.published,
-
-      mcqs:
-        affair.mcqs.map(
-          (mcq) => ({
-            question:
-              mcq.question,
-
-            options: [
-              ...(mcq.options ?? []),
-            ],
-
-            answer:
-              mcq.answer,
-
-            explanation:
-              mcq.explanation ??
-              "",
-          }),
-        ),
+      ...item,
+      mcqs: item.mcqs.map(
+        (mcq) => ({
+          ...mcq,
+          options: [
+            ...mcq.options,
+          ],
+        }),
+      ),
     });
 
-    setError("");
-    setSuccess("");
     setShowForm(true);
+    setError("");
 
     window.scrollTo({
       top: 0,
@@ -466,53 +334,29 @@ export function AdminCurrentAffairs() {
     });
   }
 
-  /* =====================================================
-     CLOSE FORM
-===================================================== */
-
-  function closeForm() {
-    if (saving) {
-      return;
-    }
-
+  function cancelForm() {
     setShowForm(false);
     setEditingId(null);
-    setForm(EMPTY_FORM);
-  }
-
-  /* =====================================================
-     FORM FIELD
-===================================================== */
-
-  function updateField(
-    field: keyof AffairForm,
-    value: string | boolean,
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setForm({
+      ...EMPTY_FORM,
+    });
   }
 
   /* =====================================================
      VALIDATE
-===================================================== */
+  ===================================================== */
 
-  function validateForm(): string {
+  function validateForm(): string | null {
     if (!form.affair_date.trim()) {
       return "Affair date required hai.";
     }
 
-    if (!form.serial_no.trim()) {
-      return "Serial number required hai.";
-    }
-
     if (
-      Number.isNaN(
+      !Number.isFinite(
         Number(form.serial_no),
       )
     ) {
-      return "Serial number valid number hona chahiye.";
+      return "Serial number valid nahi hai.";
     }
 
     if (!form.title.trim()) {
@@ -560,21 +404,24 @@ export function AdminCurrentAffairs() {
     }
 
     for (
-      let index = 0;
-      index < form.mcqs.length;
-      index++
+      let i = 0;
+      i < form.mcqs.length;
+      i++
     ) {
       const mcq =
-        form.mcqs[index];
+        form.mcqs[i];
 
-      if (!mcq.question.trim()) {
-        return `MCQ ${index + 1}: question required hai.`;
+      if (
+        !mcq.question.trim()
+      ) {
+        return `MCQ ${i + 1}: question required hai.`;
       }
 
       if (
-        mcq.options.length !== 4
+        mcq.options.length !==
+        4
       ) {
-        return `MCQ ${index + 1}: exactly 4 options required hain.`;
+        return `MCQ ${i + 1}: exactly 4 options required hain.`;
       }
 
       if (
@@ -583,11 +430,11 @@ export function AdminCurrentAffairs() {
             !option.trim(),
         )
       ) {
-        return `MCQ ${index + 1}: saare options fill karo.`;
+        return `MCQ ${i + 1}: all options required hain.`;
       }
 
       if (!mcq.answer.trim()) {
-        return `MCQ ${index + 1}: correct answer required hai.`;
+        return `MCQ ${i + 1}: answer required hai.`;
       }
 
       if (
@@ -595,181 +442,130 @@ export function AdminCurrentAffairs() {
           mcq.answer,
         )
       ) {
-        return `MCQ ${index + 1}: answer exactly kisi ek option ke same hona chahiye.`;
+        return `MCQ ${i + 1}: answer options mein se ek hona chahiye.`;
       }
     }
 
-    return "";
+    return null;
   }
 
   /* =====================================================
      SAVE
-===================================================== */
+  ===================================================== */
 
-  async function handleSubmit(
-    event: FormEvent,
-  ) {
-    event.preventDefault();
-
-    setError("");
-    setSuccess("");
-
+  async function saveCurrentAffair() {
     const validationError =
       validateForm();
 
     if (validationError) {
-      setError(validationError);
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      setError(
+        validationError,
+      );
       return;
     }
 
     setSaving(true);
+    setError("");
 
-    const payload = {
-      affair_date:
-        form.affair_date.trim(),
+    try {
+      const payload = {
+        affair_date:
+          form.affair_date,
+        serial_no:
+          Number(form.serial_no),
 
-      serial_no:
-        Number(form.serial_no),
+        title:
+          form.title.trim(),
 
-      title:
-        form.title.trim(),
+        why_in_news:
+          form.why_in_news.trim(),
 
-      why_in_news:
-        form.why_in_news.trim(),
+        key_facts:
+          form.key_facts.trim(),
 
-      key_facts:
-        form.key_facts.trim(),
+        exam_point:
+          form.exam_point.trim(),
 
-      exam_point:
-        form.exam_point.trim(),
+        static_gk:
+          form.static_gk.trim(),
 
-      static_gk:
-        form.static_gk.trim(),
-
-      mcqs:
-        form.mcqs.map(
+        mcqs: form.mcqs.map(
           (mcq) => ({
             question:
               mcq.question.trim(),
-
             options:
               mcq.options.map(
                 (option) =>
                   option.trim(),
               ),
-
             answer:
               mcq.answer.trim(),
-
             explanation:
               mcq.explanation?.trim() ||
               "",
           }),
         ),
 
-      published:
-        form.published,
+        published:
+          Boolean(form.published),
 
-      category:
-        form.category.trim(),
+        category:
+          form.category.trim(),
 
-      title_hi:
-        form.title_hi.trim(),
+        title_hi:
+          form.title_hi.trim(),
 
-      why_in_news_hi:
-        form.why_in_news_hi.trim(),
+        why_in_news_hi:
+          form.why_in_news_hi.trim(),
 
-      key_facts_hi:
-        form.key_facts_hi.trim(),
+        key_facts_hi:
+          form.key_facts_hi.trim(),
 
-      exam_point_hi:
-        form.exam_point_hi.trim(),
+        exam_point_hi:
+          form.exam_point_hi.trim(),
 
-      static_gk_hi:
-        form.static_gk_hi.trim(),
-    };
+        static_gk_hi:
+          form.static_gk_hi.trim(),
+      };
 
-    console.log(
-      "[AdminCurrentAffairs] Save payload:",
-      payload,
-    );
+      const db = supabase as any;
 
-    try {
       if (editingId) {
         const {
-          data,
           error: updateError,
-        } =
-          await currentAffairsTable()
-            .update(payload)
-            .eq(
-              "id",
-              editingId,
-            )
-            .select("*")
-            .single();
-
-        console.log(
-          "[AdminCurrentAffairs] Update response:",
-          {
-            data,
-            updateError,
-          },
-        );
+        } = await db
+          .from("current_affairs")
+          .update(payload)
+          .eq("id", editingId);
 
         if (updateError) {
           throw updateError;
         }
-
-        setSuccess(
-          "Current affair successfully update ho gaya.",
-        );
       } else {
         const {
-          data,
           error: insertError,
-        } =
-          await currentAffairsTable()
-            .insert(payload)
-            .select("*")
-            .single();
-
-        console.log(
-          "[AdminCurrentAffairs] Insert response:",
-          {
-            data,
-            insertError,
-          },
-        );
+        } = await db
+          .from("current_affairs")
+          .insert(payload);
 
         if (insertError) {
           throw insertError;
         }
-
-        setSuccess(
-          "Current affair successfully add ho gaya.",
-        );
       }
 
       await loadCurrentAffairs();
 
-      setShowForm(false);
-      setEditingId(null);
-      setForm(EMPTY_FORM);
+      cancelForm();
     } catch (err) {
       console.error(
-        "[AdminCurrentAffairs] Save Error:",
+        "Current Affair Save Error:",
         err,
       );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Current affair save nahi ho paya.",
+          : "Current affair save nahi hua.",
       );
     } finally {
       setSaving(false);
@@ -778,36 +574,31 @@ export function AdminCurrentAffairs() {
 
   /* =====================================================
      DELETE
-===================================================== */
+  ===================================================== */
 
-  async function deleteAffair(
+  async function deleteCurrentAffair(
     id: string,
   ) {
     const confirmed =
       window.confirm(
-        "Kya aap is current affair ko permanently delete karna chahte ho?",
+        "Kya aap is current affair ko permanently delete karna chahte hain?",
       );
 
     if (!confirmed) {
       return;
     }
 
-    setDeletingId(id);
     setError("");
-    setSuccess("");
-
-    console.log(
-      "[AdminCurrentAffairs] Deleting:",
-      id,
-    );
 
     try {
+      const db = supabase as any;
+
       const {
         error: deleteError,
-      } =
-        await currentAffairsTable()
-          .delete()
-          .eq("id", id);
+      } = await db
+        .from("current_affairs")
+        .delete()
+        .eq("id", id);
 
       if (deleteError) {
         throw deleteError;
@@ -820,135 +611,126 @@ export function AdminCurrentAffairs() {
               item.id !== id,
           ),
       );
-
-      setSuccess(
-        "Current affair delete ho gaya.",
-      );
     } catch (err) {
       console.error(
-        "[AdminCurrentAffairs] Delete Error:",
+        "Current Affair Delete Error:",
         err,
       );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Delete nahi ho paya.",
+          : "Current affair delete nahi hua.",
       );
-    } finally {
-      setDeletingId(null);
     }
   }
 
   /* =====================================================
-     MCQ ADD
-===================================================== */
+     MCQ EDITOR
+  ===================================================== */
 
   function addMCQ() {
-    setForm((previous) => ({
-      ...previous,
-      mcqs: [
-        ...previous.mcqs,
-        {
-          question: "",
-          options: [
-            "",
-            "",
-            "",
-            "",
-          ],
-          answer: "",
-          explanation: "",
-        },
-      ],
-    }));
+    setForm(
+      (previous) => ({
+        ...previous,
+        mcqs: [
+          ...previous.mcqs,
+          {
+            question: "",
+            options: [
+              "",
+              "",
+              "",
+              "",
+            ],
+            answer: "",
+            explanation:
+              "",
+          },
+        ],
+      }),
+    );
   }
-
-  /* =====================================================
-     MCQ REMOVE
-===================================================== */
 
   function removeMCQ(
     index: number,
   ) {
-    setForm((previous) => ({
-      ...previous,
-      mcqs:
-        previous.mcqs.filter(
-          (_, mcqIndex) =>
-            mcqIndex !== index,
-        ),
-    }));
+    setForm(
+      (previous) => ({
+        ...previous,
+        mcqs:
+          previous.mcqs.filter(
+            (_, i) =>
+              i !== index,
+          ),
+      }),
+    );
   }
-
-  /* =====================================================
-     MCQ UPDATE
-===================================================== */
 
   function updateMCQ(
     index: number,
-    field:
-      | "question"
-      | "answer"
-      | "explanation",
-    value: string,
+    field: keyof MCQ,
+    value: unknown,
   ) {
-    setForm((previous) => {
-      const mcqs = [
-        ...previous.mcqs,
-      ];
-
-      mcqs[index] = {
-        ...mcqs[index],
-        [field]: value,
-      };
-
-      return {
+    setForm(
+      (previous) => ({
         ...previous,
-        mcqs,
-      };
-    });
+        mcqs:
+          previous.mcqs.map(
+            (mcq, i) =>
+              i === index
+                ? {
+                    ...mcq,
+                    [field]:
+                      value,
+                  }
+                : mcq,
+          ),
+      }),
+    );
   }
-
-  /* =====================================================
-     MCQ OPTION UPDATE
-===================================================== */
 
   function updateMCQOption(
     mcqIndex: number,
     optionIndex: number,
     value: string,
   ) {
-    setForm((previous) => {
-      const mcqs = [
-        ...previous.mcqs,
-      ];
-
-      const options = [
-        ...mcqs[mcqIndex]
-          .options,
-      ];
-
-      options[optionIndex] =
-        value;
-
-      mcqs[mcqIndex] = {
-        ...mcqs[mcqIndex],
-        options,
-      };
-
-      return {
+    setForm(
+      (previous) => ({
         ...previous,
-        mcqs,
-      };
-    });
+        mcqs:
+          previous.mcqs.map(
+            (mcq, i) => {
+              if (
+                i !==
+                mcqIndex
+              ) {
+                return mcq;
+              }
+
+              const options = [
+                ...mcq.options,
+              ];
+
+              options[
+                optionIndex
+              ] = value;
+
+              return {
+                ...mcq,
+                options,
+              };
+            },
+          ),
+      }),
+    );
   }
 
   /* =====================================================
      CSV FILE
-===================================================== */
+  ===================================================== */
 
-  async function handleCSVFile(
+  function handleCSVFile(
     event: ChangeEvent<HTMLInputElement>,
   ) {
     const file =
@@ -958,296 +740,226 @@ export function AdminCurrentAffairs() {
       return;
     }
 
-    setCsvLoading(true);
-    setError("");
-    setSuccess("");
+    setCsvError("");
+    setCsvPreview([]);
+
+    const reader =
+      new FileReader();
+
+    reader.onload = () => {
+      const text =
+        typeof reader.result ===
+        "string"
+          ? reader.result
+          : "";
+
+      setCsvText(text);
+
+      try {
+        const parsed =
+          parseCSVToCurrentAffairs(
+            text,
+          );
+
+        setCsvPreview(
+          parsed,
+        );
+      } catch (err) {
+        setCsvError(
+          err instanceof Error
+            ? err.message
+            : "CSV parse nahi ho paya.",
+        );
+      }
+    };
+
+    reader.onerror = () => {
+      setCsvError(
+        "CSV file read nahi ho payi.",
+      );
+    };
+
+    reader.readAsText(file);
+  }
+
+  /* =====================================================
+     CSV IMPORT
+  ===================================================== */
+
+  async function importCSV() {
+    setCsvError("");
+
+    if (!csvText.trim()) {
+      setCsvError(
+        "Pehle CSV upload karo.",
+      );
+      return;
+    }
+
+    let parsed: CurrentAffair[];
 
     try {
-      const text =
-        await file.text();
-
-      const rows =
-        parseCSV(text);
-
-      if (rows.length < 2) {
-        throw new Error(
-          "CSV me header aur kam se kam 1 data row required hai.",
+      parsed =
+        parseCSVToCurrentAffairs(
+          csvText,
         );
-      }
+      setCsvPreview(
+        parsed,
+      );
+    } catch (err) {
+      setCsvError(
+        err instanceof Error
+          ? err.message
+          : "CSV invalid hai.",
+      );
+      return;
+    }
 
-      const headers =
-        rows[0].map((header) =>
-          normalizeCSVHeader(
-            header,
-          ),
-        );
+    if (parsed.length === 0) {
+      setCsvError(
+        "CSV mein koi valid row nahi hai.",
+      );
+      return;
+    }
 
-      const requiredHeaders = [
-        "affair_date",
-        "serial_no",
-        "title",
-        "why_in_news",
-        "key_facts",
-        "exam_point",
-        "static_gk",
-        "mcqs",
-        "category",
-        "title_hi",
-        "why_in_news_hi",
-        "key_facts_hi",
-        "exam_point_hi",
-        "static_gk_hi",
-      ];
-
-      const missing =
-        requiredHeaders.filter(
-          (header) =>
-            !headers.includes(
-              header,
-            ),
-        );
-
-      if (missing.length > 0) {
-        throw new Error(
-          `CSV me ye columns missing hain: ${missing.join(", ")}`,
-        );
-      }
-
-      const imported: Array<
-        Omit<
-          CurrentAffair,
-          "id"
-        >
-      > = [];
-
-      for (
-        let rowIndex = 1;
-        rowIndex < rows.length;
-        rowIndex++
-      ) {
-        const values =
-          rows[rowIndex];
-
-        if (
-          values.every(
-            (value) =>
-              !value.trim(),
-          )
-        ) {
-          continue;
-        }
-
-        const record: Record<
-          string,
-          string
-        > = {};
-
-        headers.forEach(
-          (
-            header,
-            index,
-          ) => {
-            record[header] =
-              values[index] ??
-              "";
-          },
-        );
-
-        const mcqs =
-          parseMCQJSON(
-            record.mcqs,
-          );
-
-        if (
-          record.mcqs.trim() &&
-          mcqs === null
-        ) {
-          throw new Error(
-            `Row ${rowIndex}: mcqs contains invalid JSON.`,
-          );
-        }
-
-        const serial =
-          Number(
-            record.serial_no,
-          );
-
-        if (
-          !Number.isFinite(
-            serial,
-          )
-        ) {
-          throw new Error(
-            `Row ${rowIndex}: serial_no invalid hai.`,
-          );
-        }
-
-        imported.push({
-          affair_date:
-            record.affair_date.trim(),
-
-          serial_no:
-            serial,
-
-          title:
-            record.title.trim(),
-
-          why_in_news:
-            record.why_in_news.trim(),
-
-          key_facts:
-            record.key_facts.trim(),
-
-          exam_point:
-            record.exam_point.trim(),
-
-          static_gk:
-            record.static_gk.trim(),
-
-          mcqs:
-            mcqs ?? [],
-
-          published:
-            parseBoolean(
-              record.published,
-              true,
-            ),
-
-          category:
-            record.category.trim() ||
-            "Other",
-
-          title_hi:
-            record.title_hi.trim(),
-
-          why_in_news_hi:
-            record.why_in_news_hi.trim(),
-
-          key_facts_hi:
-            record.key_facts_hi.trim(),
-
-          exam_point_hi:
-            record.exam_point_hi.trim(),
-
-          static_gk_hi:
-            record.static_gk_hi.trim(),
-        });
-      }
-
-      if (
-        imported.length === 0
-      ) {
-        throw new Error(
-          "CSV me koi valid data row nahi mili.",
-        );
-      }
-
-      console.log(
-        "[AdminCurrentAffairs] CSV parsed:",
-        imported,
+    const confirmed =
+      window.confirm(
+        `${parsed.length} current affair(s) database mein add honge. Continue?`,
       );
 
-      const confirmed =
-        window.confirm(
-          `${imported.length} current affairs CSV se import karne hain. Continue?`,
+    if (!confirmed) {
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const payload =
+        parsed.map(
+          (item) => ({
+            affair_date:
+              item.affair_date,
+
+            serial_no:
+              Number(
+                item.serial_no,
+              ),
+
+            title:
+              item.title,
+
+            why_in_news:
+              item.why_in_news,
+
+            key_facts:
+              item.key_facts,
+
+            exam_point:
+              item.exam_point,
+
+            static_gk:
+              item.static_gk,
+
+            mcqs:
+              item.mcqs,
+
+            published:
+              item.published,
+
+            category:
+              item.category,
+
+            title_hi:
+              item.title_hi,
+
+            why_in_news_hi:
+              item.why_in_news_hi,
+
+            key_facts_hi:
+              item.key_facts_hi,
+
+            exam_point_hi:
+              item.exam_point_hi,
+
+            static_gk_hi:
+              item.static_gk_hi,
+          }),
         );
 
-      if (!confirmed) {
-        return;
-      }
+      const db = supabase as any;
 
-      const { error: insertError } =
-        await currentAffairsTable()
-          .insert(
-            imported.map(
-              (item) => ({
-                affair_date:
-                  item.affair_date,
-
-                serial_no:
-                  item.serial_no,
-
-                title:
-                  item.title,
-
-                why_in_news:
-                  item.why_in_news,
-
-                key_facts:
-                  item.key_facts,
-
-                exam_point:
-                  item.exam_point,
-
-                static_gk:
-                  item.static_gk,
-
-                mcqs:
-                  item.mcqs,
-
-                published:
-                  item.published,
-
-                category:
-                  item.category,
-
-                title_hi:
-                  item.title_hi,
-
-                why_in_news_hi:
-                  item.why_in_news_hi,
-
-                key_facts_hi:
-                  item.key_facts_hi,
-
-                exam_point_hi:
-                  item.exam_point_hi,
-
-                static_gk_hi:
-                  item.static_gk_hi,
-              }),
-            ),
-          );
+      const {
+        error: insertError,
+      } = await db
+        .from("current_affairs")
+        .insert(payload);
 
       if (insertError) {
         throw insertError;
       }
 
-      setSuccess(
-        `${imported.length} current affairs successfully import ho gaye.`,
-      );
-
       await loadCurrentAffairs();
+
+      setCsvText("");
+      setCsvPreview([]);
     } catch (err) {
       console.error(
-        "[AdminCurrentAffairs] CSV Error:",
+        "CSV Import Error:",
         err,
       );
 
-      setError(
+      setCsvError(
         err instanceof Error
           ? err.message
-          : "CSV import nahi ho paya.",
+          : "CSV import failed.",
       );
     } finally {
-      setCsvLoading(false);
-
-      event.target.value = "";
+      setSaving(false);
     }
   }
 
   /* =====================================================
+     DATE
+  ===================================================== */
+
+  function formatDate(
+    date: string,
+  ) {
+    if (!date) {
+      return "";
+    }
+
+    const parsed = new Date(
+      `${date}T00:00:00`,
+    );
+
+    if (
+      Number.isNaN(
+        parsed.getTime(),
+      )
+    ) {
+      return date;
+    }
+
+    return parsed.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      },
+    );
+  }
+
+  /* =====================================================
      UI
-===================================================== */
+  ===================================================== */
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+      {/* HEADER */}
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
 
           <button
@@ -1259,12 +971,12 @@ export function AdminCurrentAffairs() {
             }
             className="flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 font-black text-white shadow">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 font-black text-white">
               V
             </div>
 
             <div className="text-left">
-              <h1 className="text-lg font-black">
+              <h1 className="font-black">
                 VIDYZEN
               </h1>
 
@@ -1274,119 +986,84 @@ export function AdminCurrentAffairs() {
             </div>
           </button>
 
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                "/admin/dashboard",
+              )
+            }
+            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+          >
+            ← Dashboard
+          </button>
+
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+
+        {/* ERROR */}
+        {error && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-900/50 dark:bg-red-950/30">
+            <p className="font-bold text-red-700 dark:text-red-300">
+              ⚠️ Error
+            </p>
+
+            <p className="mt-2 break-words text-sm text-red-600 dark:text-red-400">
+              {error}
+            </p>
 
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  "/admin/dashboard",
-                )
-              }
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              onClick={() => {
+                setError("");
+                void loadCurrentAffairs();
+              }}
+              className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
             >
-              ← Dashboard
+              Retry
             </button>
+          </div>
+        )}
+
+        {/* TITLE */}
+        <section className="rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-6 text-white shadow-lg sm:p-8">
+
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+
+            <div>
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">
+                ADMIN PANEL
+              </span>
+
+              <h2 className="mt-4 text-2xl font-black sm:text-3xl">
+                Current Affairs
+              </h2>
+
+              <p className="mt-2 text-sm text-blue-100">
+                Add, edit, publish and manage
+                student current affairs.
+              </p>
+            </div>
 
             <button
               type="button"
-              onClick={
-                openAddForm
-              }
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+              onClick={startAdd}
+              className="rounded-xl bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-sm hover:bg-blue-50"
             >
               + Add Current Affair
             </button>
 
           </div>
 
-        </div>
-      </header>
+        </section>
 
-      {/* =================================================
-          MAIN
-      ================================================= */}
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
-
-        {/* =================================================
-            ALERTS
-        ================================================= */}
-
-        {error && (
-          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950/30">
-
-            <div className="flex items-start gap-3">
-
-              <span className="text-xl">
-                ⚠️
-              </span>
-
-              <div className="min-w-0 flex-1">
-
-                <p className="font-bold text-red-700 dark:text-red-300">
-                  Error
-                </p>
-
-                <p className="mt-1 break-words text-sm leading-6 text-red-600 dark:text-red-400">
-                  {error}
-                </p>
-
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setError("")
-                }
-                className="text-red-500"
-              >
-                ✕
-              </button>
-
-            </div>
-
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-5 dark:border-green-900 dark:bg-green-950/30">
-
-            <div className="flex items-center justify-between gap-3">
-
-              <p className="font-semibold text-green-700 dark:text-green-300">
-                ✅ {success}
-              </p>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setSuccess("")
-                }
-                className="text-green-600"
-              >
-                ✕
-              </button>
-
-            </div>
-
-          </div>
-        )}
-
-        {/* =================================================
-            FORM
-        ================================================= */}
-
+        {/* ADD / EDIT FORM */}
         {showForm && (
-          <form
-            onSubmit={
-              handleSubmit
-            }
-            className="mb-8 rounded-3xl border border-blue-200 bg-white p-5 shadow-sm dark:border-blue-900/50 dark:bg-slate-900 sm:p-7"
-          >
+          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
 
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
                   {editingId
@@ -1394,7 +1071,7 @@ export function AdminCurrentAffairs() {
                     : "Create"}
                 </p>
 
-                <h2 className="mt-1 text-2xl font-black">
+                <h2 className="mt-1 text-xl font-black">
                   {editingId
                     ? "Edit Current Affair"
                     : "Add Current Affair"}
@@ -1403,20 +1080,15 @@ export function AdminCurrentAffairs() {
 
               <button
                 type="button"
-                onClick={
-                  closeForm
-                }
-                disabled={saving}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold dark:border-slate-700"
+                onClick={cancelForm}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
-
             </div>
 
             {/* BASIC */}
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
 
               <Field
                 label="Affair Date"
@@ -1425,7 +1097,7 @@ export function AdminCurrentAffairs() {
                   form.affair_date
                 }
                 onChange={(value) =>
-                  updateField(
+                  updateForm(
                     "affair_date",
                     value,
                   )
@@ -1433,15 +1105,15 @@ export function AdminCurrentAffairs() {
               />
 
               <Field
-                label="Serial No."
+                label="Serial No"
                 type="number"
-                value={
-                  form.serial_no
-                }
+                value={String(
+                  form.serial_no,
+                )}
                 onChange={(value) =>
-                  updateField(
+                  updateForm(
                     "serial_no",
-                    value,
+                    Number(value),
                   )
                 }
               />
@@ -1456,13 +1128,12 @@ export function AdminCurrentAffairs() {
                     form.category
                   }
                   onChange={(event) =>
-                    updateField(
+                    updateForm(
                       "category",
-                      event.target
-                        .value,
+                      event.target.value,
                     )
                   }
-                  className={inputClass}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
                 >
                   {CATEGORIES.map(
                     (category) => (
@@ -1481,46 +1152,36 @@ export function AdminCurrentAffairs() {
                 </select>
               </div>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-
-                <input
-                  type="checkbox"
-                  checked={
-                    form.published
-                  }
-                  onChange={(event) =>
-                    updateField(
-                      "published",
-                      event.target
-                        .checked,
-                    )
-                  }
-                  className="h-5 w-5"
-                />
-
-                <span>
-                  <span className="block text-sm font-bold">
-                    Published
-                  </span>
-
-                  <span className="block text-xs text-slate-500 dark:text-slate-400">
-                    Student ko visible
-                  </span>
-                </span>
-
-              </label>
-
             </div>
 
+            <label className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+              <input
+                type="checkbox"
+                checked={
+                  form.published
+                }
+                onChange={(event) =>
+                  updateForm(
+                    "published",
+                    event.target
+                      .checked,
+                  )
+                }
+                className="h-4 w-4"
+              />
+
+              <span className="text-sm font-bold">
+                Publish this current affair
+              </span>
+            </label>
+
             {/* ENGLISH */}
-
-            <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50/50 p-5 dark:border-blue-900/50 dark:bg-blue-950/20">
-
-              <h3 className="mb-5 text-lg font-black text-blue-700 dark:text-blue-300">
+            <div className="mt-8">
+              <SectionTitle>
                 🇬🇧 English Content
-              </h3>
+              </SectionTitle>
 
-              <div className="space-y-4">
+              <div className="mt-4 space-y-4">
 
                 <TextArea
                   label="Title"
@@ -1528,7 +1189,7 @@ export function AdminCurrentAffairs() {
                     form.title
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "title",
                       value,
                     )
@@ -1542,12 +1203,11 @@ export function AdminCurrentAffairs() {
                     form.why_in_news
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "why_in_news",
                       value,
                     )
                   }
-                  rows={5}
                 />
 
                 <TextArea
@@ -1556,12 +1216,11 @@ export function AdminCurrentAffairs() {
                     form.key_facts
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "key_facts",
                       value,
                     )
                   }
-                  rows={6}
                 />
 
                 <TextArea
@@ -1570,12 +1229,11 @@ export function AdminCurrentAffairs() {
                     form.exam_point
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "exam_point",
                       value,
                     )
                   }
-                  rows={4}
                 />
 
                 <TextArea
@@ -1584,35 +1242,31 @@ export function AdminCurrentAffairs() {
                     form.static_gk
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "static_gk",
                       value,
                     )
                   }
-                  rows={5}
                 />
 
               </div>
-
             </div>
 
             {/* HINDI */}
-
-            <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50/50 p-5 dark:border-orange-900/50 dark:bg-orange-950/20">
-
-              <h3 className="mb-5 text-lg font-black text-orange-700 dark:text-orange-300">
+            <div className="mt-8">
+              <SectionTitle>
                 🇮🇳 Hindi Content
-              </h3>
+              </SectionTitle>
 
-              <div className="space-y-4">
+              <div className="mt-4 space-y-4">
 
                 <TextArea
-                  label="Hindi Title"
+                  label="Title Hindi"
                   value={
                     form.title_hi
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "title_hi",
                       value,
                     )
@@ -1621,121 +1275,96 @@ export function AdminCurrentAffairs() {
                 />
 
                 <TextArea
-                  label="Hindi Why in News"
+                  label="Why in News Hindi"
                   value={
                     form.why_in_news_hi
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "why_in_news_hi",
                       value,
                     )
                   }
-                  rows={5}
                 />
 
                 <TextArea
-                  label="Hindi Key Facts"
+                  label="Key Facts Hindi"
                   value={
                     form.key_facts_hi
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "key_facts_hi",
                       value,
                     )
                   }
-                  rows={6}
                 />
 
                 <TextArea
-                  label="Hindi Exam Point"
+                  label="Exam Point Hindi"
                   value={
                     form.exam_point_hi
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "exam_point_hi",
                       value,
                     )
                   }
-                  rows={4}
                 />
 
                 <TextArea
-                  label="Hindi Static GK"
+                  label="Static GK Hindi"
                   value={
                     form.static_gk_hi
                   }
                   onChange={(value) =>
-                    updateField(
+                    updateForm(
                       "static_gk_hi",
                       value,
                     )
                   }
-                  rows={5}
                 />
 
               </div>
-
             </div>
 
             {/* MCQS */}
-
-            <div className="mt-6 rounded-2xl border border-green-200 bg-green-50/40 p-5 dark:border-green-900/50 dark:bg-green-950/20">
-
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-                  <h3 className="text-lg font-black text-green-700 dark:text-green-300">
-                    📝 MCQs
-                  </h3>
-
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Har MCQ me exactly 4 options hone chahiye.
-                  </p>
-                </div>
+            <div className="mt-8">
+              <div className="flex items-center justify-between gap-4">
+                <SectionTitle>
+                  📝 MCQs
+                </SectionTitle>
 
                 <button
                   type="button"
-                  onClick={
-                    addMCQ
-                  }
-                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700"
+                  onClick={addMCQ}
+                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700"
                 >
                   + Add MCQ
                 </button>
-
               </div>
 
               {form.mcqs.length ===
                 0 && (
-                <div className="rounded-xl border border-dashed border-green-300 bg-white p-6 text-center text-sm text-slate-500 dark:border-green-800 dark:bg-slate-900 dark:text-slate-400">
+                <div className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                   No MCQs added.
                 </div>
               )}
 
-              <div className="space-y-5">
+              <div className="mt-4 space-y-5">
 
                 {form.mcqs.map(
-                  (
-                    mcq,
-                    index,
-                  ) => (
+                  (mcq, index) => (
                     <div
-                      key={
-                        index
-                      }
-                      className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900"
+                      key={index}
+                      className="rounded-2xl border border-slate-200 p-5 dark:border-slate-700"
                     >
 
-                      <div className="mb-4 flex items-center justify-between">
-
-                        <h4 className="font-black">
-                          MCQ #
-                          {index +
-                            1}
-                        </h4>
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-black">
+                          MCQ {index + 1}
+                        </h3>
 
                         <button
                           type="button"
@@ -1744,34 +1373,31 @@ export function AdminCurrentAffairs() {
                               index,
                             )
                           }
-                          className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-300"
+                          className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                         >
                           Remove
                         </button>
-
                       </div>
 
-                      <TextArea
-                        label="Question"
-                        value={
-                          mcq.question
-                        }
-                        onChange={(
-                          value,
-                        ) =>
-                          updateMCQ(
-                            index,
-                            "question",
+                      <div className="mt-4">
+                        <TextArea
+                          label="Question"
+                          value={
+                            mcq.question
+                          }
+                          onChange={(
                             value,
-                          )
-                        }
-                        rows={
-                          3
-                        }
-                      />
+                          ) =>
+                            updateMCQ(
+                              index,
+                              "question",
+                              value,
+                            )
+                          }
+                        />
+                      </div>
 
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         {mcq.options.map(
                           (
                             option,
@@ -1782,16 +1408,13 @@ export function AdminCurrentAffairs() {
                                 optionIndex
                               }
                             >
-                              <label className="mb-2 block text-sm font-bold">
+                              <label className="mb-2 block text-xs font-bold text-slate-500">
                                 Option{" "}
-                                {String.fromCharCode(
-                                  65 +
-                                    optionIndex,
-                                )}
+                                {optionIndex +
+                                  1}
                               </label>
 
                               <input
-                                type="text"
                                 value={
                                   option
                                 }
@@ -1806,78 +1429,65 @@ export function AdminCurrentAffairs() {
                                       .value,
                                   )
                                 }
-                                className={inputClass}
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
                               />
                             </div>
                           ),
                         )}
-
                       </div>
 
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div className="mt-4">
+                        <label className="mb-2 block text-xs font-bold text-slate-500">
+                          Correct Answer
+                        </label>
 
-                        <div>
-                          <label className="mb-2 block text-sm font-bold">
-                            Correct Answer
-                          </label>
-
-                          <select
-                            value={
-                              mcq.answer
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              updateMCQ(
-                                index,
-                                "answer",
-                                event
-                                  .target
-                                  .value,
-                              )
-                            }
-                            className={inputClass}
-                          >
-                            <option value="">
-                              Select correct answer
-                            </option>
-
-                            {mcq.options.map(
-                              (
-                                option,
-                                optionIndex,
-                              ) => (
-                                <option
-                                  key={
-                                    optionIndex
-                                  }
-                                  value={
-                                    option
-                                  }
-                                  disabled={
-                                    !option.trim()
-                                  }
-                                >
-                                  {String.fromCharCode(
-                                    65 +
-                                      optionIndex,
-                                  )}
-                                  {" - "}
-                                  {option ||
-                                    `Option ${
-                                      optionIndex +
-                                      1
-                                    }`}
-                                </option>
-                              ),
-                            )}
-                          </select>
-                        </div>
-
-                        <TextArea
-                          label="Explanation"
+                        <select
                           value={
-                            mcq.explanation ??
+                            mcq.answer
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            updateMCQ(
+                              index,
+                              "answer",
+                              event
+                                .target
+                                .value,
+                            )
+                          }
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                        >
+                          <option value="">
+                            Select correct answer
+                          </option>
+
+                          {mcq.options.map(
+                            (
+                              option,
+                              optionIndex,
+                            ) => (
+                              <option
+                                key={
+                                  optionIndex
+                                }
+                                value={
+                                  option
+                                }
+                              >
+                                {option ||
+                                  `Option ${optionIndex + 1}`}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </div>
+
+                      <div className="mt-4">
+                        <TextArea
+                          label="Explanation (optional)"
+                          value={
+                            mcq.explanation ||
                             ""
                           }
                           onChange={(
@@ -1889,11 +1499,7 @@ export function AdminCurrentAffairs() {
                               value,
                             )
                           }
-                          rows={
-                            3
-                          }
                         />
-
                       </div>
 
                     </div>
@@ -1901,28 +1507,17 @@ export function AdminCurrentAffairs() {
                 )}
 
               </div>
-
             </div>
 
             {/* SAVE */}
-
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-
+            <div className="mt-8 flex justify-end">
               <button
                 type="button"
-                onClick={
-                  closeForm
+                disabled={saving}
+                onClick={() =>
+                  void saveCurrentAffair()
                 }
-                disabled={saving}
-                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold dark:border-slate-700"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving
                   ? "Saving..."
@@ -1930,424 +1525,353 @@ export function AdminCurrentAffairs() {
                     ? "Update Current Affair"
                     : "Save Current Affair"}
               </button>
-
             </div>
 
-          </form>
+          </section>
         )}
 
-        {/* =================================================
-            LIST HEADER
-        ================================================= */}
+        {/* CSV IMPORT */}
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-                Content Manager
-              </p>
-
-              <h2 className="mt-1 text-2xl font-black">
-                Current Affairs
+              <h2 className="text-xl font-black">
+                📥 CSV Import
               </h2>
 
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {affairs.length} total records •{" "}
-                {
-                  affairs.filter(
-                    (item) =>
-                      item.published,
-                  ).length
-                }{" "}
-                published
+                Bulk current affairs import karo.
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-
-              <div className="relative">
-
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
-                  🔎
-                </span>
-
-                <input
-                  type="text"
-                  value={
-                    search
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setSearch(
-                      event
-                        .target
-                        .value,
-                    )
-                  }
-                  placeholder="Search..."
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 sm:w-64 dark:border-slate-700 dark:bg-slate-950"
-                />
-
-              </div>
-
-              <label className="cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-bold transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-800">
-
-                {csvLoading
-                  ? "Importing..."
-                  : "📄 Import CSV"}
-
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="hidden"
-                  disabled={
-                    csvLoading
-                  }
-                  onChange={
-                    handleCSVFile
-                  }
-                />
-
-              </label>
-
-              <button
-                type="button"
-                onClick={() =>
-                  void loadCurrentAffairs()
+            <label className="cursor-pointer rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+              Choose CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={
+                  handleCSVFile
                 }
-                disabled={
-                  loading
-                }
-                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
-              >
-                ↻ Refresh
-              </button>
-
-            </div>
-
+                className="hidden"
+              />
+            </label>
           </div>
 
-          {/* =================================================
-              LOADING
-          ================================================= */}
+          <details className="mt-5">
+            <summary className="cursor-pointer text-sm font-bold text-blue-600">
+              Required CSV columns
+            </summary>
 
-          {loading && (
-            <div className="py-16 text-center">
+            <p className="mt-3 rounded-xl bg-slate-50 p-4 text-xs leading-6 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              affair_date, serial_no,
+              title, why_in_news,
+              key_facts, exam_point,
+              static_gk, mcqs, category,
+              title_hi, why_in_news_hi,
+              key_facts_hi,
+              exam_point_hi,
+              static_gk_hi
+            </p>
+          </details>
 
-              <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
-
-              <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-                Current affairs loading...
-              </p>
-
+          {csvError && (
+            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+              {csvError}
             </div>
           )}
 
-          {/* =================================================
-              EMPTY
-          ================================================= */}
+          {csvPreview.length > 0 && (
+            <div className="mt-5">
+              <p className="text-sm font-bold">
+                Preview:{" "}
+                {
+                  csvPreview.length
+                } rows
+              </p>
 
-          {!loading &&
-            filteredAffairs.length ===
-              0 && (
-              <div className="mt-6 rounded-2xl bg-slate-50 p-10 text-center dark:bg-slate-800">
+              <div className="mt-3 max-h-72 overflow-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800">
+                    <tr>
+                      <th className="px-3 py-3">
+                        Date
+                      </th>
+                      <th className="px-3 py-3">
+                        #
+                      </th>
+                      <th className="px-3 py-3">
+                        Title
+                      </th>
+                      <th className="px-3 py-3">
+                        Category
+                      </th>
+                      <th className="px-3 py-3">
+                        MCQs
+                      </th>
+                    </tr>
+                  </thead>
 
-                <div className="text-5xl">
-                  📰
-                </div>
-
-                <h3 className="mt-4 font-bold">
-                  {search
-                    ? "No matching current affairs"
-                    : "No current affairs found"}
-                </h3>
-
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                  Add a new current affair
-                  or import CSV.
-                </p>
-
-              </div>
-            )}
-
-          {/* =================================================
-              TABLE / CARDS
-          ================================================= */}
-
-          {!loading &&
-            filteredAffairs.length >
-              0 && (
-              <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
-
-                {/* DESKTOP TABLE */}
-
-                <div className="hidden overflow-x-auto md:block">
-
-                  <table className="w-full text-left">
-
-                    <thead className="bg-slate-50 dark:bg-slate-800">
-
-                      <tr>
-
-                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
-                          Date
-                        </th>
-
-                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
-                          Title
-                        </th>
-
-                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
-                          Category
-                        </th>
-
-                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
-                          MCQs
-                        </th>
-
-                        <th className="px-4 py-3 text-xs font-black uppercase tracking-wide">
-                          Status
-                        </th>
-
-                        <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-wide">
-                          Actions
-                        </th>
-
-                      </tr>
-
-                    </thead>
-
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-
-                      {filteredAffairs.map(
-                        (
-                          item,
-                        ) => (
-                          <tr
-                            key={
-                              item.id
+                  <tbody>
+                    {csvPreview.map(
+                      (
+                        item,
+                        index,
+                      ) => (
+                        <tr
+                          key={index}
+                          className="border-t border-slate-200 dark:border-slate-700"
+                        >
+                          <td className="px-3 py-3">
+                            {
+                              item.affair_date
                             }
-                            className="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                          >
+                          </td>
 
-                            <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold">
-                              {formatDate(
-                                item.affair_date,
-                              )}
-                            </td>
+                          <td className="px-3 py-3">
+                            {
+                              item.serial_no
+                            }
+                          </td>
 
-                            <td className="max-w-md px-4 py-4">
+                          <td className="max-w-xs px-3 py-3">
+                            <div className="truncate">
+                              {
+                                item.title
+                              }
+                            </div>
+                          </td>
 
-                              <p className="line-clamp-2 font-bold">
-                                {item.title}
-                              </p>
+                          <td className="px-3 py-3">
+                            {
+                              item.category
+                            }
+                          </td>
 
-                              <p className="mt-1 line-clamp-1 text-xs text-slate-400">
-                                #{item.serial_no}
-                              </p>
+                          <td className="px-3 py-3">
+                            {
+                              item.mcqs
+                                .length
+                            }
+                          </td>
+                        </tr>
+                      ),
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-                            </td>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() =>
+                  void importCSV()
+                }
+                className="mt-4 rounded-xl bg-green-600 px-5 py-3 text-sm font-black text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {saving
+                  ? "Importing..."
+                  : `Import ${csvPreview.length} Rows`}
+              </button>
+            </div>
+          )}
 
-                            <td className="px-4 py-4">
+        </section>
 
-                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                                {item.category ||
-                                  "Other"}
-                              </span>
+        {/* SEARCH */}
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-                            </td>
+          <input
+            type="text"
+            value={search}
+            onChange={(event) =>
+              setSearch(
+                event.target.value,
+              )
+            }
+            placeholder="Search current affairs..."
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
+          />
 
-                            <td className="px-4 py-4 text-sm font-semibold">
-                              {item.mcqs.length}
-                            </td>
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {[
+              "All",
+              ...CATEGORIES,
+            ].map(
+              (category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() =>
+                    setSelectedCategory(
+                      category,
+                    )
+                  }
+                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold ${
+                    selectedCategory ===
+                    category
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  {category}
+                </button>
+              ),
+            )}
+          </div>
 
-                            <td className="px-4 py-4">
+        </section>
 
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-bold ${
-                                  item.published
-                                    ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300"
-                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                                }`}
-                              >
-                                {item.published
-                                  ? "Published"
-                                  : "Draft"}
-                              </span>
+        {/* LIST */}
+        <section className="mt-6">
 
-                            </td>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-black">
+              All Current Affairs
+            </h2>
 
-                            <td className="px-4 py-4">
+            <span className="text-sm text-slate-500">
+              {
+                filteredAffairs.length
+              }{" "}
+              topics
+            </span>
+          </div>
 
-                              <div className="flex justify-end gap-2">
+          {loading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900">
+              <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
 
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    openEditForm(
-                                      item,
-                                    )
-                                  }
-                                  className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300"
-                                >
-                                  Edit
-                                </button>
+              <p className="mt-4 text-sm text-slate-500">
+                Loading current affairs...
+              </p>
+            </div>
+          ) : filteredAffairs.length ===
+            0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900">
+              <div className="text-4xl">
+                📰
+              </div>
 
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    void deleteAffair(
-                                      item.id,
-                                    )
-                                  }
-                                  disabled={
-                                    deletingId ===
-                                    item.id
-                                  }
-                                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:bg-red-950/40 dark:text-red-300"
-                                >
-                                  {deletingId ===
-                                  item.id
-                                    ? "..."
-                                    : "Delete"}
-                                </button>
+              <p className="mt-3 font-bold">
+                No current affairs found.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredAffairs.map(
+                (item) => (
+                  <article
+                    key={item.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                  >
 
-                              </div>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 
-                            </td>
+                      <div className="min-w-0 flex-1">
 
-                          </tr>
-                        ),
-                      )}
-
-                    </tbody>
-
-                  </table>
-
-                </div>
-
-                {/* MOBILE CARDS */}
-
-                <div className="divide-y divide-slate-200 md:hidden dark:divide-slate-700">
-
-                  {filteredAffairs.map(
-                    (
-                      item,
-                    ) => (
-                      <div
-                        key={
-                          item.id
-                        }
-                        className="p-4"
-                      >
-
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
 
                           <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                             {item.category ||
                               "Other"}
                           </span>
 
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            #{item.serial_no}
+                          </span>
+
                           <span
-                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${
                               item.published
-                                ? "bg-green-100 text-green-700"
-                                : "bg-slate-100 text-slate-500"
+                                ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300"
                             }`}
                           >
                             {item.published
-                              ? "Published"
-                              : "Draft"}
+                              ? "PUBLISHED"
+                              : "DRAFT"}
                           </span>
 
-                        </div>
-
-                        <h3 className="mt-3 font-black leading-6">
-                          {item.title}
-                        </h3>
-
-                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
-
-                          <span>
-                            📅{" "}
+                          <span className="text-xs text-slate-400">
                             {formatDate(
                               item.affair_date,
                             )}
                           </span>
 
-                          <span>
-                            #{item.serial_no}
-                          </span>
+                        </div>
 
-                          <span>
+                        <h3 className="mt-4 text-lg font-black leading-7">
+                          {item.title}
+                        </h3>
+
+                        <p className="mt-2 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                          {stripHtml(
+                            item.why_in_news,
+                          )}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-md bg-green-50 px-2 py-1 text-xs font-bold text-green-700 dark:bg-green-950/30 dark:text-green-300">
                             📝{" "}
                             {
-                              item
-                                .mcqs
+                              item.mcqs
                                 .length
                             }{" "}
                             MCQs
                           </span>
 
-                        </div>
-
-                        <div className="mt-4 flex gap-2">
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditForm(
-                                item,
-                              )
-                            }
-                            className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white"
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void deleteAffair(
-                                item.id,
-                              )
-                            }
-                            disabled={
-                              deletingId ===
-                              item.id
-                            }
-                            className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 dark:bg-red-950/40 dark:text-red-300"
-                          >
-                            {deletingId ===
-                            item.id
-                              ? "..."
-                              : "Delete"}
-                          </button>
-
+                          <span className="rounded-md bg-purple-50 px-2 py-1 text-xs font-bold text-purple-700 dark:bg-purple-950/30 dark:text-purple-300">
+                            🇮🇳 Hindi
+                          </span>
                         </div>
 
                       </div>
-                    ),
-                  )}
 
-                </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
 
-              </div>
-            )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            startEdit(
+                              item,
+                            )
+                          }
+                          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void deleteCurrentAffair(
+                              item.id,
+                            )
+                          }
+                          className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  </article>
+                ),
+              )}
+            </div>
+          )}
 
         </section>
 
       </main>
-
     </div>
   );
 }
 
 /* =====================================================
-   FIELD COMPONENT
+   FIELD
 ===================================================== */
 
 function Field({
@@ -2359,9 +1883,7 @@ function Field({
   label: string;
   type?: string;
   value: string;
-  onChange: (
-    value: string,
-  ) => void;
+  onChange: (value: string) => void;
 }) {
   return (
     <div>
@@ -2377,27 +1899,25 @@ function Field({
             event.target.value,
           )
         }
-        className={inputClass}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
       />
     </div>
   );
 }
 
 /* =====================================================
-   TEXT AREA
+   TEXTAREA
 ===================================================== */
 
 function TextArea({
   label,
   value,
   onChange,
-  rows = 4,
+  rows = 5,
 }: {
   label: string;
   value: string;
-  onChange: (
-    value: string,
-  ) => void;
+  onChange: (value: string) => void;
   rows?: number;
 }) {
   return (
@@ -2414,18 +1934,112 @@ function TextArea({
             event.target.value,
           )
         }
-        className={`${inputClass} resize-y`}
+        className="w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-950"
       />
     </div>
   );
 }
 
 /* =====================================================
-   INPUT CLASS
+   SECTION TITLE
 ===================================================== */
 
-const inputClass =
-  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white";
+function SectionTitle({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <h3 className="text-lg font-black">
+      {children}
+    </h3>
+  );
+}
+
+/* =====================================================
+   NORMALIZE
+===================================================== */
+
+function normalizeCurrentAffair(
+  value: unknown,
+): CurrentAffair | null {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    return null;
+  }
+
+  const row =
+    value as Record<string, unknown>;
+
+  return {
+    id: String(row.id ?? ""),
+
+    affair_date: String(
+      row.affair_date ?? "",
+    ),
+
+    serial_no: Number(
+      row.serial_no ?? 1,
+    ),
+
+    title: String(
+      row.title ?? "",
+    ),
+
+    why_in_news: String(
+      row.why_in_news ?? "",
+    ),
+
+    key_facts: String(
+      row.key_facts ?? "",
+    ),
+
+    exam_point: String(
+      row.exam_point ?? "",
+    ),
+
+    static_gk: String(
+      row.static_gk ?? "",
+    ),
+
+    mcqs: normalizeMCQs(
+      row.mcqs,
+    ),
+
+    published:
+      typeof row.published ===
+      "boolean"
+        ? row.published
+        : true,
+
+    category: String(
+      row.category ?? "Other",
+    ),
+
+    title_hi: String(
+      row.title_hi ?? "",
+    ),
+
+    why_in_news_hi: String(
+      row.why_in_news_hi ?? "",
+    ),
+
+    key_facts_hi: String(
+      row.key_facts_hi ?? "",
+    ),
+
+    exam_point_hi: String(
+      row.exam_point_hi ?? "",
+    ),
+
+    static_gk_hi: String(
+      row.static_gk_hi ?? "",
+    ),
+  };
+}
 
 /* =====================================================
    MCQ NORMALIZER
@@ -2434,39 +2048,25 @@ const inputClass =
 function normalizeMCQs(
   value: unknown,
 ): MCQ[] {
-  let parsed =
-    value;
+  let source: unknown = value;
 
-  /*
-   * Supabase kabhi JSONB ko array deta hai,
-   * kabhi string form me mil sakta hai.
-   */
-  if (
-    typeof parsed ===
-    "string"
-  ) {
+  if (typeof source === "string") {
     try {
-      parsed =
-        JSON.parse(
-          parsed,
-        );
+      source = JSON.parse(source);
     } catch {
       return [];
     }
   }
 
-  if (
-    !Array.isArray(parsed)
-  ) {
+  if (!Array.isArray(source)) {
     return [];
   }
 
-  return parsed
-    .map((item) => {
+  return source
+    .map((item): MCQ | null => {
       if (
         !item ||
-        typeof item !==
-          "object" ||
+        typeof item !== "object" ||
         Array.isArray(item)
       ) {
         return null;
@@ -2496,11 +2096,8 @@ function normalizeMCQs(
                   typeof option ===
                   "string",
               )
-              .map(
-                (
-                  option,
-                ) =>
-                  option.trim(),
+              .map((option) =>
+                option.trim(),
               )
           : [];
 
@@ -2518,8 +2115,7 @@ function normalizeMCQs(
 
       if (
         !question ||
-        options.length !==
-          4 ||
+        options.length !== 4 ||
         options.some(
           (option) =>
             !option,
@@ -2537,62 +2133,306 @@ function normalizeMCQs(
       };
     })
     .filter(
-      (
-        item,
-      ): item is MCQ =>
+      (item): item is MCQ =>
         item !== null,
     );
-}
-
-/* =====================================================
-   MCQ JSON PARSER
-===================================================== */
-
-function parseMCQJSON(
-  value: string,
-): MCQ[] | null {
-  const trimmed =
-    value.trim();
-
-  if (!trimmed) {
-    return [];
-  }
-
-  let parsed: unknown;
-
-  try {
-    parsed =
-      JSON.parse(trimmed);
-  } catch {
-    return null;
-  }
-
-  const normalized =
-    normalizeMCQs(
-      parsed,
-    );
-
-  if (
-    Array.isArray(
-      parsed,
-    ) &&
-    normalized.length !==
-      parsed.length
-  ) {
-    return null;
-  }
-
-  return normalized;
 }
 
 /* =====================================================
    CSV PARSER
 ===================================================== */
 
-function parseCSV(
-  text: string,
+function parseCSVToCurrentAffairs(
+  csv: string,
+): CurrentAffair[] {
+  const rows =
+    parseCSVRows(csv);
+
+  if (rows.length < 2) {
+    throw new Error(
+      "CSV mein header aur kam se kam 1 data row required hai.",
+    );
+  }
+
+  const headers =
+    rows[0].map((header) =>
+      header
+        .trim()
+        .toLowerCase(),
+    );
+
+  const requiredColumns = [
+    "affair_date",
+    "serial_no",
+    "title",
+    "why_in_news",
+    "key_facts",
+    "exam_point",
+    "static_gk",
+    "mcqs",
+    "category",
+    "title_hi",
+    "why_in_news_hi",
+    "key_facts_hi",
+    "exam_point_hi",
+    "static_gk_hi",
+  ];
+
+  const missing =
+    requiredColumns.filter(
+      (column) =>
+        !headers.includes(
+          column,
+        ),
+    );
+
+  if (missing.length > 0) {
+    throw new Error(
+      `CSV columns missing: ${missing.join(", ")}`,
+    );
+  }
+
+  const indexOf = (
+    column: string,
+  ) =>
+    headers.indexOf(column);
+
+  const result: CurrentAffair[] =
+    [];
+
+  for (
+    let rowIndex = 1;
+    rowIndex < rows.length;
+    rowIndex++
+  ) {
+    const row =
+      rows[rowIndex];
+
+    if (
+      row.every(
+        (value) =>
+          !value.trim(),
+      )
+    ) {
+      continue;
+    }
+
+    const get = (
+      column: string,
+    ) =>
+      row[indexOf(column)] ??
+      "";
+
+    const affairDate =
+      get("affair_date").trim();
+
+    const serialNo =
+      Number(
+        get("serial_no"),
+      );
+
+    const title =
+      get("title").trim();
+
+    const whyInNews =
+      get("why_in_news").trim();
+
+    const keyFacts =
+      get("key_facts").trim();
+
+    const examPoint =
+      get("exam_point").trim();
+
+    const staticGk =
+      get("static_gk").trim();
+
+    const category =
+      get("category").trim() ||
+      "Other";
+
+    const titleHi =
+      get("title_hi").trim();
+
+    const whyInNewsHi =
+      get(
+        "why_in_news_hi",
+      ).trim();
+
+    const keyFactsHi =
+      get(
+        "key_facts_hi",
+      ).trim();
+
+    const examPointHi =
+      get(
+        "exam_point_hi",
+      ).trim();
+
+    const staticGkHi =
+      get(
+        "static_gk_hi",
+      ).trim();
+
+    if (!affairDate) {
+      throw new Error(
+        `Row ${rowIndex + 1}: affair_date missing.`,
+      );
+    }
+
+    if (
+      !Number.isFinite(
+        serialNo,
+      )
+    ) {
+      throw new Error(
+        `Row ${rowIndex + 1}: serial_no invalid hai.`,
+      );
+    }
+
+    if (!title) {
+      throw new Error(
+        `Row ${rowIndex + 1}: title missing.`,
+      );
+    }
+
+    if (!whyInNews) {
+      throw new Error(
+        `Row ${rowIndex + 1}: why_in_news missing.`,
+      );
+    }
+
+    if (!keyFacts) {
+      throw new Error(
+        `Row ${rowIndex + 1}: key_facts missing.`,
+      );
+    }
+
+    if (!examPoint) {
+      throw new Error(
+        `Row ${rowIndex + 1}: exam_point missing.`,
+      );
+    }
+
+    if (!staticGk) {
+      throw new Error(
+        `Row ${rowIndex + 1}: static_gk missing.`,
+      );
+    }
+
+    if (!titleHi) {
+      throw new Error(
+        `Row ${rowIndex + 1}: title_hi missing.`,
+      );
+    }
+
+    if (!whyInNewsHi) {
+      throw new Error(
+        `Row ${rowIndex + 1}: why_in_news_hi missing.`,
+      );
+    }
+
+    if (!keyFactsHi) {
+      throw new Error(
+        `Row ${rowIndex + 1}: key_facts_hi missing.`,
+      );
+    }
+
+    if (!examPointHi) {
+      throw new Error(
+        `Row ${rowIndex + 1}: exam_point_hi missing.`,
+      );
+    }
+
+    if (!staticGkHi) {
+      throw new Error(
+        `Row ${rowIndex + 1}: static_gk_hi missing.`,
+      );
+    }
+
+    const mcqsRaw =
+      get("mcqs").trim();
+
+    const mcqs =
+      parseMCQJSON(
+        mcqsRaw,
+        rowIndex + 1,
+      );
+
+    const publishedRaw =
+      get("published")
+        .trim()
+        .toLowerCase();
+
+    const published =
+      publishedRaw === ""
+        ? true
+        : ![
+            "false",
+            "0",
+            "no",
+            "draft",
+          ].includes(
+            publishedRaw,
+          );
+
+    result.push({
+      id: "",
+
+      affair_date:
+        affairDate,
+
+      serial_no:
+        serialNo,
+
+      title,
+
+      why_in_news:
+        whyInNews,
+
+      key_facts:
+        keyFacts,
+
+      exam_point:
+        examPoint,
+
+      static_gk:
+        staticGk,
+
+      mcqs,
+
+      published,
+
+      category,
+
+      title_hi:
+        titleHi,
+
+      why_in_news_hi:
+        whyInNewsHi,
+
+      key_facts_hi:
+        keyFactsHi,
+
+      exam_point_hi:
+        examPointHi,
+
+      static_gk_hi:
+        staticGkHi,
+    });
+  }
+
+  return result;
+}
+
+/* =====================================================
+   CSV ROW PARSER
+===================================================== */
+
+function parseCSVRows(
+  csv: string,
 ): string[][] {
-  const rows: string[][] = [];
+  const rows: string[][] =
+    [];
 
   let row: string[] = [];
   let cell = "";
@@ -2600,14 +2440,14 @@ function parseCSV(
 
   for (
     let i = 0;
-    i < text.length;
+    i < csv.length;
     i++
   ) {
     const char =
-      text[i];
+      csv[i];
 
     const next =
-      text[i + 1];
+      csv[i + 1];
 
     if (
       char === '"' &&
@@ -2619,9 +2459,7 @@ function parseCSV(
       continue;
     }
 
-    if (
-      char === '"'
-    ) {
+    if (char === '"') {
       insideQuotes =
         !insideQuotes;
       continue;
@@ -2651,18 +2489,9 @@ function parseCSV(
       row.push(cell);
       cell = "";
 
-      if (
-        row.some(
-          (value) =>
-            value.trim(),
-        )
-      ) {
-        rows.push(
-          row,
-        );
-      }
-
+      rows.push(row);
       row = [];
+
       continue;
     }
 
@@ -2672,10 +2501,8 @@ function parseCSV(
   row.push(cell);
 
   if (
-    row.some(
-      (value) =>
-        value.trim(),
-    )
+    row.length > 1 ||
+    row[0].trim() !== ""
   ) {
     rows.push(row);
   }
@@ -2684,163 +2511,85 @@ function parseCSV(
 }
 
 /* =====================================================
-   CSV HEADER NORMALIZER
+   MCQ CSV JSON
 ===================================================== */
 
-function normalizeCSVHeader(
+function parseMCQJSON(
   value: string,
-): string {
-  const normalized =
-    value
-      .trim()
-      .toLowerCase()
-      .replace(
-        /^\uFEFF/,
-        "",
-      )
-      .replace(
-        /[\s-]+/g,
-        "_",
-      );
-
-  const aliases: Record<
-    string,
-    string
-  > = {
-    date: "affair_date",
-    affairdate:
-      "affair_date",
-
-    serial:
-      "serial_no",
-    serialnumber:
-      "serial_no",
-    serial_number:
-      "serial_no",
-
-    why:
-      "why_in_news",
-    why_in_news_en:
-      "why_in_news",
-
-    keyfacts:
-      "key_facts",
-    key_facts_en:
-      "key_facts",
-
-    exampoint:
-      "exam_point",
-    exam_point_en:
-      "exam_point",
-
-    staticgk:
-      "static_gk",
-    static_gk_en:
-      "static_gk",
-
-    titlehindi:
-      "title_hi",
-    hindi_title:
-      "title_hi",
-
-    why_in_news_hindi:
-      "why_in_news_hi",
-
-    key_facts_hindi:
-      "key_facts_hi",
-
-    exam_point_hindi:
-      "exam_point_hi",
-
-    static_gk_hindi:
-      "static_gk_hi",
-  };
-
-  return (
-    aliases[normalized] ??
-    normalized
-  );
-}
-
-/* =====================================================
-   BOOLEAN PARSER
-===================================================== */
-
-function parseBoolean(
-  value: string,
-  fallback: boolean,
-): boolean {
-  const normalized =
-    value
-      .trim()
-      .toLowerCase();
-
-  if (
-    [
-      "true",
-      "1",
-      "yes",
-      "published",
-    ].includes(
-      normalized,
-    )
-  ) {
-    return true;
+  rowNumber: number,
+): MCQ[] {
+  if (!value) {
+    return [];
   }
 
-  if (
-    [
-      "false",
-      "0",
-      "no",
-      "draft",
-      "unpublished",
-    ].includes(
-      normalized,
-    )
-  ) {
-    return false;
-  }
+  let parsed: unknown;
 
-  return fallback;
-}
-
-/* =====================================================
-   DATE FORMAT
-===================================================== */
-
-function formatDate(
-  date: string,
-): string {
-  if (!date) {
-    return "-";
-  }
-
-  const parsed =
-    new Date(
-      `${date}T00:00:00`,
+  try {
+    parsed =
+      JSON.parse(value);
+  } catch {
+    throw new Error(
+      `Row ${rowNumber}: mcqs contains invalid JSON.`,
     );
-
-  if (
-    Number.isNaN(
-      parsed.getTime(),
-    )
-  ) {
-    return date;
   }
 
-  return parsed.toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    },
-  );
+  const normalized =
+    normalizeMCQs(parsed);
+
+  if (
+    Array.isArray(parsed) &&
+    parsed.length !==
+      normalized.length
+  ) {
+    throw new Error(
+      `Row ${rowNumber}: mcqs mein invalid MCQ mila.`,
+    );
+  }
+
+  return normalized;
 }
 
-/* =====================================================
-   DEFAULT EXPORT
-===================================================== */
+function stripHtml(
+  value: string,
+): string {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .replace(
+      /<br\s*\/?>/gi,
+      " ",
+    )
+    .replace(
+      /<\/p>/gi,
+      " ",
+    )
+    .replace(
+      /<[^>]+>/g,
+      "",
+    )
+    .replace(
+      /&nbsp;/gi,
+      " ",
+    )
+    .replace(
+      /&amp;/gi,
+      "&",
+    )
+    .replace(
+      /&quot;/gi,
+      '"',
+    )
+    .replace(
+      /&#39;/gi,
+      "'",
+    )
+    .replace(
+      /\s+/g,
+      " ",
+    )
+    .trim();
+}
 
 export default AdminCurrentAffairs;
