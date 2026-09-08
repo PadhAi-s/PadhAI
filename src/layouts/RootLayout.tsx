@@ -1,4 +1,4 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 
 export function RootLayout() {
   return (
@@ -6,13 +6,7 @@ export function RootLayout() {
       {/* GLOBAL HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center px-4 py-3">
-          {/* LOGO */}
-          <Link
-            to="/"
-            className="text-xl font-bold text-blue-600 sm:text-2xl"
-          >
-            PadhAI
-          </Link>
+          {/* HEADER LEFT INTENTIONALLY EMPTY */}
         </div>
       </header>
 
