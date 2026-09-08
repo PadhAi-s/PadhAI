@@ -1,3 +1,4 @@
+```tsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -49,6 +50,10 @@ export function StudentDashboard() {
 
   function handleDailyCurrentAffairs() {
     navigate("/student/current-affairs");
+  }
+
+  function handleDailyNewspaper() {
+    navigate("/student/daily-newspaper");
   }
 
   function handleQuickRevision() {
@@ -212,8 +217,7 @@ export function StudentDashboard() {
             </div>
 
             <blockquote className="max-w-4xl text-2xl font-bold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
-              “Small progress every day becomes big success
-              over time.”
+              “Small progress every day becomes big success over time.”
             </blockquote>
 
             <p className="mt-4 text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -237,9 +241,8 @@ export function StudentDashboard() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-blue-100 sm:text-base">
-                Your learning space is ready. Revise faster,
-                stay updated with current affairs and use AI
-                to learn smarter.
+                Your learning space is ready. Revise faster, stay updated
+                with current affairs and use AI to learn smarter.
               </p>
 
               <button
@@ -296,9 +299,9 @@ export function StudentDashboard() {
                   </div>
 
                   <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                    Pick a subject or topic and start a quick
-                    revision session. Practice questions,
-                    identify weak areas and improve every day.
+                    Pick a subject or topic and start a quick revision session.
+                    Practice questions, identify weak areas and improve every
+                    day.
                   </p>
 
                   <div className="mt-5 flex flex-wrap gap-2">
@@ -332,7 +335,7 @@ export function StudentDashboard() {
         </section>
 
         {/* =======================================================
-            CURRENT AFFAIRS
+            DAILY CURRENT AFFAIRS
         ======================================================== */}
         <section className="mt-10">
           <SectionHeading
@@ -351,6 +354,30 @@ export function StudentDashboard() {
               className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
               actionClass="text-green-700 dark:text-green-400"
               onClick={handleDailyCurrentAffairs}
+            />
+          </div>
+        </section>
+
+        {/* =======================================================
+            DAILY NEWSPAPER
+        ======================================================== */}
+        <section className="mt-10">
+          <SectionHeading
+            title="Daily Newspaper"
+            description="Read the latest newspaper summaries and stay informed every day."
+          />
+
+          <div className="mt-5">
+            <DashboardCard
+              icon="📰"
+              title="Daily Newspaper"
+              description="Read daily newspaper updates in a simple, student-friendly format and stay connected with important national and international news."
+              action="Read Today's Newspaper →"
+              badge="DAILY"
+              badgeClass="bg-blue-600"
+              className="border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:via-sky-950/30 dark:to-cyan-950/20"
+              actionClass="text-blue-700 dark:text-blue-400"
+              onClick={handleDailyNewspaper}
             />
           </div>
         </section>
@@ -427,9 +454,9 @@ export function StudentDashboard() {
                   </div>
 
                   <p className="mt-5 text-sm leading-7 text-slate-300 sm:text-base">
-                    Ask questions in your own words and get
-                    clear, student-friendly explanations to
-                    understand difficult concepts faster.
+                    Ask questions in your own words and get clear,
+                    student-friendly explanations to understand difficult
+                    concepts faster.
                   </p>
 
                   <div className="mt-5 flex flex-wrap gap-2">
@@ -531,11 +558,11 @@ export function StudentDashboard() {
               </div>
 
               <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                VIDYZEN is built to make exam preparation
-                simpler, smarter and more focused. From daily
-                current affairs and fast revision to AI-powered
-                learning and vocabulary building, everything is
-                designed to help students learn consistently.
+                VIDYZEN is built to make exam preparation simpler, smarter
+                and more focused. From daily current affairs and daily
+                newspaper reading to fast revision, AI-powered learning and
+                vocabulary building, everything is designed to help students
+                learn consistently.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2">
@@ -671,3 +698,4 @@ function DashboardCard({
 }
 
 export default StudentDashboard;
+```
