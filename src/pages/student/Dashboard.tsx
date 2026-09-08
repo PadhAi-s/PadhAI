@@ -1,4 +1,3 @@
-```tsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -37,9 +36,7 @@ export function StudentDashboard() {
 
   async function handleLogout() {
     setMenuOpen(false);
-
     await signOut();
-
     navigate("/student/login");
   }
 
@@ -187,7 +184,6 @@ export function StudentDashboard() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     <span className="text-lg">🚪</span>
-
                     <span>{t("common.logout")}</span>
                   </button>
                 </div>
@@ -206,7 +202,6 @@ export function StudentDashboard() {
         ======================================================== */}
         <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
           <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl" />
-
           <div className="absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
 
           <div className="relative z-10">
@@ -256,7 +251,6 @@ export function StudentDashboard() {
             </div>
 
             <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-
             <div className="absolute -bottom-16 right-10 h-52 w-52 rounded-full bg-violet-300/20 blur-3xl" />
 
             <div className="absolute right-8 top-1/2 hidden -translate-y-1/2 text-[120px] opacity-10 md:block lg:text-[160px]">
@@ -299,9 +293,9 @@ export function StudentDashboard() {
                   </div>
 
                   <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                    Pick a subject or topic and start a quick revision session.
-                    Practice questions, identify weak areas and improve every
-                    day.
+                    Pick a subject or topic and start a quick revision
+                    session. Practice questions, identify weak areas and
+                    improve every day.
                   </p>
 
                   <div className="mt-5 flex flex-wrap gap-2">
@@ -364,7 +358,7 @@ export function StudentDashboard() {
         <section className="mt-10">
           <SectionHeading
             title="Daily Newspaper"
-            description="Read the latest newspaper summaries and stay informed every day."
+            description="Read the latest newspaper updates and stay informed every day."
           />
 
           <div className="mt-5">
@@ -392,7 +386,6 @@ export function StudentDashboard() {
           />
 
           <div className="mt-5 grid gap-5 md:grid-cols-2">
-            {/* WHAT'S IN NEWS */}
             <DashboardCard
               icon="📰"
               title="What's in News"
@@ -405,7 +398,6 @@ export function StudentDashboard() {
               onClick={handleDailyCurrentAffairs}
             />
 
-            {/* WHY IMPORTANT */}
             <DashboardCard
               icon="💡"
               title="Why Important?"
@@ -481,7 +473,6 @@ export function StudentDashboard() {
               </div>
 
               <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
-
               <div className="absolute -bottom-20 right-24 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl" />
             </button>
           </div>
