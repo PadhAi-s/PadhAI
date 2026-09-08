@@ -21,7 +21,7 @@ interface Message {
   created_at: string;
 }
 
-export function AskPadhAI() {
+export function AskVidhya() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
@@ -145,12 +145,9 @@ export function AskPadhAI() {
             question: trimmedQuestion,
             conversation_id: selectedConversationId,
             student: {
-              class_name:
-                profile?.class_name ?? null,
-              board:
-                profile?.board ?? null,
-              exam:
-                profile?.exam ?? null,
+              class_name: profile?.class_name ?? null,
+              board: profile?.board ?? null,
+              exam: profile?.exam ?? null,
             },
           },
         });
@@ -169,17 +166,13 @@ export function AskPadhAI() {
         );
       }
 
-      const conversationId =
-        data.conversation_id;
+      const conversationId = data.conversation_id;
 
       if (conversationId) {
-        setSelectedConversationId(
-          conversationId,
-        );
+        setSelectedConversationId(conversationId);
       }
 
-      const now =
-        new Date().toISOString();
+      const now = new Date().toISOString();
 
       const currentConversationId =
         conversationId ||
@@ -188,8 +181,7 @@ export function AskPadhAI() {
 
       const userMessage: Message = {
         id: `temp-user-${Date.now()}`,
-        conversation_id:
-          currentConversationId,
+        conversation_id: currentConversationId,
         role: "user",
         content: trimmedQuestion,
         created_at: now,
@@ -197,8 +189,7 @@ export function AskPadhAI() {
 
       const aiMessage: Message = {
         id: `temp-ai-${Date.now()}`,
-        conversation_id:
-          currentConversationId,
+        conversation_id: currentConversationId,
         role: "assistant",
         content: data.answer,
         created_at: now,
@@ -215,14 +206,14 @@ export function AskPadhAI() {
       await loadConversations();
     } catch (err) {
       console.error(
-        "Ask PadhAI error:",
+        "Ask Vidhya error:",
         err,
       );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to connect with PadhAI.",
+          : "Unable to connect with Vidhya.",
       );
     } finally {
       setLoading(false);
@@ -251,7 +242,7 @@ export function AskPadhAI() {
 
           <div>
             <h1 className="text-2xl font-bold text-blue-600">
-              PadhAI 🤖
+              Ask Vidhya 🤖
             </h1>
 
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -413,13 +404,13 @@ export function AskPadhAI() {
                     </div>
 
                     <h2 className="mt-4 text-xl font-bold">
-                      Ask PadhAI
+                      Ask Vidhya
                     </h2>
 
                     <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
                       Ask a question about
                       your studies and
-                      PadhAI will explain it
+                      Vidhya will explain it
                       step by step.
                     </p>
 
@@ -460,7 +451,7 @@ export function AskPadhAI() {
                           {message.role ===
                           "user"
                             ? "You"
-                            : "🤖 PadhAI"}
+                            : "🤖 Vidhya"}
                         </p>
 
                         {/* Proper AI Markdown */}
@@ -662,7 +653,7 @@ export function AskPadhAI() {
                     event.target.value,
                   )
                 }
-                placeholder="Ask PadhAI anything..."
+                placeholder="Ask Vidhya anything..."
                 rows={3}
                 disabled={loading}
                 className="w-full resize-none rounded-2xl border border-slate-300 bg-white p-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950"
@@ -679,8 +670,8 @@ export function AskPadhAI() {
                   className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading
-                    ? "PadhAI is thinking..."
-                    : "Ask PadhAI 🤖"}
+                    ? "Vidhya is thinking..."
+                    : "Ask Vidhya 🤖"}
                 </button>
 
               </div>
