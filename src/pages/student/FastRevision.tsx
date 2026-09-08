@@ -13,6 +13,7 @@ interface RevisionCard {
   id: string;
   title: string;
   content: string;
+  keyPoint?: string;
 }
 
 interface QuizQuestion {
@@ -20,16 +21,43 @@ interface QuizQuestion {
   question: string;
   options: string[];
   answer: string;
-  explanation?: string;
+  explanation: string;
 }
 
 interface RevisionResult {
-  topic: string;
-  subject: string;
-  difficulty: string;
   cards: RevisionCard[];
-  questions: QuizQuestion[];
+  quiz: QuizQuestion[];
 }
+
+interface QuizAnswer {
+  questionId: string;
+  selected: string;
+}
+
+/* =====================================================
+   CONSTANTS
+===================================================== */
+
+const SUBJECTS = [
+  "General Knowledge",
+  "Current Affairs",
+  "History",
+  "Geography",
+  "Polity",
+  "Economy",
+  "Science",
+  "Environment",
+  "Defence",
+  "Sports",
+];
+
+const DIFFICULTIES = [
+  "Easy",
+  "Medium",
+  "Hard",
+];
+
+const CARD_COUNTS = [5, 10, 15];
 
 /* =====================================================
    COMPONENT
@@ -38,30 +66,25 @@ interface RevisionResult {
 export function FastRevision() {
   const navigate = useNavigate();
 
-  /* =====================================================
+  /* ===================================================
      FORM STATE
-  ===================================================== */
+  =================================================== */
 
   const [subject, setSubject] =
-    useState("");
+    useState("General Knowledge");
 
   const [topic, setTopic] =
     useState("");
 
   const [difficulty, setDifficulty] =
-    useState("medium");
+    useState("Medium");
 
   const [cardCount, setCardCount] =
-    useState(8);
+    useState(10);
 
-  /* =====================================================
-     RESULT STATE
-  ===================================================== */
-
-  const [result, setResult] =
-    useState<RevisionResult | null>(
-      null,
-    );
+  /* ===================================================
+     PAGE STATE
+  =================================================== */
 
   const [loading, setLoading] =
     useState(false);
@@ -69,80 +92,66 @@ export function FastRevision() {
   const [error, setError] =
     useState("");
 
-  /* =====================================================
-     QUIZ STATE
-  ===================================================== */
+  const [result, setResult] =
+    useState<RevisionResult | null>(null);
 
-  const [currentQuestion, setCurrentQuestion] =
+  const [activeCard, setActiveCard] =
     useState(0);
 
-  const [selectedAnswer, setSelectedAnswer] =
-    useState("");
+  /* ===================================================
+     QUIZ STATE
+  =================================================== */
+
+  const [quizAnswers, setQuizAnswers] =
+    useState<QuizAnswer[]>([]);
+
+  const [quizSubmitted, setQuizSubmitted] =
+    useState(false);
 
   const [score, setScore] =
     useState(0);
 
-  const [quizFinished, setQuizFinished] =
-    useState(false);
-
-  /* =====================================================
+  /* ===================================================
      GENERATE REVISION
-  ===================================================== */
+  =================================================== */
 
-  async function generateRevision(
-    event?: FormEvent,
-  ) {
-    event?.preventDefault();
-
-    const cleanSubject =
-      subject.trim();
-
-    const cleanTopic =
-      topic.trim();
-
-    if (!cleanSubject) {
-      setError(
-        "Please enter a subject.",
-      );
-      return;
-    }
+  async function generateRevision() {
+    const cleanTopic = topic.trim();
 
     if (!cleanTopic) {
       setError(
-        "Please enter a topic.",
+        "Please enter a topic for revision.",
       );
       return;
     }
 
     setLoading(true);
     setError("");
-    setResult(null);
 
-    setCurrentQuestion(0);
-    setSelectedAnswer("");
+    setResult(null);
+    setActiveCard(0);
+
+    setQuizAnswers([]);
+    setQuizSubmitted(false);
     setScore(0);
-    setQuizFinished(false);
 
     try {
       console.log(
-        "[FastRevision] Calling generate-revision...",
-        {
-          subject: cleanSubject,
-          topic: cleanTopic,
-          difficulty,
-          cardCount,
-        },
+        "========================================",
+      );
+      console.log(
+        "⚡ FAST REVISION START",
+      );
+      console.log(
+        "========================================",
       );
 
-      const {
-        data,
-        error: functionError,
-      } =
+      const { data, error: functionError } =
         await supabase.functions.invoke(
           "generate-revision",
           {
             body: {
-              subject: cleanSubject,
+              subject,
               topic: cleanTopic,
               difficulty,
               cardCount,
@@ -151,213 +160,216 @@ export function FastRevision() {
         );
 
       console.log(
-        "[FastRevision] Edge Function response:",
+        "📦 Fast Revision Response:",
         data,
       );
 
       if (functionError) {
         console.error(
-          "[FastRevision] Edge Function error:",
+          "❌ Fast Revision Function Error:",
           functionError,
         );
 
         throw new Error(
           functionError.message ||
-            "Revision generate nahi ho paya.",
+            "Unable to generate revision.",
         );
       }
 
-      if (!data) {
-        throw new Error(
-          "Edge Function ne empty response diya.",
-        );
-      }
-
-      /*
-       * Backend kabhi:
-       *
-       * { cards: [], questions: [] }
-       *
-       * ya
-       *
-       * { revision: { cards: [], questions: [] } }
-       *
-       * return kar sakta hai.
-       */
-
-      const payload =
-        data?.revision ??
-        data?.data ??
-        data;
-
-      const rawCards =
-        Array.isArray(
-          payload?.cards,
-        )
-          ? payload.cards
-          : Array.isArray(
-                payload?.flashcards,
-              )
-            ? payload.flashcards
-            : [];
-
-      const rawQuestions =
-        Array.isArray(
-          payload?.questions,
-        )
-          ? payload.questions
-          : Array.isArray(
-                payload?.quiz,
-              )
-            ? payload.quiz
-            : Array.isArray(
-                  payload?.mcqs,
-                )
-              ? payload.mcqs
-              : [];
-
-      const cards =
-        normalizeCards(rawCards);
-
-      const questions =
-        normalizeQuestions(
-          rawQuestions,
-        );
-
-      /*
-       * Agar backend response unexpected hai
-       * to user ko clear error dikhao.
-       */
+      const normalized =
+        normalizeRevisionResponse(data);
 
       if (
-        cards.length === 0 &&
-        questions.length === 0
+        normalized.cards.length === 0 &&
+        normalized.quiz.length === 0
       ) {
-        console.error(
-          "[FastRevision] Unexpected response:",
-          data,
-        );
-
         throw new Error(
-          "Revision data nahi mila. Console me Edge Function response check karo.",
+          "AI ne revision content return nahi kiya. Please try again.",
         );
       }
 
-      setResult({
-        subject:
-          typeof payload?.subject ===
-          "string"
-            ? payload.subject
-            : cleanSubject,
+      setResult(normalized);
 
-        topic:
-          typeof payload?.topic ===
-          "string"
-            ? payload.topic
-            : cleanTopic,
-
-        difficulty:
-          typeof payload?.difficulty ===
-          "string"
-            ? payload.difficulty
-            : difficulty,
-
-        cards,
-        questions,
-      });
+      console.log(
+        "✅ Fast Revision generated successfully.",
+        normalized,
+      );
     } catch (err) {
       console.error(
-        "[FastRevision] Load Error:",
-        err,
+        "========================================",
       );
 
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to generate revision.",
+      console.error(
+        "❌ FAST REVISION ERROR",
       );
+
+      console.error(err);
+
+      console.error(
+        "========================================",
+      );
+
+      if (err instanceof Error) {
+        setError(
+          err.message ||
+            "Unable to generate revision.",
+        );
+      } else {
+        setError(
+          "Unable to generate revision.",
+        );
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  /* =====================================================
-     QUIZ ANSWER
-  ===================================================== */
+  /* ===================================================
+     FORM SUBMIT
+  =================================================== */
 
-  function submitAnswer() {
-    if (
-      !result ||
-      !result.questions.length ||
-      !selectedAnswer
-    ) {
-      return;
-    }
+  function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
 
-    const question =
-      result.questions[
-        currentQuestion
-      ];
-
-    if (!question) {
-      return;
-    }
-
-    if (
-      normalizeText(
-        selectedAnswer,
-      ) ===
-      normalizeText(
-        question.answer,
-      )
-    ) {
-      setScore(
-        (previous) =>
-          previous + 1,
-      );
-    }
-
-    if (
-      currentQuestion <
-      result.questions.length - 1
-    ) {
-      setCurrentQuestion(
-        (previous) =>
-          previous + 1,
-      );
-
-      setSelectedAnswer("");
-    } else {
-      setQuizFinished(true);
-    }
+    void generateRevision();
   }
 
-  /* =====================================================
-     RESET
-  ===================================================== */
+  /* ===================================================
+     QUIZ ANSWER
+  =================================================== */
 
-  function resetRevision() {
+  function selectAnswer(
+    questionId: string,
+    selected: string,
+  ) {
+    if (quizSubmitted) {
+      return;
+    }
+
+    setQuizAnswers((previous) => {
+      const existingIndex =
+        previous.findIndex(
+          (item) =>
+            item.questionId ===
+            questionId,
+        );
+
+      if (existingIndex === -1) {
+        return [
+          ...previous,
+          {
+            questionId,
+            selected,
+          },
+        ];
+      }
+
+      const updated = [
+        ...previous,
+      ];
+
+      updated[existingIndex] = {
+        questionId,
+        selected,
+      };
+
+      return updated;
+    });
+  }
+
+  /* ===================================================
+     GET SELECTED ANSWER
+  =================================================== */
+
+  function getSelectedAnswer(
+    questionId: string,
+  ): string {
+    const answer =
+      quizAnswers.find(
+        (item) =>
+          item.questionId ===
+          questionId,
+      );
+
+    return answer?.selected || "";
+  }
+
+  /* ===================================================
+     SUBMIT QUIZ
+  =================================================== */
+
+  function submitQuiz() {
+    if (!result) {
+      return;
+    }
+
+    if (result.quiz.length === 0) {
+      return;
+    }
+
+    let calculatedScore = 0;
+
+    for (const question of result.quiz) {
+      const selected =
+        getSelectedAnswer(
+          question.id,
+        );
+
+      if (
+        selected &&
+        selected === question.answer
+      ) {
+        calculatedScore += 1;
+      }
+    }
+
+    setScore(calculatedScore);
+    setQuizSubmitted(true);
+  }
+
+  /* ===================================================
+     RESET
+  =================================================== */
+
+  function startAgain() {
     setResult(null);
     setError("");
 
-    setCurrentQuestion(0);
-    setSelectedAnswer("");
+    setActiveCard(0);
+
+    setQuizAnswers([]);
+    setQuizSubmitted(false);
     setScore(0);
-    setQuizFinished(false);
   }
 
-  /* =====================================================
-     CURRENT QUESTION
-  ===================================================== */
+  /* ===================================================
+     CARD NAVIGATION
+  =================================================== */
 
-  const question =
-    result?.questions[
-      currentQuestion
-    ];
+  function previousCard() {
+    setActiveCard((current) =>
+      Math.max(0, current - 1),
+    );
+  }
 
-  /* =====================================================
-     UI
-  ===================================================== */
+  function nextCard() {
+    if (!result) {
+      return;
+    }
+
+    setActiveCard((current) =>
+      Math.min(
+        result.cards.length - 1,
+        current + 1,
+      ),
+    );
+  }
+
+  /* ===================================================
+     PAGE
+  =================================================== */
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
@@ -367,7 +379,7 @@ export function FastRevision() {
       ================================================= */}
 
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
 
           <button
             type="button"
@@ -420,29 +432,29 @@ export function FastRevision() {
 
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-6 text-white shadow-lg sm:p-8">
 
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
 
             <div className="max-w-3xl">
 
-              <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold backdrop-blur">
-                ⚡ FAST REVISION
-              </span>
+              <div className="mb-4 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold backdrop-blur">
+                ⚡ SMART LEARNING
+              </div>
 
-              <h2 className="mt-4 text-3xl font-black sm:text-4xl">
-                Revise Faster. Remember Better.
+              <h2 className="text-3xl font-black sm:text-4xl">
+                Fast Revision 🚀
               </h2>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-                Enter a subject and topic.
-                Vidhya will prepare quick
-                revision cards and practice
-                questions for you.
+              <p className="mt-3 text-sm leading-6 text-blue-100 sm:text-base">
+                Kisi bhi topic ko quickly revise
+                karo, important points dekho aur
+                MCQs ke through apni preparation
+                test karo.
               </p>
 
             </div>
 
-            <div className="hidden text-7xl md:block">
-              ⚡
+            <div className="hidden select-none text-7xl md:block">
+              🧠
             </div>
 
           </div>
@@ -454,9 +466,10 @@ export function FastRevision() {
         ================================================= */}
 
         {!result && (
-          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
 
-            <div>
+            <div className="mb-6">
+
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
                 Create Revision
               </p>
@@ -466,14 +479,16 @@ export function FastRevision() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Topic jitna specific hoga,
-                revision utna useful hoga.
+                Topic enter karo aur Vidhya tumhare
+                liye quick revision material prepare
+                karegi.
               </p>
+
             </div>
 
             <form
-              onSubmit={generateRevision}
-              className="mt-6 space-y-5"
+              onSubmit={handleSubmit}
+              className="space-y-5"
             >
 
               {/* SUBJECT */}
@@ -486,18 +501,27 @@ export function FastRevision() {
                   Subject
                 </label>
 
-                <input
+                <select
                   id="revision-subject"
-                  type="text"
                   value={subject}
                   onChange={(event) =>
                     setSubject(
                       event.target.value,
                     )
                   }
-                  placeholder="e.g. Polity, History, Geography"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                />
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                >
+                  {SUBJECTS.map(
+                    (item) => (
+                      <option
+                        key={item}
+                        value={item}
+                      >
+                        {item}
+                      </option>
+                    ),
+                  )}
+                </select>
               </div>
 
               {/* TOPIC */}
@@ -522,6 +546,12 @@ export function FastRevision() {
                   placeholder="e.g. Fundamental Rights"
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 />
+
+                <p className="mt-2 text-xs text-slate-400">
+                  Example: Indian Constitution,
+                  RBI, Mughal Empire, Photosynthesis,
+                  Climate Change
+                </p>
               </div>
 
               {/* OPTIONS */}
@@ -548,17 +578,16 @@ export function FastRevision() {
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   >
-                    <option value="easy">
-                      Easy
-                    </option>
-
-                    <option value="medium">
-                      Medium
-                    </option>
-
-                    <option value="hard">
-                      Hard
-                    </option>
+                    {DIFFICULTIES.map(
+                      (item) => (
+                        <option
+                          key={item}
+                          value={item}
+                        >
+                          {item}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </div>
 
@@ -566,14 +595,14 @@ export function FastRevision() {
 
                 <div>
                   <label
-                    htmlFor="revision-card-count"
+                    htmlFor="revision-count"
                     className="mb-2 block text-sm font-bold"
                   >
                     Revision Cards
                   </label>
 
                   <select
-                    id="revision-card-count"
+                    id="revision-count"
                     value={cardCount}
                     onChange={(event) =>
                       setCardCount(
@@ -584,21 +613,16 @@ export function FastRevision() {
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   >
-                    <option value={5}>
-                      5 Cards
-                    </option>
-
-                    <option value={8}>
-                      8 Cards
-                    </option>
-
-                    <option value={10}>
-                      10 Cards
-                    </option>
-
-                    <option value={15}>
-                      15 Cards
-                    </option>
+                    {CARD_COUNTS.map(
+                      (count) => (
+                        <option
+                          key={count}
+                          value={count}
+                        >
+                          {count} cards
+                        </option>
+                      ),
+                    )}
                   </select>
                 </div>
 
@@ -607,21 +631,25 @@ export function FastRevision() {
               {/* ERROR */}
 
               {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/30">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
 
-                  <p className="font-bold text-red-700 dark:text-red-300">
-                    ⚠️ Revision generate nahi hua
-                  </p>
+                  <div className="flex items-start gap-3">
 
-                  <p className="mt-1 break-words text-sm text-red-600 dark:text-red-400">
-                    {error}
-                  </p>
+                    <span className="text-xl">
+                      ⚠️
+                    </span>
 
-                  <p className="mt-2 text-xs text-red-500 dark:text-red-400">
-                    Browser Console me
-                    [FastRevision] logs bhi
-                    check kar sakte ho.
-                  </p>
+                    <div>
+                      <p className="font-bold text-red-700 dark:text-red-300">
+                        Unable to generate revision
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-red-600 dark:text-red-400">
+                        {error}
+                      </p>
+                    </div>
+
+                  </div>
 
                 </div>
               )}
@@ -631,11 +659,11 @@ export function FastRevision() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <>
-                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                     Generating Revision...
                   </>
                 ) : (
@@ -651,60 +679,61 @@ export function FastRevision() {
         )}
 
         {/* =================================================
-            LOADING
+            RESULT
         ================================================= */}
 
-        {loading && (
-          <section className="mt-6 rounded-3xl border border-blue-100 bg-white p-10 text-center shadow-sm dark:border-blue-900/50 dark:bg-slate-900">
-
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl dark:bg-blue-950/40">
-              ⚡
-            </div>
-
-            <h3 className="mt-5 text-lg font-black">
-              Vidhya is preparing your revision...
-            </h3>
-
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Important concepts, quick facts
-              and questions prepare ho rahe hain.
-            </p>
-
-          </section>
-        )}
-
-        {/* =================================================
-            REVISION RESULT
-        ================================================= */}
-
-        {!loading && result && (
-          <>
+        {result && (
+          <div className="mt-6 space-y-6">
 
             {/* RESULT HEADER */}
 
-            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                 <div>
+
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
                     Revision Ready
                   </p>
 
                   <h2 className="mt-1 text-2xl font-black">
-                    {result.topic}
+                    {topic}
                   </h2>
 
-                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                    {result.subject} •{" "}
-                    {result.difficulty}
-                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                      {subject}
+                    </span>
+
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      {difficulty}
+                    </span>
+
+                    {result.cards.length >
+                      0 && (
+                      <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+                        {result.cards.length} Revision
+                        Cards
+                      </span>
+                    )}
+
+                    {result.quiz.length >
+                      0 && (
+                      <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+                        {result.quiz.length} MCQs
+                      </span>
+                    )}
+
+                  </div>
+
                 </div>
 
                 <button
                   type="button"
-                  onClick={resetRevision}
-                  className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  onClick={startAgain}
+                  className="shrink-0 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   ← New Revision
                 </button>
@@ -718,49 +747,126 @@ export function FastRevision() {
             ================================================= */}
 
             {result.cards.length > 0 && (
-              <section className="mt-6">
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
 
-                <div className="mb-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-                    Quick Notes
-                  </p>
+                <div className="flex items-center justify-between gap-4">
 
-                  <h2 className="mt-1 text-2xl font-black">
-                    Revision Cards
-                  </h2>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                      Quick Notes
+                    </p>
+
+                    <h2 className="mt-1 text-xl font-black">
+                      Revision Cards
+                    </h2>
+                  </div>
+
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    {activeCard + 1} /{" "}
+                    {result.cards.length}
+                  </span>
+
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {result.cards[activeCard] && (
+                  <div className="mt-5 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 p-5 dark:from-blue-950/30 dark:to-indigo-950/30 sm:p-7">
 
-                  {result.cards.map(
-                    (card, index) => (
-                      <article
-                        key={card.id}
-                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-                      >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-black text-white">
+                      {activeCard + 1}
+                    </div>
 
-                        <div className="flex items-center gap-3">
+                    <h3 className="mt-5 text-xl font-black leading-8">
+                      {
+                        result.cards[
+                          activeCard
+                        ].title
+                      }
+                    </h3>
 
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-sm font-black text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                            {index + 1}
-                          </div>
+                    <p className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-700 dark:text-slate-300">
+                      {
+                        result.cards[
+                          activeCard
+                        ].content
+                      }
+                    </p>
 
-                          <h3 className="font-black leading-5">
-                            {card.title ||
-                              `Revision Point ${
-                                index + 1
-                              }`}
-                          </h3>
+                    {result.cards[
+                      activeCard
+                    ].keyPoint && (
+                      <div className="mt-5 rounded-xl border border-blue-200 bg-white/70 p-4 dark:border-blue-900 dark:bg-slate-950/40">
 
-                        </div>
-
-                        <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-600 dark:text-slate-300">
-                          {card.content}
+                        <p className="text-[11px] font-black uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                          🎯 Key Point
                         </p>
 
-                      </article>
-                    ),
-                  )}
+                        <p className="mt-1 text-sm font-semibold leading-6 text-blue-900 dark:text-blue-200">
+                          {
+                            result.cards[
+                              activeCard
+                            ].keyPoint
+                          }
+                        </p>
+
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+                {/* CARD CONTROLS */}
+
+                <div className="mt-5 flex items-center justify-between gap-3">
+
+                  <button
+                    type="button"
+                    disabled={
+                      activeCard === 0
+                    }
+                    onClick={
+                      previousCard
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    ← Previous
+                  </button>
+
+                  <div className="flex gap-1.5 overflow-x-auto px-2">
+
+                    {result.cards.map(
+                      (_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() =>
+                            setActiveCard(
+                              index,
+                            )
+                          }
+                          className={`h-2.5 w-2.5 shrink-0 rounded-full transition ${
+                            index ===
+                            activeCard
+                              ? "bg-blue-600"
+                              : "bg-slate-300 dark:bg-slate-700"
+                          }`}
+                          aria-label={`Go to revision card ${index + 1}`}
+                        />
+                      ),
+                    )}
+
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={
+                      activeCard ===
+                      result.cards.length - 1
+                    }
+                    onClick={nextCard}
+                    className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
 
                 </div>
 
@@ -771,231 +877,252 @@ export function FastRevision() {
                 QUIZ
             ================================================= */}
 
-            {result.questions.length >
-              0 && (
-              <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+            {result.quiz.length > 0 && (
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
 
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-green-600 dark:text-green-400">
-                      Practice Quiz
-                    </p>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-400">
+                    Test Yourself
+                  </p>
 
-                    <h2 className="mt-1 text-2xl font-black">
-                      Test Yourself 📝
-                    </h2>
-                  </div>
+                  <h2 className="mt-1 text-2xl font-black">
+                    Practice MCQs 📝
+                  </h2>
 
-                  {!quizFinished && (
-                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      Question{" "}
-                      {currentQuestion +
-                        1}{" "}
-                      /{" "}
-                      {
-                        result.questions
-                          .length
-                      }
-                    </span>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    Revision ke baad apni
+                    understanding test karo.
+                  </p>
+
+                </div>
+
+                <div className="mt-6 space-y-6">
+
+                  {result.quiz.map(
+                    (question, index) => {
+                      const selected =
+                        getSelectedAnswer(
+                          question.id,
+                        );
+
+                      return (
+                        <div
+                          key={question.id}
+                          className="rounded-2xl border border-slate-200 p-5 dark:border-slate-800"
+                        >
+
+                          <div className="flex gap-3">
+
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-sm font-black text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
+                              {index + 1}
+                            </span>
+
+                            <h3 className="text-base font-bold leading-6">
+                              {
+                                question.question
+                              }
+                            </h3>
+
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+
+                            {question.options.map(
+                              (option, optionIndex) => {
+                                const isSelected =
+                                  selected ===
+                                  option;
+
+                                const isCorrect =
+                                  option ===
+                                  question.answer;
+
+                                let optionClass =
+                                  "border-slate-200 hover:border-violet-300 hover:bg-violet-50 dark:border-slate-700 dark:hover:border-violet-700 dark:hover:bg-violet-950/20";
+
+                                if (
+                                  quizSubmitted &&
+                                  isCorrect
+                                ) {
+                                  optionClass =
+                                    "border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-300";
+                                } else if (
+                                  quizSubmitted &&
+                                  isSelected &&
+                                  !isCorrect
+                                ) {
+                                  optionClass =
+                                    "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300";
+                                } else if (
+                                  isSelected
+                                ) {
+                                  optionClass =
+                                    "border-violet-500 bg-violet-50 text-violet-800 dark:border-violet-500 dark:bg-violet-950/30 dark:text-violet-200";
+                                }
+
+                                return (
+                                  <button
+                                    key={`${question.id}-${optionIndex}`}
+                                    type="button"
+                                    disabled={
+                                      quizSubmitted
+                                    }
+                                    onClick={() =>
+                                      selectAnswer(
+                                        question.id,
+                                        option,
+                                      )
+                                    }
+                                    className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left text-sm font-semibold transition ${optionClass}`}
+                                  >
+
+                                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                      {String.fromCharCode(
+                                        65 +
+                                          optionIndex,
+                                      )}
+                                    </span>
+
+                                    <span className="flex-1">
+                                      {option}
+                                    </span>
+
+                                    {quizSubmitted &&
+                                      isCorrect && (
+                                        <span>
+                                          ✓
+                                        </span>
+                                      )}
+
+                                    {quizSubmitted &&
+                                      isSelected &&
+                                      !isCorrect && (
+                                        <span>
+                                          ✕
+                                        </span>
+                                      )}
+
+                                  </button>
+                                );
+                              },
+                            )}
+
+                          </div>
+
+                          {quizSubmitted && (
+                            <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-950">
+
+                              <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                Explanation
+                              </p>
+
+                              <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-300">
+                                {
+                                  question.explanation
+                                }
+                              </p>
+
+                            </div>
+                          )}
+
+                        </div>
+                      );
+                    },
                   )}
 
                 </div>
 
-                {/* QUIZ FINISHED */}
+                {/* QUIZ RESULT */}
 
-                {quizFinished ? (
-                  <div className="mt-8 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 p-8 text-center dark:from-blue-950/30 dark:to-indigo-950/30">
+                {quizSubmitted && (
+                  <div className="mt-6 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 p-6 text-center text-white">
 
-                    <div className="text-5xl">
-                      🎉
-                    </div>
-
-                    <h3 className="mt-4 text-2xl font-black">
-                      Quiz Complete!
-                    </h3>
-
-                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                    <p className="text-sm font-semibold text-blue-100">
                       Your Score
                     </p>
 
-                    <div className="mt-2 text-4xl font-black text-blue-600 dark:text-blue-400">
+                    <p className="mt-1 text-4xl font-black">
                       {score} /{" "}
-                      {
-                        result.questions
-                          .length
-                      }
-                    </div>
-
-                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                      Revision dobara karo aur
-                      score improve karo.
+                      {result.quiz.length}
                     </p>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentQuestion(
-                          0,
-                        );
-                        setSelectedAnswer(
-                          "",
-                        );
-                        setScore(0);
-                        setQuizFinished(
-                          false,
-                        );
-                      }}
-                      className="mt-6 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
-                    >
-                      🔄 Retry Quiz
-                    </button>
-
-                  </div>
-                ) : question ? (
-                  <div className="mt-8">
-
-                    {/* QUESTION */}
-
-                    <div className="rounded-2xl bg-slate-50 p-5 dark:bg-slate-800">
-
-                      <p className="text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                        Question{" "}
-                        {currentQuestion +
-                          1}
-                      </p>
-
-                      <h3 className="mt-3 text-lg font-black leading-7">
-                        {question.question}
-                      </h3>
-
-                    </div>
-
-                    {/* OPTIONS */}
-
-                    <div className="mt-5 space-y-3">
-
-                      {question.options.map(
-                        (
-                          option,
-                          optionIndex,
-                        ) => {
-                          const isSelected =
-                            selectedAnswer ===
-                            option;
-
-                          return (
-                            <button
-                              key={`${question.id}-${optionIndex}`}
-                              type="button"
-                              onClick={() =>
-                                setSelectedAnswer(
-                                  option,
-                                )
-                              }
-                              className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left text-sm font-semibold transition ${
-                                isSelected
-                                  ? "border-blue-500 bg-blue-50 text-blue-800 ring-2 ring-blue-500/20 dark:border-blue-400 dark:bg-blue-950/40 dark:text-blue-200"
-                                  : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
-                              }`}
-                            >
-
-                              <span
-                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${
-                                  isSelected
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                                }`}
-                              >
-                                {String.fromCharCode(
-                                  65 +
-                                    optionIndex,
-                                )}
-                              </span>
-
-                              <span className="pt-1">
-                                {option}
-                              </span>
-
-                            </button>
-                          );
-                        },
+                    <p className="mt-2 text-sm text-blue-100">
+                      {getScoreMessage(
+                        score,
+                        result.quiz.length,
                       )}
-
-                    </div>
-
-                    {/* SUBMIT */}
-
-                    <button
-                      type="button"
-                      disabled={
-                        !selectedAnswer
-                      }
-                      onClick={
-                        submitAnswer
-                      }
-                      className="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {currentQuestion ===
-                      result.questions
-                        .length -
-                        1
-                        ? "Finish Quiz →"
-                        : "Next Question →"}
-                    </button>
+                    </p>
 
                   </div>
-                ) : null}
+                )}
+
+                {/* SUBMIT */}
+
+                {!quizSubmitted && (
+                  <button
+                    type="button"
+                    onClick={submitQuiz}
+                    className="mt-6 w-full rounded-xl bg-violet-600 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-violet-700"
+                  >
+                    Submit Quiz →
+                  </button>
+                )}
+
+                {quizSubmitted && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuizAnswers([]);
+                      setQuizSubmitted(false);
+                      setScore(0);
+                    }}
+                    className="mt-6 w-full rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    Retake Quiz
+                  </button>
+                )}
 
               </section>
             )}
 
             {/* =================================================
-                NO QUIZ / NO CARDS
+                FINISH
             ================================================= */}
 
-            {result.cards.length ===
-              0 &&
-              result.questions.length ===
-                0 && (
-                <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900/50 dark:bg-amber-950/30">
+            <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5 dark:border-blue-900/50 dark:bg-blue-950/30">
 
-                  <div className="text-4xl">
-                    📚
-                  </div>
+              <h3 className="font-bold text-blue-900 dark:text-blue-200">
+                🎯 Revision Tip
+              </h3>
 
-                  <h3 className="mt-3 font-bold">
-                    Revision content nahi mila
-                  </h3>
+              <p className="mt-2 text-sm leading-6 text-blue-800 dark:text-blue-300">
+                Important facts ko baar-baar revise
+                karo. Pehle concepts samjho, phir
+                MCQs solve karo aur galat answers ki
+                explanation zaroor padho.
+              </p>
 
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                    Please try another topic.
-                  </p>
+            </section>
 
-                </section>
-              )}
+            <div className="flex justify-center pb-4">
 
-          </>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/student/dashboard",
+                  )
+                }
+                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                ← Back to Dashboard
+              </button>
+
+            </div>
+
+          </div>
         )}
-
-        {/* =================================================
-            BOTTOM TIP
-        ================================================= */}
-
-        <section className="mt-8 rounded-2xl border border-blue-100 bg-blue-50 p-5 dark:border-blue-900/50 dark:bg-blue-950/30">
-
-          <h3 className="font-bold text-blue-900 dark:text-blue-200">
-            💡 Revision Tip
-          </h3>
-
-          <p className="mt-2 text-sm leading-6 text-blue-800 dark:text-blue-300">
-            Pehle quick revision cards padho,
-            phir bina dekhe quiz attempt karo.
-            Galat answers ko dobara revise karna
-            retention improve karta hai.
-          </p>
-
-        </section>
 
       </main>
 
@@ -1004,239 +1131,442 @@ export function FastRevision() {
 }
 
 /* =====================================================
-   NORMALIZE CARDS
+   NORMALIZE REVISION RESPONSE
+===================================================== */
+
+function normalizeRevisionResponse(
+  value: unknown,
+): RevisionResult {
+  let data: unknown = value;
+
+  /* -----------------------------------------------------
+     Sometimes Edge Function returns JSON as string.
+  ----------------------------------------------------- */
+
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return {
+        cards: [],
+        quiz: [],
+      };
+    }
+  }
+
+  /*
+   * Some APIs wrap the actual response:
+   *
+   * { data: {...} }
+   * { result: {...} }
+   * { revision: {...} }
+   */
+
+  if (
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data)
+  ) {
+    const objectData =
+      data as Record<
+        string,
+        unknown
+      >;
+
+    if (
+      objectData.data &&
+      typeof objectData.data ===
+        "object"
+    ) {
+      data = objectData.data;
+    } else if (
+      objectData.result &&
+      typeof objectData.result ===
+        "object"
+    ) {
+      data = objectData.result;
+    } else if (
+      objectData.revision &&
+      typeof objectData.revision ===
+        "object"
+    ) {
+      data = objectData.revision;
+    }
+  }
+
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
+    return {
+      cards: [],
+      quiz: [],
+    };
+  }
+
+  const root =
+    data as Record<
+      string,
+      unknown
+    >;
+
+  const cards = normalizeCards(
+    root.cards ??
+      root.flashcards ??
+      root.revision_cards ??
+      root.revisionCards,
+  );
+
+  const quiz = normalizeQuiz(
+    root.quiz ??
+      root.mcqs ??
+      root.questions ??
+      root.quiz_questions ??
+      root.quizQuestions,
+  );
+
+  return {
+    cards,
+    quiz,
+  };
+}
+
+/* =====================================================
+   NORMALIZE REVISION CARDS
 ===================================================== */
 
 function normalizeCards(
   value: unknown,
 ): RevisionCard[] {
-  if (!Array.isArray(value)) {
+  let parsed: unknown = value;
+
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
     return [];
   }
 
-  return value
-    .map((item, index) => {
-      if (
-        !item ||
-        typeof item !==
-          "object" ||
-        Array.isArray(item)
-      ) {
-        return null;
-      }
+  const result: RevisionCard[] = [];
 
-      const row =
-        item as Record<
-          string,
-          unknown
-        >;
+  for (
+    let index = 0;
+    index < parsed.length;
+    index += 1
+  ) {
+    const item = parsed[index];
 
-      const title =
-        typeof row.title ===
-        "string"
-          ? row.title.trim()
-          : typeof row.heading ===
+    if (
+      !item ||
+      typeof item !== "object" ||
+      Array.isArray(item)
+    ) {
+      continue;
+    }
+
+    const row =
+      item as Record<
+        string,
+        unknown
+      >;
+
+    const title =
+      typeof row.title === "string"
+        ? row.title.trim()
+        : typeof row.heading ===
+            "string"
+          ? row.heading.trim()
+          : typeof row.question ===
               "string"
-            ? row.heading.trim()
-            : typeof row.name ===
-                "string"
-              ? row.name.trim()
-              : "";
-
-      const content =
-        typeof row.content ===
-        "string"
-          ? row.content.trim()
-          : typeof row.text ===
-              "string"
-            ? row.text.trim()
-            : typeof row.description ===
-                "string"
-              ? row.description.trim()
-              : typeof row.fact ===
-                  "string"
-                ? row.fact.trim()
-                : "";
-
-      if (!content) {
-        return null;
-      }
-
-      return {
-        id:
-          typeof row.id ===
-          "string"
-            ? row.id
-            : String(index + 1),
-
-        title:
-          title ||
-          `Revision Point ${
-            index + 1
-          }`,
-
-        content,
-      };
-    })
-    .filter(
-      (
-        item,
-      ): item is RevisionCard =>
-        item !== null,
-    );
-}
-
-/* =====================================================
-   NORMALIZE QUESTIONS
-===================================================== */
-
-function normalizeQuestions(
-  value: unknown,
-): QuizQuestion[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item, index) => {
-      if (
-        !item ||
-        typeof item !==
-          "object" ||
-        Array.isArray(item)
-      ) {
-        return null;
-      }
-
-      const row =
-        item as Record<
-          string,
-          unknown
-        >;
-
-      const question =
-        typeof row.question ===
-        "string"
-          ? row.question.trim()
-          : typeof row.q ===
-              "string"
-            ? row.q.trim()
+            ? row.question.trim()
             : "";
 
-      const rawOptions =
-        Array.isArray(
-          row.options,
-        )
-          ? row.options
-          : Array.isArray(
-                row.choices,
-              )
-            ? row.choices
-            : [];
-
-      const options =
-        rawOptions
-          .filter(
-            (
-              option,
-            ): option is string =>
-              typeof option ===
-              "string",
-          )
-          .map((option) =>
-            option.trim(),
-          )
-          .filter(Boolean);
-
-      const answer =
-        typeof row.answer ===
-        "string"
-          ? row.answer.trim()
-          : typeof row.correct_answer ===
+    const content =
+      typeof row.content ===
+      "string"
+        ? row.content.trim()
+        : typeof row.description ===
+            "string"
+          ? row.description.trim()
+          : typeof row.explanation ===
               "string"
-            ? row.correct_answer.trim()
-            : typeof row.correctAnswer ===
+            ? row.explanation.trim()
+            : typeof row.answer ===
                 "string"
-              ? row.correctAnswer.trim()
+              ? row.answer.trim()
               : "";
 
-      const explanation =
-        typeof row.explanation ===
-        "string"
-          ? row.explanation.trim()
-          : "";
+    const keyPoint =
+      typeof row.keyPoint ===
+      "string"
+        ? row.keyPoint.trim()
+        : typeof row.key_point ===
+            "string"
+          ? row.key_point.trim()
+          : typeof row.key_facts ===
+              "string"
+            ? row.key_facts.trim()
+            : "";
 
-      if (
-        !question ||
-        options.length !== 4 ||
-        !answer
-      ) {
-        return null;
-      }
+    if (!title && !content) {
+      continue;
+    }
 
-      /*
-       * Answer agar A/B/C/D format me hai
-       * to corresponding option ko use karenge.
-       */
+    result.push({
+      id:
+        typeof row.id === "string" &&
+        row.id.trim()
+          ? row.id.trim()
+          : `revision-card-${index + 1}`,
 
-      let normalizedAnswer =
-        answer;
+      title:
+        title ||
+        `Revision Point ${index + 1}`,
 
-      const answerUpper =
-        answer.toUpperCase();
+      content:
+        content ||
+        "Important revision point.",
 
-      if (
-        /^[ABCD]$/.test(
-          answerUpper,
-        )
-      ) {
-        const answerIndex =
-          answerUpper.charCodeAt(
-            0,
-          ) - 65;
+      keyPoint:
+        keyPoint || undefined,
+    });
+  }
 
-        normalizedAnswer =
-          options[
-            answerIndex
-          ] ?? answer;
-      }
-
-      return {
-        id:
-          typeof row.id ===
-          "string"
-            ? row.id
-            : String(index + 1),
-
-        question,
-
-        options,
-
-        answer:
-          normalizedAnswer,
-
-        explanation,
-      };
-    })
-    .filter(
-      (
-        item,
-      ): item is QuizQuestion =>
-        item !== null,
-    );
+  return result;
 }
 
 /* =====================================================
-   TEXT NORMALIZER
+   NORMALIZE QUIZ
 ===================================================== */
 
-function normalizeText(
-  value: string,
+function normalizeQuiz(
+  value: unknown,
+): QuizQuestion[] {
+  let parsed: unknown = value;
+
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  /*
+   * IMPORTANT:
+   *
+   * No map() + null + filter(type predicate).
+   *
+   * We directly push valid QuizQuestion objects.
+   *
+   * This fixes:
+   *
+   * Type '(QuizQuestion | null)[]'
+   * is not assignable to type 'QuizQuestion[]'
+   *
+   * and:
+   *
+   * A type predicate's type must be assignable
+   * to its parameter's type.
+   */
+
+  const result: QuizQuestion[] = [];
+
+  for (
+    let index = 0;
+    index < parsed.length;
+    index += 1
+  ) {
+    const item = parsed[index];
+
+    if (
+      !item ||
+      typeof item !== "object" ||
+      Array.isArray(item)
+    ) {
+      continue;
+    }
+
+    const row =
+      item as Record<
+        string,
+        unknown
+      >;
+
+    /* ---------------------------------------------------
+       QUESTION
+    --------------------------------------------------- */
+
+    const question =
+      typeof row.question === "string"
+        ? row.question.trim()
+        : "";
+
+    if (!question) {
+      continue;
+    }
+
+    /* ---------------------------------------------------
+       OPTIONS
+    --------------------------------------------------- */
+
+    const options: string[] = [];
+
+    if (Array.isArray(row.options)) {
+      for (const option of row.options) {
+        if (
+          typeof option !==
+          "string"
+        ) {
+          continue;
+        }
+
+        const cleaned =
+          option.trim();
+
+        if (cleaned) {
+          options.push(cleaned);
+        }
+      }
+    }
+
+    /*
+     * Quiz needs exactly 4 options.
+     */
+
+    if (options.length !== 4) {
+      continue;
+    }
+
+    /* ---------------------------------------------------
+       ANSWER
+    --------------------------------------------------- */
+
+    const answer =
+      typeof row.answer === "string"
+        ? row.answer.trim()
+        : "";
+
+    if (!answer) {
+      continue;
+    }
+
+    /*
+     * Answer should match one of the options.
+     *
+     * Also support answers such as:
+     * A / B / C / D
+     */
+
+    let normalizedAnswer =
+      answer;
+
+    const answerUpper =
+      answer.toUpperCase();
+
+    if (
+      answerUpper === "A" ||
+      answerUpper === "B" ||
+      answerUpper === "C" ||
+      answerUpper === "D"
+    ) {
+      const answerIndex =
+        answerUpper.charCodeAt(0) -
+        65;
+
+      normalizedAnswer =
+        options[answerIndex] ||
+        answer;
+    }
+
+    if (
+      !options.includes(
+        normalizedAnswer,
+      )
+    ) {
+      continue;
+    }
+
+    /* ---------------------------------------------------
+       EXPLANATION
+    --------------------------------------------------- */
+
+    const explanation =
+      typeof row.explanation ===
+      "string"
+        ? row.explanation.trim()
+        : "";
+
+    /* ---------------------------------------------------
+       ID
+    --------------------------------------------------- */
+
+    const id =
+      typeof row.id === "string" &&
+      row.id.trim()
+        ? row.id.trim()
+        : `quiz-question-${index + 1}`;
+
+    /* ---------------------------------------------------
+       PUSH VALID QUESTION
+    --------------------------------------------------- */
+
+    result.push({
+      id,
+      question,
+      options,
+      answer: normalizedAnswer,
+      explanation:
+        explanation ||
+        "Answer ko revise karo aur concept ko dobara samjho.",
+    });
+  }
+
+  return result;
+}
+
+/* =====================================================
+   SCORE MESSAGE
+===================================================== */
+
+function getScoreMessage(
+  score: number,
+  total: number,
 ): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
+  if (total <= 0) {
+    return "Keep learning!";
+  }
+
+  const percentage =
+    (score / total) * 100;
+
+  if (percentage === 100) {
+    return "Excellent! Perfect score 🔥";
+  }
+
+  if (percentage >= 80) {
+    return "Great job! Your preparation is strong 💪";
+  }
+
+  if (percentage >= 60) {
+    return "Good attempt! Thoda aur revision karo 👍";
+  }
+
+  if (percentage >= 40) {
+    return "Keep practicing. Revision ko repeat karo 📚";
+  }
+
+  return "Don't worry. Concepts ko dobara revise karo 💡";
 }
 
 /* =====================================================
