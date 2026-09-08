@@ -1181,7 +1181,6 @@ export function getDailyMindsetIndex(date = new Date()): number {
 }
 
 export function getDailyMindset(
-  language: MindsetLanguage = "en",
   date = new Date()
 ): DailyMindset {
   const index = getDailyMindsetIndex(date);
