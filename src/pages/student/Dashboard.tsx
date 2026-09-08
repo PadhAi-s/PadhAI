@@ -76,9 +76,7 @@ export function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      {/* =========================================================
-          HEADER
-      ========================================================== */}
+      {/* HEADER */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
           {/* BRAND */}
@@ -93,7 +91,7 @@ export function StudentDashboard() {
               </p>
 
               <p className="hidden text-[11px] font-medium text-slate-500 dark:text-slate-400 sm:block">
-                Learn smarter. Grow faster.
+                {t("dashboard.brandTagline")}
               </p>
             </div>
           </div>
@@ -193,13 +191,9 @@ export function StudentDashboard() {
         </div>
       </header>
 
-      {/* =========================================================
-          MAIN
-      ========================================================== */}
+      {/* MAIN */}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
-        {/* =======================================================
-            TRENDY QUOTE
-        ======================================================== */}
+        {/* TRENDY QUOTE */}
         <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
           <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl" />
           <div className="absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
@@ -207,28 +201,26 @@ export function StudentDashboard() {
           <div className="relative z-10">
             <div className="mb-5 flex items-center gap-2">
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-                Today's Mindset
+                {t("dashboard.mindset.label")}
               </span>
             </div>
 
             <blockquote className="max-w-4xl text-2xl font-bold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
-              “Small progress every day becomes big success over time.”
+              “{t("dashboard.mindset.quote")}”
             </blockquote>
 
             <p className="mt-4 text-sm font-medium text-slate-500 dark:text-slate-400">
-              Keep learning. Keep revising. Keep moving forward.
+              {t("dashboard.mindset.subtitle")}
             </p>
           </div>
         </section>
 
-        {/* =======================================================
-            WELCOME
-        ======================================================== */}
+        {/* WELCOME */}
         <section className="mt-8">
           <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-6 text-white shadow-xl shadow-indigo-500/10 sm:p-10">
             <div className="relative z-10 max-w-3xl">
               <p className="text-sm font-semibold text-blue-100">
-                👋 Welcome back
+                👋 {t("dashboard.welcomeBack")}
               </p>
 
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
@@ -236,8 +228,7 @@ export function StudentDashboard() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-blue-100 sm:text-base">
-                Your learning space is ready. Revise faster, stay updated
-                with current affairs and use AI to learn smarter.
+                {t("dashboard.welcomeDescription")}
               </p>
 
               <button
@@ -245,7 +236,7 @@ export function StudentDashboard() {
                 onClick={handleQuickRevision}
                 className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-blue-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
               >
-                ⚡ Fast Revision
+                ⚡ {t("dashboard.fastRevision.title")}
                 <span>→</span>
               </button>
             </div>
@@ -259,13 +250,11 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            FAST REVISION
-        ======================================================== */}
+        {/* FAST REVISION */}
         <section className="mt-10">
           <SectionHeading
-            title="Fast Revision"
-            description="Revise important topics quickly and test your preparation."
+            title={t("dashboard.fastRevision.sectionTitle")}
+            description={t("dashboard.fastRevision.sectionDescription")}
           />
 
           <div className="mt-5">
@@ -283,39 +272,37 @@ export function StudentDashboard() {
 
                     <div>
                       <p className="text-xs font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
-                        Smart Practice
+                        {t("dashboard.fastRevision.badge")}
                       </p>
 
                       <h2 className="text-2xl font-black sm:text-3xl">
-                        Fast Revision
+                        {t("dashboard.fastRevision.title")}
                       </h2>
                     </div>
                   </div>
 
                   <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                    Pick a subject or topic and start a quick revision
-                    session. Practice questions, identify weak areas and
-                    improve every day.
+                    {t("dashboard.fastRevision.description")}
                   </p>
 
                   <div className="mt-5 flex flex-wrap gap-2">
                     <span className="rounded-full bg-white/80 px-3 py-2 text-xs font-bold text-purple-700 shadow-sm dark:bg-slate-900/60 dark:text-purple-300">
-                      🤖 Smart Questions
+                      🤖 {t("dashboard.fastRevision.smartQuestions")}
                     </span>
 
                     <span className="rounded-full bg-white/80 px-3 py-2 text-xs font-bold text-purple-700 shadow-sm dark:bg-slate-900/60 dark:text-purple-300">
-                      📚 Topic Wise
+                      📚 {t("dashboard.fastRevision.topicWise")}
                     </span>
 
                     <span className="rounded-full bg-white/80 px-3 py-2 text-xs font-bold text-purple-700 shadow-sm dark:bg-slate-900/60 dark:text-purple-300">
-                      ⚡ Quick Practice
+                      ⚡ {t("dashboard.fastRevision.quickPractice")}
                     </span>
                   </div>
                 </div>
 
                 <div className="shrink-0">
                   <span className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition group-hover:bg-purple-700">
-                    Start Revision
+                    {t("dashboard.fastRevision.action")}
                     <span>→</span>
                   </span>
                 </div>
@@ -328,22 +315,20 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            DAILY CURRENT AFFAIRS
-        ======================================================== */}
+        {/* DAILY CURRENT AFFAIRS */}
         <section className="mt-10">
           <SectionHeading
-            title="Daily Current Affairs"
-            description="Stay updated with the latest events that matter for your exams."
+            title={t("dashboard.currentAffairs.sectionTitle")}
+            description={t("dashboard.currentAffairs.sectionDescription")}
           />
 
           <div className="mt-5">
             <DashboardCard
               icon="🗞️"
-              title="Daily Current Affairs"
-              description="Read important current affairs, understand what happened and prepare with exam-focused information."
-              action="Read Today's Current Affairs →"
-              badge="FREE"
+              title={t("dashboard.currentAffairs.title")}
+              description={t("dashboard.currentAffairs.description")}
+              action={t("dashboard.currentAffairs.action")}
+              badge={t("dashboard.currentAffairs.badge")}
               badgeClass="bg-green-600"
               className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-900/50 dark:from-green-950/30 dark:to-emerald-950/20"
               actionClass="text-green-700 dark:text-green-400"
@@ -352,22 +337,20 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            DAILY NEWSPAPER
-        ======================================================== */}
+        {/* DAILY NEWSPAPER */}
         <section className="mt-10">
           <SectionHeading
-            title="Daily Newspaper"
-            description="Read the latest newspaper updates and stay informed every day."
+            title={t("dashboard.newspaper.sectionTitle")}
+            description={t("dashboard.newspaper.sectionDescription")}
           />
 
           <div className="mt-5">
             <DashboardCard
               icon="📰"
-              title="Daily Newspaper"
-              description="Read daily newspaper updates in a simple, student-friendly format and stay connected with important national and international news."
-              action="Read Today's Newspaper →"
-              badge="DAILY"
+              title={t("dashboard.newspaper.title")}
+              description={t("dashboard.newspaper.description")}
+              action={t("dashboard.newspaper.action")}
+              badge={t("dashboard.newspaper.badge")}
               badgeClass="bg-blue-600"
               className="border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:via-sky-950/30 dark:to-cyan-950/20"
               actionClass="text-blue-700 dark:text-blue-400"
@@ -376,22 +359,20 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            WHAT'S IN NEWS + WHY IMPORTANT
-        ======================================================== */}
+        {/* WHAT'S IN NEWS */}
         <section className="mt-10">
           <SectionHeading
-            title="What's in News"
-            description="Know not just what happened, but why it matters."
+            title={t("dashboard.whatsInNews.sectionTitle")}
+            description={t("dashboard.whatsInNews.sectionDescription")}
           />
 
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <DashboardCard
               icon="📰"
-              title="What's in News"
-              description="Get a quick and simple understanding of important events, developments and issues making headlines."
-              action="Explore News →"
-              badge="LATEST"
+              title={t("dashboard.whatsInNews.news.title")}
+              description={t("dashboard.whatsInNews.news.description")}
+              action={t("dashboard.whatsInNews.news.action")}
+              badge={t("dashboard.whatsInNews.news.badge")}
               badgeClass="bg-blue-600"
               className="border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 dark:border-blue-900/50 dark:from-blue-950/30 dark:to-cyan-950/20"
               actionClass="text-blue-700 dark:text-blue-400"
@@ -400,10 +381,10 @@ export function StudentDashboard() {
 
             <DashboardCard
               icon="💡"
-              title="Why Important?"
-              description="Understand why a news event is important for exams, society, economy, government and the country."
-              action="Understand Why →"
-              badge="EXAM FOCUS"
+              title={t("dashboard.whatsInNews.why.title")}
+              description={t("dashboard.whatsInNews.why.description")}
+              action={t("dashboard.whatsInNews.why.action")}
+              badge={t("dashboard.whatsInNews.why.badge")}
               badgeClass="bg-amber-500"
               className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20"
               actionClass="text-amber-700 dark:text-amber-400"
@@ -412,13 +393,11 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            ASK AI
-        ======================================================== */}
+        {/* ASK VIDHYA */}
         <section className="mt-10">
           <SectionHeading
-            title="Ask AI"
-            description="Stuck on a concept? Ask, understand and learn."
+            title={t("dashboard.askVidhya.sectionTitle")}
+            description={t("dashboard.askVidhya.sectionDescription")}
           />
 
           <div className="mt-5">
@@ -436,38 +415,36 @@ export function StudentDashboard() {
 
                     <div>
                       <p className="text-xs font-bold uppercase tracking-widest text-blue-300">
-                        AI Learning Assistant
+                        {t("dashboard.askVidhya.badge")}
                       </p>
 
                       <h2 className="text-2xl font-black sm:text-3xl">
-                        Ask Vidhya
+                        {t("dashboard.askVidhya.title")}
                       </h2>
                     </div>
                   </div>
 
                   <p className="mt-5 text-sm leading-7 text-slate-300 sm:text-base">
-                    Ask questions in your own words and get clear,
-                    student-friendly explanations to understand difficult
-                    concepts faster.
+                    {t("dashboard.askVidhya.description")}
                   </p>
 
                   <div className="mt-5 flex flex-wrap gap-2">
                     <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100">
-                      💬 Ask Anything
+                      💬 {t("dashboard.askVidhya.askAnything")}
                     </span>
 
                     <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100">
-                      🧠 Easy Explanations
+                      🧠 {t("dashboard.askVidhya.easyExplanations")}
                     </span>
 
                     <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100">
-                      📖 Study Help
+                      📖 {t("dashboard.askVidhya.studyHelp")}
                     </span>
                   </div>
                 </div>
 
                 <span className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-blue-700 shadow-lg transition group-hover:-translate-y-0.5">
-                  Ask Vidhya
+                  {t("dashboard.askVidhya.action")}
                   <span>→</span>
                 </span>
               </div>
@@ -478,22 +455,20 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            ENGLISH VOCABULARY
-        ======================================================== */}
+        {/* ENGLISH VOCABULARY */}
         <section className="mt-10">
           <SectionHeading
-            title="English Vocabulary"
-            description="Build stronger vocabulary and improve your English every day."
+            title={t("dashboard.vocabulary.sectionTitle")}
+            description={t("dashboard.vocabulary.sectionDescription")}
           />
 
           <div className="mt-5">
             <DashboardCard
               icon="📚"
-              title="Learn English with Vocab-Bhaiya"
-              description="Improve your vocabulary, learn useful words and strengthen your English skills through interactive learning."
-              action="Start Learning →"
-              badge="EXTERNAL"
+              title={t("dashboard.vocabulary.title")}
+              description={t("dashboard.vocabulary.description")}
+              action={t("dashboard.vocabulary.action")}
+              badge={t("dashboard.vocabulary.badge")}
               badgeClass="bg-indigo-600"
               className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 dark:border-indigo-900/50 dark:from-indigo-950/30 dark:to-blue-950/20"
               actionClass="text-indigo-700 dark:text-indigo-400"
@@ -502,22 +477,20 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            VIDEO — COMING SOON
-        ======================================================== */}
+        {/* VIDEO */}
         <section className="mt-10">
           <SectionHeading
-            title="Video Learning"
-            description="Video-based learning experiences are coming soon."
+            title={t("dashboard.videos.sectionTitle")}
+            description={t("dashboard.videos.sectionDescription")}
           />
 
           <div className="mt-5">
             <DashboardCard
               icon="🎥"
-              title="Video Classes"
-              description="Learn through engaging video lessons designed to make difficult concepts easier to understand."
-              action="Coming Soon"
-              badge="COMING SOON"
+              title={t("dashboard.videos.title")}
+              description={t("dashboard.videos.description")}
+              action={t("dashboard.videos.action")}
+              badge={t("dashboard.videos.badge")}
               badgeClass="bg-slate-600"
               className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
               actionClass="text-slate-500 dark:text-slate-400"
@@ -526,9 +499,7 @@ export function StudentDashboard() {
           </div>
         </section>
 
-        {/* =======================================================
-            ABOUT
-        ======================================================== */}
+        {/* ABOUT */}
         <section className="mt-10 pb-10">
           <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
             <div className="relative z-10 max-w-3xl">
@@ -539,34 +510,30 @@ export function StudentDashboard() {
 
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">
-                    About
+                    {t("dashboard.about.label")}
                   </p>
 
                   <h2 className="text-2xl font-black">
-                    About VIDYZEN
+                    {t("dashboard.about.title")}
                   </h2>
                 </div>
               </div>
 
               <p className="mt-5 text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                VIDYZEN is built by Harsh Singh to make exam preparation simpler, smarter
-                and more focused. From daily current affairs and daily
-                newspaper reading to fast revision, AI-powered learning and
-                vocabulary building, everything is designed to help students
-                learn consistently. @2026
+                {t("dashboard.about.description")}
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2">
                 <span className="rounded-full bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                  🎯 Exam Focused
+                  🎯 {t("dashboard.about.examFocused")}
                 </span>
 
                 <span className="rounded-full bg-purple-50 px-4 py-2 text-xs font-bold text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
-                  🤖 AI Powered
+                  🤖 {t("dashboard.about.aiPowered")}
                 </span>
 
                 <span className="rounded-full bg-green-50 px-4 py-2 text-xs font-bold text-green-700 dark:bg-green-950/50 dark:text-green-300">
-                  📚 Student Friendly
+                  📚 {t("dashboard.about.studentFriendly")}
                 </span>
               </div>
             </div>
@@ -578,9 +545,7 @@ export function StudentDashboard() {
         </section>
       </main>
 
-      {/* =========================================================
-          FOOTER
-      ========================================================== */}
+      {/* FOOTER */}
       <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-center sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:text-left">
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -588,7 +553,7 @@ export function StudentDashboard() {
           </p>
 
           <p className="text-xs text-slate-500 dark:text-slate-500">
-            Learn smarter. Grow faster.
+            {t("dashboard.brandTagline")}
           </p>
         </div>
       </footer>
@@ -596,9 +561,7 @@ export function StudentDashboard() {
   );
 }
 
-/* ===============================================================
-   SECTION HEADING
-================================================================ */
+/* SECTION HEADING */
 
 interface SectionHeadingProps {
   title: string;
@@ -622,9 +585,7 @@ function SectionHeading({
   );
 }
 
-/* ===============================================================
-   DASHBOARD CARD
-================================================================ */
+/* DASHBOARD CARD */
 
 interface DashboardCardProps {
   icon: string;
@@ -662,7 +623,7 @@ function DashboardCard({
 
         {badge && (
           <span
-            className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white ${badgeClass}`}
+            className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white ${badgeClass ?? ""}`}
           >
             {badge}
           </span>
@@ -689,4 +650,3 @@ function DashboardCard({
 }
 
 export default StudentDashboard;
-
