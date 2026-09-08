@@ -22,14 +22,9 @@ import { StudentProfile } from "./pages/student/Profile";
 import { StudentSyllabus } from "./pages/student/Syllabus";
 import { AskVidhya } from "./pages/student/AskVidhya";
 import { DailyNewspaper } from "./pages/student/DailyNewspaper";
-
-/*
- * These two pages use default exports.
- */
 import WeeklyCurrentAffairs from "./pages/student/WeeklyCurrentAffairs";
-
 import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
-import { QuickRevision } from "./pages/student/QuickRevision";
+import { FastRevision } from "./pages/student/FastRevision";
 
 /* =====================================================
    ADMIN
@@ -38,10 +33,6 @@ import { QuickRevision } from "./pages/student/QuickRevision";
 import { AdminLogin } from "./pages/admin/Login";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminCurrentAffairs } from "./pages/admin/AdminCurrentAffairs";
-
-/*
- * AdminNewspaper uses default export.
- */
 import AdminNewspaper from "./pages/admin/AdminNewspaper";
 
 /* =====================================================
@@ -138,11 +129,11 @@ export default function App() {
                     element={<CurrentAffairDetail />}
                   />
 
-                  {/* QUICK REVISION */}
+                  {/* FAST REVISION */}
 
                   <Route
                     path="student/quick-revision"
-                    element={<QuickRevision />}
+                    element={<FastRevision />}
                   />
 
                 </Route>
