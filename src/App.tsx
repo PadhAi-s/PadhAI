@@ -29,6 +29,7 @@ import { DailyNewspaper } from "./pages/student/DailyNewspaper";
 import WeeklyCurrentAffairs from "./pages/student/WeeklyCurrentAffairs";
 import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
 import { FastRevision } from "./pages/student/FastRevision";
+import { Vocabulary } from "./pages/student/Vocabulary";
 
 /* =====================================================
    ADMIN
@@ -151,6 +152,15 @@ export default function App() {
                   <Route
                     path="student/quick-revision"
                     element={<FastRevision />}
+                  />
+
+                  {/* =================================================
+                      VOCABULARY
+                  ================================================= */}
+
+                  <Route
+                    path="student/vocabulary"
+                    element={<Vocabulary />}
                   />
 
                 </Route>
