@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  useNavigate,
-  useParams,
-} from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
+
+interface MCQ {
+  question: string;
+  options: string[];
+  answer: string;
+  explanation?: string;
+}
 
 interface CurrentAffair {
   id: string;
@@ -15,806 +19,694 @@ interface CurrentAffair {
   key_facts: string;
   exam_point: string;
   static_gk: string;
-  category: string | null;
-  mcqs: unknown[];
-  hindi_version: string;
+  mcqs: MCQ[];
 }
 
-interface MCQ {
-  question: string;
-  options: string[];
-  answer: string;
-  explanation?: string;
-}
+const CATEGORIES = [
+  "All",
+  "National",
+  "International",
+  "Science & Tech",
+  "Economy",
+  "Sports",
+  "Awards",
+];
 
-interface HindiSections {
-  title: string;
-  whyInNews: string;
-  keyFacts: string;
-  examPoint: string;
-  staticGK: string;
-  mcqs: string;
-}
-
-export function CurrentAffairDetail() {
-  const { id } = useParams();
+export function WeeklyCurrentAffairs() {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
 
- const { i18n } = useTranslation();
+  const [affairs, setAffairs] = useState<CurrentAffair[]>([]);
+  const [selectedCategory, setSelectedCategory] =
+    useState("All");
+  const [search, setSearch] = useState("");
 
-  const [record, setRecord] =
-    useState<CurrentAffair | null>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  const isHindi =
-    i18n.language?.toLowerCase().startsWith("hi");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (id) {
-      void loadCurrentAffair();
-    }
-  }, [id]);
+    document.title = "Daily Current Affairs | VIDYZEN";
+    void loadCurrentAffairs();
+  }, []);
 
-  async function loadCurrentAffair() {
-    if (!id) {
-      setLoading(false);
-      return;
-    }
+  /* =====================================================
+     LOAD CURRENT AFFAIRS
+  ===================================================== */
 
+  async function loadCurrentAffairs() {
     setLoading(true);
     setError("");
 
     try {
-      const {
-        data,
-        error: fetchError,
-      } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("current_affairs")
-        .select(`
-          id,
-          affair_date,
-          serial_no,
-          title,
-          why_in_news,
-          key_facts,
-          exam_point,
-          static_gk,
-          category,
-          mcqs,
-          hindi_version
-        `)
-        .eq("id", id)
-        .single();
+        .select(
+          "id,affair_date,serial_no,title,why_in_news,key_facts,exam_point,static_gk,mcqs,published",
+        )
+        .eq("published", true)
+        .order("affair_date", {
+          ascending: false,
+        })
+        .order("serial_no", {
+          ascending: true,
+        });
 
       if (fetchError) {
         throw fetchError;
       }
 
-      setRecord({
-        id: data.id,
-        affair_date:
-          data.affair_date ?? "",
-        serial_no:
-          Number(data.serial_no ?? 1),
-        title:
-          data.title ?? "",
-        why_in_news:
-          data.why_in_news ?? "",
-        key_facts:
-          data.key_facts ?? "",
-        exam_point:
-          data.exam_point ?? "",
-        static_gk:
-          data.static_gk ?? "",
-        category:
-          data.category ?? null,
-        mcqs:
-          Array.isArray(data.mcqs)
-            ? data.mcqs
+      const formatted: CurrentAffair[] = (data ?? []).map(
+        (row) => ({
+          id: String(row.id),
+          affair_date: row.affair_date ?? "",
+          serial_no: Number(row.serial_no ?? 1),
+          title: row.title ?? "",
+          why_in_news: row.why_in_news ?? "",
+          key_facts: row.key_facts ?? "",
+          exam_point: row.exam_point ?? "",
+          static_gk: row.static_gk ?? "",
+          mcqs: Array.isArray(row.mcqs)
+            ? row.mcqs
             : [],
-        hindi_version:
-          data.hindi_version ?? "",
-      });
+        }),
+      );
+
+      setAffairs(formatted);
     } catch (err) {
+      console.error(
+        "Current Affairs Load Error:",
+        err,
+      );
+
       setError(
         err instanceof Error
           ? err.message
-          : "Current affair load nahi ho saka.",
+          : "Unable to load current affairs.",
       );
     } finally {
       setLoading(false);
     }
   }
 
-  const mcqs = useMemo(() => {
-    if (!record) {
-      return [];
+  /* =====================================================
+     CATEGORY DETECTION
+  ===================================================== */
+
+  function getCategory(affair: CurrentAffair) {
+    const text =
+      `${affair.title} ${affair.why_in_news} ${affair.key_facts} ${affair.exam_point}`
+        .toLowerCase();
+
+    if (
+      /sports|cricket|football|hockey|tennis|olympic|athlete|tournament|medal|championship|fifa|icc/.test(
+        text,
+      )
+    ) {
+      return "Sports";
     }
 
-    return record.mcqs
-      .map(parseMCQ)
-      .filter(
-        (
-          mcq,
-        ): mcq is MCQ =>
-          mcq !== null,
-      );
-  }, [record]);
+    if (
+      /award|awards|honour|honor|appointment|appointed|chairman|chairperson|president|ceo|director|prize/.test(
+        text,
+      )
+    ) {
+      return "Awards";
+    }
 
-  const hindiContent =
-    useMemo(() => {
-      if (!record?.hindi_version) {
-        return null;
+    if (
+      /economy|economic|rbi|reserve bank|bank|banking|finance|financial|inflation|gdp|sebi|market|budget|business|fiscal|monetary/.test(
+        text,
+      )
+    ) {
+      return "Economy";
+    }
+
+    if (
+      /science|technology|tech|ai|artificial intelligence|space|isro|nasa|satellite|research|innovation|quantum|digital|cyber|semiconductor|mission/.test(
+        text,
+      )
+    ) {
+      return "Science & Tech";
+    }
+
+    if (
+      /international|united nations|un\b|usa|america|china|russia|uk\b|britain|france|japan|germany|global|world bank|imf|foreign|europe|asia|africa/.test(
+        text,
+      )
+    ) {
+      return "International";
+    }
+
+    return "National";
+  }
+
+  /* =====================================================
+     FILTER
+  ===================================================== */
+
+  const filteredAffairs = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return affairs.filter((item) => {
+      const category = getCategory(item);
+
+      const matchesCategory =
+        selectedCategory === "All" ||
+        category === selectedCategory;
+
+      if (!query) {
+        return matchesCategory;
       }
 
-      return parseHindiVersion(
-        record.hindi_version,
-      );
-    }, [record]);
+      const searchableText =
+        `${item.title}
+        ${item.why_in_news}
+        ${item.key_facts}
+        ${item.exam_point}
+        ${item.static_gk}
+        ${category}`
+          .toLowerCase();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-slate-600 dark:bg-slate-950 dark:text-slate-300">
-        {isHindi
-          ? "लोड हो रहा है..."
-          : "Loading..."}
-      </div>
+      return (
+        matchesCategory &&
+        searchableText.includes(query)
+      );
+    });
+  }, [
+    affairs,
+    selectedCategory,
+    search,
+  ]);
+
+  /* =====================================================
+     DATE
+  ===================================================== */
+
+  function formatDate(date: string) {
+    if (!date) {
+      return "";
+    }
+
+    const parsed = new Date(
+      `${date}T00:00:00`,
+    );
+
+    if (Number.isNaN(parsed.getTime())) {
+      return date;
+    }
+
+    return parsed.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  /* =====================================================
+     OPEN DETAIL
+  ===================================================== */
+
+  function openAffair(id: string) {
+    navigate(
+      `/student/current-affairs/${id}`,
     );
   }
 
-  if (error || !record) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-8 dark:bg-slate-950">
-        <div className="mx-auto max-w-4xl">
+  /* =====================================================
+     CLEAR FILTERS
+  ===================================================== */
+
+  function clearFilters() {
+    setSearch("");
+    setSelectedCategory("All");
+  }
+
+  /* =====================================================
+     STUDENT NAME
+  ===================================================== */
+
+  const studentName =
+    profile?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Student";
+
+  /* =====================================================
+     UI
+  ===================================================== */
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
 
           <button
             type="button"
             onClick={() =>
-              navigate(
-                "/student/dashboard",
-              )
+              navigate("/student/dashboard")
             }
-            className="mb-6 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
+            className="flex items-center gap-3"
           >
-            ← {isHindi
-              ? "डैशबोर्ड पर वापस जाएँ"
-              : "Back to Dashboard"}
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-lg font-black text-white shadow-sm">
+              V
+            </div>
+
+            <div className="text-left">
+              <h1 className="text-lg font-black tracking-tight">
+                VIDYZEN
+              </h1>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Daily Current Affairs
+              </p>
+            </div>
           </button>
 
-          <div className="rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300">
-            ❌{" "}
-            {error ||
-              (isHindi
-                ? "यह करेंट अफेयर्स नहीं मिला।"
-                : "Current affair not found.")}
-          </div>
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/student/dashboard")
+            }
+            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            ← Dashboard
+          </button>
+
         </div>
-      </div>
-    );
-  }
+      </header>
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-white">
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      {/* =====================================================
+          MAIN
+      ===================================================== */}
 
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              "/student/dashboard",
-            )
-          }
-          className="mb-6 text-sm font-semibold text-slate-600 transition hover:text-blue-600 dark:text-slate-300"
-        >
-          ← {isHindi
-            ? "डैशबोर्ड पर वापस जाएँ"
-            : "Back to Dashboard"}
-        </button>
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
 
-        {isHindi &&
-        hindiContent ? (
-          <HindiCurrentAffair
-            record={record}
-            content={hindiContent}
-          />
-        ) : (
-          <EnglishCurrentAffair
-            record={record}
-            mcqs={mcqs}
-          />
-        )}
-      </main>
-    </div>
-  );
-}
+        {/* =====================================================
+            HERO
+        ===================================================== */}
 
-/* =========================================
-   ENGLISH VERSION
-========================================= */
+        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-6 text-white shadow-lg sm:p-8">
 
-function EnglishCurrentAffair({
-  record,
-  mcqs,
-}: {
-  record: CurrentAffair;
-  mcqs: MCQ[];
-}) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-          {record.category ||
-            "Current Affairs"}
-        </span>
+            <div className="max-w-3xl">
 
-        <span className="text-sm text-slate-400">
-          {record.affair_date}
-        </span>
-      </div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold backdrop-blur">
+                🆓 FREE
+              </div>
 
-      <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
-        {record.title}
-      </h1>
+              <h2 className="text-2xl font-black sm:text-3xl">
+                Daily Current Affairs 📰
+              </h2>
 
-      <DetailSection
-        title="Why in News?"
-        content={record.why_in_news}
-      />
+              <p className="mt-3 text-sm leading-6 text-blue-100 sm:text-base">
+                Stay updated with exam-focused current
+                affairs, important facts, exam points,
+                static GK and practice MCQs.
+              </p>
 
-      <DetailSection
-        title="Key Facts"
-        content={record.key_facts}
-      />
+              <p className="mt-4 text-sm font-semibold text-blue-100">
+                Hi {studentName} 👋
+              </p>
 
-      <DetailSection
-        title="Exam Point"
-        content={record.exam_point}
-      />
+            </div>
 
-      <DetailSection
-        title="Static GK"
-        content={record.static_gk}
-      />
+            <div className="hidden select-none text-7xl md:block">
+              📰
+            </div>
 
-      <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
-        <h2 className="text-xl font-bold">
-          MCQs
-        </h2>
-
-        {mcqs.length === 0 ? (
-          <p className="mt-3 text-slate-500 dark:text-slate-400">
-            No MCQs available.
-          </p>
-        ) : (
-          <div className="mt-5 space-y-5">
-            {mcqs.map(
-              (mcq, index) => (
-                <MCQCard
-                  key={`${record.id}-${index}`}
-                  mcq={mcq}
-                  number={index + 1}
-                />
-              ),
-            )}
           </div>
-        )}
-      </section>
-    </article>
-  );
-}
 
-/* =========================================
-   HINDI VERSION
-========================================= */
-
-function HindiCurrentAffair({
-  record,
-  content,
-}: {
-  record: CurrentAffair;
-  content: HindiSections;
-}) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-          {record.category ||
-            "करेंट अफेयर्स"}
-        </span>
-
-        <span className="text-sm text-slate-400">
-          {record.affair_date}
-        </span>
-      </div>
-
-      <h1 className="mt-5 text-2xl font-bold leading-tight sm:text-3xl">
-        {content.title ||
-          record.title}
-      </h1>
-
-      <HindiDetailSection
-        title="चर्चा में क्यों?"
-        content={
-          content.whyInNews
-        }
-      />
-
-      <HindiDetailSection
-        title="मुख्य तथ्य"
-        content={
-          content.keyFacts
-        }
-      />
-
-      <HindiDetailSection
-        title="परीक्षा बिंदु"
-        content={
-          content.examPoint
-        }
-      />
-
-      <HindiDetailSection
-        title="सामान्य ज्ञान"
-        content={
-          content.staticGK
-        }
-      />
-
-      {content.mcqs && (
-        <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
-          <h2 className="text-xl font-bold">
-            प्रश्नोत्तर (MCQs)
-          </h2>
-
-          <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
-            <p className="whitespace-pre-line leading-7 text-slate-700 dark:text-slate-300">
-              {content.mcqs}
-            </p>
-          </div>
         </section>
-      )}
-    </article>
-  );
-}
 
-/* =========================================
-   HINDI VERSION PARSER
-========================================= */
+        {/* =====================================================
+            SEARCH + FILTER
+        ===================================================== */}
 
-function parseHindiVersion(
-  html: string,
-): HindiSections {
-  const text =
-    htmlToPlainText(html);
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-  const title = extractSection(
-    text,
-    "शीर्षक (Title):",
-    [
-      "चर्चा में क्यों:",
-    ],
-  );
+          <div className="relative">
 
-  const whyInNews =
-    extractSection(
-      text,
-      "चर्चा में क्यों:",
-      [
-        "मुख्य तथ्य:",
-      ],
-    );
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg">
+              🔎
+            </span>
 
-  const keyFacts =
-    extractSection(
-      text,
-      "मुख्य तथ्य:",
-      [
-        "परीक्षा बिंदु:",
-      ],
-    );
+            <input
+              type="text"
+              value={search}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+              placeholder="Search current affairs..."
+              className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            />
 
-  const examPoint =
-    extractSection(
-      text,
-      "परीक्षा बिंदु:",
-      [
-        "सामान्य ज्ञान:",
-      ],
-    );
+          </div>
 
-  const staticGK =
-    extractSection(
-      text,
-      "सामान्य ज्ञान:",
-      [
-        "प्रश्नोत्तर (MCQs):",
-      ],
-    );
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
 
-  const mcqs =
-    extractSection(
-      text,
-      "प्रश्नोत्तर (MCQs):",
-      [],
-    );
-
-  return {
-    title,
-    whyInNews,
-    keyFacts,
-    examPoint,
-    staticGK,
-    mcqs,
-  };
-}
-
-function htmlToPlainText(
-  html: string,
-) {
-  return html
-    .replace(
-      /<br\s*\/?>/gi,
-      "\n",
-    )
-    .replace(
-      /<\/p>/gi,
-      "\n",
-    )
-    .replace(
-      /<li>/gi,
-      "• ",
-    )
-    .replace(
-      /<\/li>/gi,
-      "\n",
-    )
-    .replace(
-      /<[^>]*>/g,
-      "",
-    )
-    .replace(
-      /&nbsp;/g,
-      " ",
-    )
-    .replace(
-      /&amp;/g,
-      "&",
-    )
-    .replace(
-      /&lt;/g,
-      "<",
-    )
-    .replace(
-      /&gt;/g,
-      ">",
-    )
-    .replace(
-      /\n{3,}/g,
-      "\n\n",
-    )
-    .trim();
-}
-
-function extractSection(
-  text: string,
-  startLabel: string,
-  endLabels: string[],
-) {
-  const startIndex =
-    text.indexOf(startLabel);
-
-  if (startIndex === -1) {
-    return "";
-  }
-
-  const contentStart =
-    startIndex +
-    startLabel.length;
-
-  let endIndex =
-    text.length;
-
-  for (
-    const label of endLabels
-  ) {
-    const index =
-      text.indexOf(
-        label,
-        contentStart,
-      );
-
-    if (
-      index !== -1 &&
-      index < endIndex
-    ) {
-      endIndex = index;
-    }
-  }
-
-  return text
-    .slice(
-      contentStart,
-      endIndex,
-    )
-    .trim();
-}
-
-/* =========================================
-   PARSE ENGLISH MCQ
-========================================= */
-
-function parseMCQ(
-  value: unknown,
-): MCQ | null {
-  try {
-    let parsed: unknown =
-      value;
-
-    if (
-      typeof value === "string"
-    ) {
-      parsed =
-        JSON.parse(value);
-    }
-
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      Array.isArray(parsed)
-    ) {
-      return null;
-    }
-
-    const data =
-      parsed as Record<
-        string,
-        unknown
-      >;
-
-    const question =
-      typeof data.question ===
-      "string"
-        ? data.question
-        : "";
-
-    const answer =
-      typeof data.answer ===
-      "string"
-        ? data.answer
-        : "";
-
-    const options =
-      Array.isArray(
-        data.options,
-      )
-        ? data.options.filter(
-            (
-              option,
-            ): option is string =>
-              typeof option ===
-              "string",
-          )
-        : [];
-
-    const explanation =
-      typeof data.explanation ===
-      "string"
-        ? data.explanation
-        : undefined;
-
-    if (
-      !question ||
-      !answer ||
-      options.length === 0
-    ) {
-      return null;
-    }
-
-    return {
-      question,
-      options,
-      answer,
-      explanation,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/* =========================================
-   ENGLISH MCQ CARD
-========================================= */
-
-function MCQCard({
-  mcq,
-  number,
-}: {
-  mcq: MCQ;
-  number: number;
-}) {
-  const [
-    selectedAnswer,
-    setSelectedAnswer,
-  ] = useState<
-    string | null
-  >(null);
-
-  const isAnswered =
-    selectedAnswer !== null;
-
-  function selectAnswer(
-    option: string,
-  ) {
-    if (isAnswered) {
-      return;
-    }
-
-    setSelectedAnswer(option);
-  }
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/60">
-
-      <p className="text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-        Question {number}
-      </p>
-
-      <h3 className="mt-2 text-base font-semibold leading-6">
-        {mcq.question}
-      </h3>
-
-      <div className="mt-4 space-y-3">
-        {mcq.options.map(
-          (option, index) => {
-            const isSelected =
-              selectedAnswer ===
-              option;
-
-            const isCorrect =
-              isAnswered &&
-              option ===
-                mcq.answer;
-
-            const isWrong =
-              isSelected &&
-              option !==
-                mcq.answer;
-
-            let optionClass =
-              "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900";
-
-            if (isCorrect) {
-              optionClass =
-                "border-green-500 bg-green-50 text-green-800 dark:border-green-500 dark:bg-green-950/30 dark:text-green-300";
-            }
-
-            if (isWrong) {
-              optionClass =
-                "border-red-500 bg-red-50 text-red-800 dark:border-red-500 dark:bg-red-950/30 dark:text-red-300";
-            }
-
-            return (
+            {CATEGORIES.map((category) => (
               <button
-                key={`${option}-${index}`}
+                key={category}
                 type="button"
-                disabled={
-                  isAnswered
-                }
                 onClick={() =>
-                  selectAnswer(
-                    option,
-                  )
+                  setSelectedCategory(category)
                 }
-                className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${optionClass}`}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition ${
+                  selectedCategory === category
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                }`}
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs font-bold">
-                  {String.fromCharCode(
-                    65 + index,
-                  )}
-                </span>
-
-                <span>
-                  {option}
-                </span>
+                {category}
               </button>
-            );
-          },
-        )}
-      </div>
+            ))}
 
-      {isAnswered && (
-        <div className="mt-4">
-          {selectedAnswer ===
-          mcq.answer ? (
-            <p className="font-semibold text-green-600 dark:text-green-400">
-              ✓ Correct Answer!
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            SECTION HEADER
+        ===================================================== */}
+
+        <div className="mt-8 flex items-end justify-between gap-4">
+
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+              Latest Updates
             </p>
-          ) : (
-            <div>
-              <p className="font-semibold text-red-600 dark:text-red-400">
-                ✗ Incorrect
-              </p>
 
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Correct answer:{" "}
-                <strong>
-                  {mcq.answer}
-                </strong>
-              </p>
-            </div>
-          )}
+            <h2 className="mt-1 text-xl font-black sm:text-2xl">
+              Important Current Affairs
+            </h2>
+          </div>
 
-          {mcq.explanation && (
-            <div className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-slate-700 dark:bg-blue-950/30 dark:text-slate-300">
-              <strong>
-                Explanation:
-              </strong>{" "}
-              {mcq.explanation}
-            </div>
-          )}
+          <span className="shrink-0 text-sm font-medium text-slate-500 dark:text-slate-400">
+            {filteredAffairs.length}{" "}
+            {filteredAffairs.length === 1
+              ? "topic"
+              : "topics"}
+          </span>
+
         </div>
-      )}
+
+        {/* =====================================================
+            LOADING
+        ===================================================== */}
+
+        {loading && (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
+
+            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+              Loading current affairs...
+            </p>
+
+          </div>
+        )}
+
+        {/* =====================================================
+            ERROR
+        ===================================================== */}
+
+        {!loading && error && (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
+
+            <div className="flex items-start gap-3">
+
+              <div className="text-2xl">
+                ⚠️
+              </div>
+
+              <div className="min-w-0">
+
+                <h3 className="font-bold text-red-700 dark:text-red-300">
+                  Unable to load current affairs
+                </h3>
+
+                <p className="mt-2 break-words text-sm leading-6 text-red-600 dark:text-red-400">
+                  {error}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void loadCurrentAffairs()
+                  }
+                  className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
+                >
+                  Try Again
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* =====================================================
+            EMPTY
+        ===================================================== */}
+
+        {!loading &&
+          !error &&
+          filteredAffairs.length === 0 && (
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+              <div className="text-5xl">
+                🔎
+              </div>
+
+              <h3 className="mt-4 text-lg font-bold">
+                No current affairs found
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Try another search term or choose a
+                different category.
+              </p>
+
+              {(search ||
+                selectedCategory !== "All") && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
+                >
+                  Clear Filters
+                </button>
+              )}
+
+            </div>
+          )}
+
+        {/* =====================================================
+            AFFAIRS GRID
+        ===================================================== */}
+
+        {!loading &&
+          !error &&
+          filteredAffairs.length > 0 && (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+              {filteredAffairs.map((item) => {
+                const category =
+                  getCategory(item);
+
+                return (
+                  <article
+                    key={item.id}
+                    className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+                  >
+
+                    {/* CARD TOP */}
+
+                    <div className="flex items-start justify-between gap-3">
+
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                        {category}
+                      </span>
+
+                      <span className="shrink-0 text-xs font-medium text-slate-400">
+                        {formatDate(
+                          item.affair_date,
+                        )}
+                      </span>
+
+                    </div>
+
+                    {/* META */}
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+
+                      <span className="rounded-md bg-slate-100 px-2 py-1 font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        #{item.serial_no}
+                      </span>
+
+                      {item.mcqs.length > 0 && (
+                        <span className="rounded-md bg-green-50 px-2 py-1 font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+                          📝 {item.mcqs.length} MCQ
+                          {item.mcqs.length !== 1
+                            ? "s"
+                            : ""}
+                        </span>
+                      )}
+
+                    </div>
+
+                    {/* TITLE */}
+
+                    <h3 className="mt-4 line-clamp-3 text-lg font-black leading-7 text-slate-900 dark:text-white">
+                      {item.title}
+                    </h3>
+
+                    {/* WHY IN NEWS */}
+
+                    <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                      {item.why_in_news ||
+                        "Current affair details are available inside."}
+                    </p>
+
+                    {/* EXAM POINT */}
+
+                    {item.exam_point && (
+                      <div className="mt-4 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/30">
+
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                          🎯 Exam Point
+                        </p>
+
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-blue-800 dark:text-blue-300">
+                          {item.exam_point}
+                        </p>
+
+                      </div>
+                    )}
+
+                    {/* READ MORE */}
+
+                    <div className="mt-auto pt-5">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openAffair(item.id)
+                        }
+                        className="flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 group-hover:shadow-md"
+                      >
+                        Read Full Current Affair
+                        <span className="ml-2">
+                          →
+                        </span>
+                      </button>
+
+                    </div>
+
+                  </article>
+                );
+              })}
+
+            </div>
+          )}
+
+        {/* =====================================================
+            DAILY NEWSPAPER
+        ===================================================== */}
+
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+
+              <div className="flex flex-wrap items-center gap-2">
+
+                <span className="text-2xl">
+                  🗞️
+                </span>
+
+                <h2 className="text-lg font-black">
+                  Daily Newspaper
+                </h2>
+
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                  Premium
+                </span>
+
+              </div>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Daily curated newspaper with exam-focused
+                important news, available for premium
+                students.
+              </p>
+
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/student/daily-newspaper",
+                )
+              }
+              className="shrink-0 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            >
+              View Premium →
+            </button>
+
+          </div>
+
+        </section>
+
+        {/* =====================================================
+            EXAM TIP
+        ===================================================== */}
+
+        <section className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5 dark:border-blue-900/50 dark:bg-blue-950/30">
+
+          <h3 className="font-bold text-blue-900 dark:text-blue-200">
+            🎯 Exam Tip
+          </h3>
+
+          <p className="mt-2 text-sm leading-6 text-blue-800 dark:text-blue-300">
+            Current affairs ko sirf read mat karo.
+            Important names, dates, awards, appointments,
+            places aur numbers ko revise karo. Regular
+            revision se retention better hoti hai.
+          </p>
+
+        </section>
+
+        {/* =====================================================
+            BACK TO DASHBOARD
+        ===================================================== */}
+
+        <div className="mt-8 flex justify-center">
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/student/dashboard")
+            }
+            className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            ← Back to Dashboard
+          </button>
+
+        </div>
+
+      </main>
+
     </div>
   );
 }
 
-/* =========================================
-   DETAIL SECTION
-========================================= */
-
-function DetailSection({
-  title,
-  content,
-}: {
-  title: string;
-  content: string;
-}) {
-  if (!content) {
-    return null;
-  }
-
-  return (
-    <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
-      <h2 className="text-xl font-bold">
-        {title}
-      </h2>
-
-      <p className="mt-3 whitespace-pre-line leading-7 text-slate-600 dark:text-slate-300">
-        {content}
-      </p>
-    </section>
-  );
-}
-
-function HindiDetailSection({
-  title,
-  content,
-}: {
-  title: string;
-  content: string;
-}) {
-  if (!content) {
-    return null;
-  }
-
-  return (
-    <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
-      <h2 className="text-xl font-bold">
-        {title}
-      </h2>
-
-      <p className="mt-3 whitespace-pre-line leading-7 text-slate-600 dark:text-slate-300">
-        {content}
-      </p>
-    </section>
-  );
-}
-
-export default CurrentAffairDetail;
+export default WeeklyCurrentAffairs;
