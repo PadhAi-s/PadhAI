@@ -259,17 +259,19 @@ export function StudentDashboard() {
             onClick={() => navigate("/student/dashboard")}
             className="group flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-blue-500/20 transition group-hover:scale-105">
-              V
-            </div>
+            <img
+              src="/favicon.png"
+              alt="Ranker Bhaiya"
+              className="h-10 w-10 rounded-xl object-cover shadow-lg shadow-blue-500/20 transition group-hover:scale-105"
+            />
 
             <div className="hidden text-left sm:block">
               <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                VIDYZEN
+                Ranker <span className="text-yellow-500">Bhaiya</span>
               </div>
 
               <div className="text-[10px] font-medium tracking-wide text-slate-400">
-                Learn&nbsp; · &nbsp;Practice&nbsp; · &nbsp;Grow
+                Aapki Mehnat&nbsp; · &nbsp;Hamari Strategy
               </div>
             </div>
           </button>
@@ -341,7 +343,6 @@ export function StudentDashboard() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span>👤</span>
-
                     {t("dashboard.menu.profile")}
                   </button>
 
@@ -351,7 +352,6 @@ export function StudentDashboard() {
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
                   >
                     <span>↪</span>
-
                     {t("dashboard.menu.logout")}
                   </button>
 
@@ -455,11 +455,8 @@ export function StudentDashboard() {
             <div className="relative hidden h-56 items-center justify-center lg:flex">
 
               <div className="absolute h-48 w-48 rounded-full border border-blue-500/10" />
-
               <div className="absolute h-40 w-40 rounded-full border border-violet-500/10" />
-
               <div className="absolute h-32 w-32 rounded-full border border-cyan-500/10" />
-
               <div className="absolute h-28 w-28 rounded-full bg-blue-500/10 blur-2xl" />
 
               <div className="relative flex h-28 w-28 flex-col items-center justify-center rounded-full border border-white/70 bg-white/75 shadow-[0_15px_45px_-15px_rgba(37,99,235,0.35)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-800/75">
@@ -479,11 +476,8 @@ export function StudentDashboard() {
               </div>
 
               <span className="absolute left-1 top-7 h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_14px_rgba(59,130,246,0.8)]" />
-
               <span className="absolute bottom-7 right-4 h-1.5 w-1.5 rounded-full bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
-
               <span className="absolute right-5 top-4 h-1 w-1 rounded-full bg-cyan-400" />
-
               <span className="absolute bottom-10 left-8 h-1 w-1 rounded-full bg-blue-400" />
 
             </div>
@@ -498,7 +492,6 @@ export function StudentDashboard() {
         <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-7 text-white shadow-[0_20px_50px_-20px_rgba(37,99,235,0.45)] sm:px-10">
 
           <div className="absolute -right-10 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" />
-
           <div className="absolute -bottom-24 right-20 h-56 w-56 rounded-full bg-violet-300/10 blur-3xl" />
 
           <div className="relative z-10">
@@ -760,7 +753,7 @@ export function StudentDashboard() {
               action={t("dashboard.vocabulary.action")}
               badge={t("dashboard.vocabulary.badge")}
               badgeClass="bg-violet-600"
-              className="border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 dark:border-violet-900/50 dark:from-violet-950/30 dark:via-purple-950/20 dark:to-indigo-950/30"
+              className="border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 dark:border-violet-900/50 dark:from-violet-950/30 dark:via-purple-950/20 dark:to-indigo-950/20"
               actionClass="text-violet-700 dark:text-violet-400"
               onClick={handleVocabulary}
             />
@@ -844,7 +837,7 @@ export function StudentDashboard() {
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
 
           <div className="text-sm font-black tracking-tight text-slate-900 dark:text-white">
-            VIDYZEN
+            Ranker <span className="text-yellow-500">Bhaiya</span>
           </div>
 
           <p className="text-center text-xs text-slate-400 sm:text-right">
