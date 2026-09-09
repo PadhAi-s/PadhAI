@@ -33,6 +33,7 @@ export function AskVidhya() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function loadConversations() {
@@ -109,6 +110,95 @@ export function AskVidhya() {
     setError("");
   }
 
+  /* ===================================================
+     DELETE CHAT
+  =================================================== */
+
+  async function deleteConversation(
+    conversation: Conversation,
+  ) {
+    if (!user) {
+      setError("Please login first.");
+      return;
+    }
+
+    const chatTitle =
+      conversation.title?.trim() || "this chat";
+
+    const confirmed = window.confirm(
+      `Delete "${chatTitle}"?\n\nThis chat and its messages will be permanently deleted.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingChatId(conversation.id);
+    setError("");
+
+    try {
+      /*
+       * First delete all messages belonging to this conversation.
+       * This also works when the database foreign key does not
+       * have ON DELETE CASCADE enabled.
+       */
+
+      const { error: messagesDeleteError } = await supabase
+        .from("ai_messages")
+        .delete()
+        .eq("conversation_id", conversation.id);
+
+      if (messagesDeleteError) {
+        throw messagesDeleteError;
+      }
+
+      /* Delete the conversation itself */
+
+      const { error: conversationDeleteError } =
+        await supabase
+          .from("ai_conversations")
+          .delete()
+          .eq("id", conversation.id)
+          .eq("user_id", user.id);
+
+      if (conversationDeleteError) {
+        throw conversationDeleteError;
+      }
+
+      /* Remove from local history immediately */
+
+      setConversations((previous) =>
+        previous.filter(
+          (item) => item.id !== conversation.id,
+        ),
+      );
+
+      /* If currently opened chat was deleted */
+
+      if (
+        selectedConversationId ===
+        conversation.id
+      ) {
+        setSelectedConversationId(null);
+        setMessages([]);
+        setQuestion("");
+      }
+    } catch (err) {
+      console.error(
+        "Delete conversation error:",
+        err,
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to delete this chat.",
+      );
+    } finally {
+      setDeletingChatId(null);
+    }
+  }
+
   useEffect(() => {
     if (!user) {
       setHistoryLoading(false);
@@ -166,13 +256,17 @@ export function AskVidhya() {
         );
       }
 
-      const conversationId = data.conversation_id;
+      const conversationId =
+        data.conversation_id;
 
       if (conversationId) {
-        setSelectedConversationId(conversationId);
+        setSelectedConversationId(
+          conversationId,
+        );
       }
 
-      const now = new Date().toISOString();
+      const now =
+        new Date().toISOString();
 
       const currentConversationId =
         conversationId ||
@@ -181,7 +275,8 @@ export function AskVidhya() {
 
       const userMessage: Message = {
         id: `temp-user-${Date.now()}`,
-        conversation_id: currentConversationId,
+        conversation_id:
+          currentConversationId,
         role: "user",
         content: trimmedQuestion,
         created_at: now,
@@ -189,7 +284,8 @@ export function AskVidhya() {
 
       const aiMessage: Message = {
         id: `temp-ai-${Date.now()}`,
-        conversation_id: currentConversationId,
+        conversation_id:
+          currentConversationId,
         role: "assistant",
         content: data.answer,
         created_at: now,
@@ -235,7 +331,9 @@ export function AskVidhya() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
 
-      {/* Header */}
+      {/* ===================================================
+          HEADER
+      =================================================== */}
 
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
@@ -263,13 +361,17 @@ export function AskVidhya() {
         </div>
       </header>
 
-      {/* Main */}
+      {/* ===================================================
+          MAIN
+      =================================================== */}
 
       <main className="mx-auto max-w-7xl px-4 py-6">
 
         <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
 
-          {/* Chat History */}
+          {/* ===================================================
+              CHAT HISTORY
+          =================================================== */}
 
           <aside className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
 
@@ -314,45 +416,90 @@ export function AskVidhya() {
 
               {conversations.map(
                 (conversation) => (
-                  <button
+                  <div
                     key={conversation.id}
-                    type="button"
-                    onClick={() =>
-                      loadMessages(
-                        conversation.id,
-                      )
-                    }
-                    className={`w-full rounded-xl p-3 text-left transition ${
+                    className={`group flex items-center gap-1 rounded-xl transition ${
                       selectedConversationId ===
                       conversation.id
-                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        ? "bg-blue-50 dark:bg-blue-950/40"
                         : "hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
 
-                    <p className="line-clamp-2 text-sm font-semibold">
-                      {conversation.title ||
-                        "New Chat"}
-                    </p>
+                    {/* CHAT */}
 
-                    <p className="mt-1 text-xs text-slate-400">
-                      {formatDate(
-                        conversation.updated_at,
-                      )}
-                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        loadMessages(
+                          conversation.id,
+                        )
+                      }
+                      disabled={
+                        deletingChatId ===
+                        conversation.id
+                      }
+                      className={`min-w-0 flex-1 rounded-xl p-3 text-left ${
+                        selectedConversationId ===
+                        conversation.id
+                          ? "text-blue-700 dark:text-blue-300"
+                          : ""
+                      }`}
+                    >
 
-                  </button>
+                      <p className="line-clamp-2 text-sm font-semibold">
+                        {conversation.title ||
+                          "New Chat"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {formatDate(
+                          conversation.updated_at,
+                        )}
+                      </p>
+
+                    </button>
+
+                    {/* DELETE */}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        deleteConversation(
+                          conversation,
+                        )
+                      }
+                      disabled={
+                        deletingChatId ===
+                        conversation.id
+                      }
+                      aria-label={`Delete ${
+                        conversation.title ||
+                        "chat"
+                      }`}
+                      title="Delete chat"
+                      className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-950/30 dark:hover:text-red-400 sm:opacity-100"
+                    >
+                      {deletingChatId ===
+                      conversation.id
+                        ? "..."
+                        : "🗑️"}
+                    </button>
+
+                  </div>
                 ),
               )}
 
             </div>
           </aside>
 
-          {/* Chat Area */}
+          {/* ===================================================
+              CHAT AREA
+          =================================================== */}
 
           <section className="flex min-h-[650px] flex-col rounded-2xl bg-white shadow-sm dark:bg-slate-900">
 
-            {/* Student Context */}
+            {/* STUDENT CONTEXT */}
 
             <div className="border-b border-slate-200 p-5 dark:border-slate-800">
 
@@ -390,7 +537,9 @@ export function AskVidhya() {
               </div>
             </div>
 
-            {/* Messages */}
+            {/* ===================================================
+                MESSAGES
+            =================================================== */}
 
             <div className="flex-1 space-y-5 overflow-y-auto p-5">
 
@@ -445,7 +594,7 @@ export function AskVidhya() {
                         }`}
                       >
 
-                        {/* Sender */}
+                        {/* SENDER */}
 
                         <p className="mb-2 text-xs font-semibold opacity-70">
                           {message.role ===
@@ -454,7 +603,7 @@ export function AskVidhya() {
                             : "🤖 Vidhya"}
                         </p>
 
-                        {/* Proper AI Markdown */}
+                        {/* AI MARKDOWN */}
 
                         {isAssistant ? (
                           <div className="padhai-markdown text-sm leading-7">
@@ -631,7 +780,9 @@ export function AskVidhya() {
 
             </div>
 
-            {/* Error */}
+            {/* ===================================================
+                ERROR
+            =================================================== */}
 
             {error && (
               <div className="mx-5 mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
@@ -639,7 +790,9 @@ export function AskVidhya() {
               </div>
             )}
 
-            {/* Ask Form */}
+            {/* ===================================================
+                ASK FORM
+            =================================================== */}
 
             <form
               onSubmit={handleAsk}
@@ -684,3 +837,5 @@ export function AskVidhya() {
     </div>
   );
 }
+
+export default AskVidhya;
