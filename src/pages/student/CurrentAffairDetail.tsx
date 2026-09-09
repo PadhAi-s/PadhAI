@@ -66,7 +66,7 @@ export function CurrentAffairDetail() {
 
   useEffect(() => {
     document.title =
-      "Current Affair | VIDYZEN";
+      "Current Affair | RANKER BHAIYA";
 
     void loadCurrentAffair();
   }, [id]);
@@ -138,7 +138,7 @@ export function CurrentAffairDetail() {
       setAffair(formatted);
 
       document.title =
-        `${formatted.title} | VIDYZEN`;
+        `${formatted.title} | RANKER BHAIYA`;
     } catch (err) {
       console.error(
         "Current Affair Detail Load Error:",
@@ -282,13 +282,14 @@ export function CurrentAffairDetail() {
               className="flex items-center gap-3"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 font-black text-white">
-                V
+                R
               </div>
 
               <div className="text-left">
                 <div className="font-black">
-                  VIDYZEN
+                  RANKER BHAIYA
                 </div>
+
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                   Current Affairs
                 </div>
@@ -329,13 +330,14 @@ export function CurrentAffairDetail() {
               className="flex items-center gap-3"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 font-black text-white">
-                V
+                R
               </div>
 
               <div className="text-left">
                 <div className="font-black">
-                  VIDYZEN
+                  RANKER BHAIYA
                 </div>
+
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                   Current Affairs
                 </div>
@@ -409,12 +411,12 @@ export function CurrentAffairDetail() {
             className="flex items-center gap-3"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 font-black text-white shadow-sm">
-              V
+              R
             </div>
 
             <div className="text-left">
               <h1 className="text-lg font-black tracking-tight">
-                VIDYZEN
+                RANKER BHAIYA
               </h1>
 
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -540,11 +542,7 @@ export function CurrentAffairDetail() {
         {/* STATIC GK */}
         <ContentSection
           icon="📚"
-          title={
-            language === "hindi"
-              ? "Static GK"
-              : "Static GK"
-          }
+          title="Static GK"
           content={staticGk}
         />
 
