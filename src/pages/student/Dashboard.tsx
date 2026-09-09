@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+import { LanguageToggle } from "../../components/LanguageToggle";
 import { getDailyMindset } from "../../data/dailyMindsets";
 
 export function StudentDashboard() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [today, setToday] = useState(() => new Date());
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   /* ===================================================
      LANGUAGE
@@ -52,6 +58,27 @@ export function StudentDashboard() {
       window.clearTimeout(timeout);
     };
   }, [today]);
+
+  /* ===================================================
+     CLOSE MENU ON OUTSIDE CLICK
+  =================================================== */
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   /* ===================================================
      STUDENT
@@ -104,6 +131,21 @@ export function StudentDashboard() {
   /* ===================================================
      NAVIGATION
   =================================================== */
+
+  const handleProfile = () => {
+    setMenuOpen(false);
+    navigate("/student/profile");
+  };
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
+  };
 
   const handleFastRevision = () => {
     navigate("/student/quick-revision");
@@ -202,6 +244,124 @@ export function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+
+      {/* ===================================================
+          HEADER
+      =================================================== */}
+
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+
+          {/* LOGO */}
+
+          <button
+            type="button"
+            onClick={() => navigate("/student/dashboard")}
+            className="group flex items-center gap-3"
+          >
+            <img
+              src={`${import.meta.env.BASE_URL}favicon.png`}
+              alt="Ranker Bhaiya"
+              className="h-10 w-10 rounded-xl object-cover shadow-lg shadow-blue-500/20 transition group-hover:scale-105"
+            />
+
+            <div className="hidden text-left sm:block">
+              <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                Ranker <span className="text-yellow-500">Bhaiya</span>
+              </div>
+
+              <div className="text-[10px] font-medium tracking-wide text-slate-400">
+                Aapki Mehnat&nbsp; · &nbsp;Hamari Strategy
+              </div>
+            </div>
+          </button>
+
+          {/* RIGHT SIDE */}
+
+          <div className="flex items-center gap-2 sm:gap-3">
+
+            <LanguageToggle />
+
+            {/* THEME */}
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              className="flex h-10 items-center gap-1 rounded-full border border-slate-200 bg-white px-3 text-sm shadow-sm transition hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
+            >
+              <span>
+                {theme === "dark" ? "🌙" : "☀️"}
+              </span>
+            </button>
+
+            {/* STUDENT */}
+
+            <div className="hidden items-center gap-3 sm:flex">
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-black text-white shadow-md shadow-blue-500/20">
+                {studentName.charAt(0).toUpperCase()}
+              </div>
+
+              <div className="hidden text-left md:block">
+
+                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                  {studentName}
+                </p>
+
+                <p className="text-[10px] text-slate-400">
+                  {profile?.email ?? "Student"}
+                </p>
+
+              </div>
+            </div>
+
+            {/* MENU */}
+
+            <div
+              className="relative"
+              ref={menuRef}
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  setMenuOpen((value) => !value)
+                }
+                aria-label={t("dashboard.openMenu")}
+                aria-expanded={menuOpen}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                ⋮
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 top-12 w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-900">
+
+                  <button
+                    type="button"
+                    onClick={handleProfile}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <span>👤</span>
+                    {t("dashboard.menu.profile")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                  >
+                    <span>↪</span>
+                    {t("dashboard.menu.logout")}
+                  </button>
+
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </header>
 
       {/* ===================================================
           MAIN
@@ -316,11 +476,8 @@ export function StudentDashboard() {
               </div>
 
               <span className="absolute left-1 top-7 h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_14px_rgba(59,130,246,0.8)]" />
-
               <span className="absolute bottom-7 right-4 h-1.5 w-1.5 rounded-full bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
-
               <span className="absolute right-5 top-4 h-1 w-1 rounded-full bg-cyan-400" />
-
               <span className="absolute bottom-10 left-8 h-1 w-1 rounded-full bg-blue-400" />
 
             </div>
@@ -335,7 +492,6 @@ export function StudentDashboard() {
         <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-7 text-white shadow-[0_20px_50px_-20px_rgba(37,99,235,0.45)] sm:px-10">
 
           <div className="absolute -right-10 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" />
-
           <div className="absolute -bottom-24 right-20 h-56 w-56 rounded-full bg-violet-300/10 blur-3xl" />
 
           <div className="relative z-10">
@@ -492,7 +648,7 @@ export function StudentDashboard() {
             <button
               type="button"
               onClick={() => undefined}
-              className="group relative overflow-hidden rounded-[1.5rem] border border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-violet-900/50 dark:from-violet-950/30 dark:via-purple-950/20 dark:to-fuchsia-950/20"
+              className="group relative overflow-hidden rounded-[1.5rem] border border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-violet-900/50 dark:from-violet-950/30 dark:via-purple-950/20 dark:to-fuchsia-950/30"
             >
 
               <div className="relative z-10 flex items-start justify-between gap-4">
