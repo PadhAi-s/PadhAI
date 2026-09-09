@@ -1,7 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-const STORAGE_KEY = "vidyzen-language";
+const STORAGE_KEY = "ranker-bhaiya-language";
 
 const resources = {
   en: {
@@ -38,7 +38,7 @@ const resources = {
       home: {
         heroTitle: "Learn smarter. Prepare better.",
         heroSubtitle:
-          "VIDYZEN brings learning resources, current affairs and AI-powered study support together in one place.",
+          "Ranker Bhaiya brings learning resources, current affairs, and AI-powered guidance together in one place — helping you learn smarter, stay ahead, and prepare with confidence.",
         ctaStudent: "Student Login",
 
         pillars: {
@@ -226,10 +226,10 @@ const resources = {
 
         about: {
           eyebrow: "ABOUT",
-          title: "About VIDYZEN",
+          title: "About RANKER BHAIYA",
 
           description:
-            "VIDYZEN is built to make exam preparation simpler, smarter and more focused. From daily current affairs and newspaper reading to fast revision, AI-powered learning and vocabulary building, everything is designed to help students learn consistently.",
+            "Ranker Bhaiya is a focused learning platform built to help students prepare smarter, stay updated, and make consistent progress. From daily current affairs and newspaper reading to fast revision, vocabulary building, and AI-powered learning support, everything is thoughtfully designed to make exam preparation simpler, more effective, and more engaging.",
 
           examFocused: "Exam Focused",
           aiPowered: "AI Powered",
@@ -371,9 +371,9 @@ const resources = {
       },
 
       about: {
-        title: "About VIDYZEN",
+        title: "About RANKER BHAIYA",
         description:
-          "VIDYZEN is a student-focused learning platform designed to make exam preparation simpler, smarter and more effective.",
+          "Ranker Bhaiya is a student-focused learning platform designed to make exam preparation simpler, smarter and more effective.",
       },
 
       notFound: {
@@ -419,7 +419,7 @@ const resources = {
       home: {
         heroTitle: "स्मार्ट तरीके से पढ़ें। बेहतर तैयारी करें।",
         heroSubtitle:
-          "VIDYZEN आपके लिए पढ़ाई के संसाधन, करंट अफेयर्स और AI आधारित सहायता एक ही जगह लाता है।",
+          "Ranker Bhaiya आपके लिए पढ़ाई के संसाधन, करंट अफेयर्स और AI आधारित सहायता एक ही जगह लाता है।",
         ctaStudent: "स्टूडेंट लॉगिन",
 
         pillars: {
@@ -609,10 +609,10 @@ const resources = {
 
         about: {
           eyebrow: "परिचय",
-          title: "VIDYZEN के बारे में",
+          title: "RANKER BHAIYA के बारे में",
 
           description:
-            "VIDYZEN को परीक्षा की तैयारी को आसान, स्मार्ट और अधिक केंद्रित बनाने के लिए बनाया गया है। डेली करंट अफेयर्स और न्यूज़पेपर से लेकर फास्ट रिवीजन, AI लर्निंग और वोकैबुलरी तक, हर सुविधा छात्रों को लगातार सीखने में मदद करने के लिए बनाई गई है।",
+            "Ranker Bhaiya को परीक्षा की तैयारी को आसान, स्मार्ट और अधिक केंद्रित बनाने के लिए बनाया गया है। डेली करंट अफेयर्स और न्यूज़पेपर से लेकर फास्ट रिवीजन, AI लर्निंग और वोकैबुलरी तक, हर सुविधा छात्रों को लगातार सीखने और बेहतर तैयारी करने में मदद करने के लिए बनाई गई है।",
 
           examFocused: "परीक्षा केंद्रित",
           aiPowered: "AI आधारित",
@@ -654,6 +654,30 @@ const resources = {
           Economy: "अर्थव्यवस्था",
           Sports: "खेल",
           Awards: "पुरस्कार",
+        },
+
+        categoryTitles: {
+          national: "राष्ट्रीय अपडेट",
+          international: "अंतरराष्ट्रीय मामले",
+          scienceTech: "विज्ञान और टेक्नोलॉजी",
+          economy: "अर्थव्यवस्था और व्यापार",
+          sports: "खेल",
+          awards: "पुरस्कार और नियुक्तियां",
+        },
+
+        categoryDescriptions: {
+          national:
+            "महत्वपूर्ण राष्ट्रीय घटनाएं और सरकार से जुड़े प्रमुख विकास।",
+          international:
+            "प्रमुख अंतरराष्ट्रीय घटनाएं, वैश्विक विकास और महत्वपूर्ण विश्व समाचार।",
+          scienceTech:
+            "विज्ञान, तकनीक, अंतरिक्ष और नवाचार से जुड़े महत्वपूर्ण विकास।",
+          economy:
+            "प्रमुख आर्थिक विकास, व्यापारिक समाचार और महत्वपूर्ण वित्तीय अपडेट।",
+          sports:
+            "महत्वपूर्ण खेल आयोजन, टूर्नामेंट, उपलब्धियां और बड़ी जीत।",
+          awards:
+            "महत्वपूर्ण नियुक्तियां, पुरस्कार, सम्मान और समाचारों में रहने वाली प्रमुख हस्तियां।",
         },
 
         detail: {
@@ -731,9 +755,9 @@ const resources = {
       },
 
       about: {
-        title: "VIDYZEN के बारे में",
+        title: "RANKER BHAIYA के बारे में",
         description:
-          "VIDYZEN एक छात्र-केंद्रित लर्निंग प्लेटफॉर्म है जो परीक्षा की तैयारी को आसान, स्मार्ट और प्रभावी बनाने के लिए बनाया गया है।",
+          "Ranker Bhaiya एक छात्र-केंद्रित लर्निंग प्लेटफॉर्म है जो परीक्षा की तैयारी को आसान, स्मार्ट और प्रभावी बनाने के लिए बनाया गया है।",
       },
 
       notFound: {
@@ -780,7 +804,7 @@ const resources = {
         heroTitle:
           "Smart tareeke se padho. Better preparation karo.",
         heroSubtitle:
-          "VIDYZEN mein learning resources, current affairs aur AI study support ek hi jagah milta hai.",
+          "Ranker Bhaiya mein learning resources, current affairs aur AI-powered guidance ek hi jagah milta hai — taaki tum smart tareeke se padho, updated raho aur confidence ke saath preparation karo.",
         ctaStudent: "Student Login",
 
         pillars: {
@@ -972,10 +996,10 @@ const resources = {
 
         about: {
           eyebrow: "ABOUT",
-          title: "VIDYZEN ke baare mein",
+          title: "RANKER BHAIYA ke baare mein",
 
           description:
-            "VIDYZEN ko exam preparation ko simple, smart aur focused banane ke liye banaya gaya hai. Daily current affairs aur newspaper se lekar fast revision, AI learning aur vocabulary tak, sab kuch students ko consistently learn karne mein help karta hai.",
+            "Ranker Bhaiya ko exam preparation ko simple, smart aur focused banane ke liye banaya gaya hai. Daily current affairs aur newspaper se lekar fast revision, AI learning aur vocabulary tak, sab kuch students ko consistently learn karne aur better preparation karne mein help karta hai.",
 
           examFocused: "Exam Focused",
           aiPowered: "AI Powered",
@@ -1017,6 +1041,30 @@ const resources = {
           Economy: "Economy",
           Sports: "Sports",
           Awards: "Awards",
+        },
+
+        categoryTitles: {
+          national: "National Updates",
+          international: "International Affairs",
+          scienceTech: "Science & Technology",
+          economy: "Economy & Business",
+          sports: "Sports",
+          awards: "Awards & Appointments",
+        },
+
+        categoryDescriptions: {
+          national:
+            "Important national events aur government-related developments.",
+          international:
+            "Major international events, global developments aur important world news.",
+          scienceTech:
+            "Science, technology, space aur innovation se jude important developments.",
+          economy:
+            "Key economic developments, business news aur important financial updates.",
+          sports:
+            "Important sports events, tournaments, achievements aur major victories.",
+          awards:
+            "Important appointments, awards, honours aur news mein rehne wali personalities.",
         },
 
         detail: {
@@ -1094,9 +1142,9 @@ const resources = {
       },
 
       about: {
-        title: "VIDYZEN ke baare mein",
+        title: "RANKER BHAIYA ke baare mein",
         description:
-          "VIDYZEN ek student-focused learning platform hai jo exam preparation ko simple, smart aur effective banane ke liye banaya gaya hai.",
+          "Ranker Bhaiya ek student-focused learning platform hai jo exam preparation ko simple, smart aur effective banane ke liye banaya gaya hai.",
       },
 
       notFound: {
