@@ -181,7 +181,9 @@ export function StudentDashboard() {
       title: "Exam Booster",
       description:
         "Practice, test and learn to perform better in your exams.",
+
       soon: "Coming Soon",
+      live: "LIVE",
 
       pyqTitle: "PYQ Practice",
       pyqDescription:
@@ -204,7 +206,9 @@ export function StudentDashboard() {
       title: "एग्जाम बूस्टर",
       description:
         "बेहतर परीक्षा प्रदर्शन के लिए अभ्यास, टेस्ट और स्मार्ट तैयारी करें।",
+
       soon: "जल्द आ रहा है",
+      live: "लाइव",
 
       pyqTitle: "PYQ अभ्यास",
       pyqDescription:
@@ -227,7 +231,9 @@ export function StudentDashboard() {
       title: "Exam Booster",
       description:
         "Better exam performance ke liye practice, test aur smart preparation karo.",
+
       soon: "Coming Soon",
+      live: "LIVE",
 
       pyqTitle: "PYQ Practice",
       pyqDescription:
@@ -702,7 +708,7 @@ export function StudentDashboard() {
                 </div>
 
                 <span className="rounded-full bg-orange-500 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-white">
-                  {boosterText.soon}
+                  {boosterText.live}
                 </span>
 
               </div>
