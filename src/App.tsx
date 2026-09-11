@@ -30,6 +30,8 @@ import WeeklyCurrentAffairs from "./pages/student/WeeklyCurrentAffairs";
 import { CurrentAffairDetail } from "./pages/student/CurrentAffairDetail";
 import { FastRevision } from "./pages/student/FastRevision";
 import Vocabulary from "./pages/student/Vocabulary";
+import ExamTips from "./pages/student/ExamTips";
+
 /* =====================================================
    ADMIN
 ===================================================== */
@@ -97,56 +99,72 @@ export default function App() {
                   }
                 >
 
-                  {/* DASHBOARD */}
+                  {/* =================================================
+                      DASHBOARD
+                  ================================================= */}
 
                   <Route
                     path="student/dashboard"
                     element={<StudentDashboard />}
                   />
 
-                  {/* PROFILE */}
+                  {/* =================================================
+                      PROFILE
+                  ================================================= */}
 
                   <Route
                     path="student/profile"
                     element={<StudentProfile />}
                   />
 
-                  {/* SYLLABUS */}
+                  {/* =================================================
+                      SYLLABUS
+                  ================================================= */}
 
                   <Route
                     path="student/syllabus"
                     element={<StudentSyllabus />}
                   />
 
-                  {/* ASK VIDHYA */}
+                  {/* =================================================
+                      ASK VIDHYA
+                  ================================================= */}
 
                   <Route
                     path="student/ask"
                     element={<AskVidhya />}
                   />
 
-                  {/* DAILY NEWSPAPER */}
+                  {/* =================================================
+                      DAILY NEWSPAPER
+                  ================================================= */}
 
                   <Route
                     path="student/daily-newspaper"
                     element={<DailyNewspaper />}
                   />
 
-                  {/* CURRENT AFFAIRS */}
+                  {/* =================================================
+                      CURRENT AFFAIRS
+                  ================================================= */}
 
                   <Route
                     path="student/current-affairs"
                     element={<WeeklyCurrentAffairs />}
                   />
 
-                  {/* CURRENT AFFAIR DETAIL */}
+                  {/* =================================================
+                      CURRENT AFFAIR DETAIL
+                  ================================================= */}
 
                   <Route
                     path="student/current-affairs/:id"
                     element={<CurrentAffairDetail />}
                   />
 
-                  {/* FAST REVISION */}
+                  {/* =================================================
+                      FAST REVISION
+                  ================================================= */}
 
                   <Route
                     path="student/quick-revision"
@@ -160,6 +178,15 @@ export default function App() {
                   <Route
                     path="student/vocabulary"
                     element={<Vocabulary />}
+                  />
+
+                  {/* =================================================
+                      EXAM TIPS
+                  ================================================= */}
+
+                  <Route
+                    path="student/exam-tips"
+                    element={<ExamTips />}
                   />
 
                 </Route>
@@ -183,21 +210,27 @@ export default function App() {
                   }
                 >
 
-                  {/* ADMIN DASHBOARD */}
+                  {/* =================================================
+                      ADMIN DASHBOARD
+                  ================================================= */}
 
                   <Route
                     path="admin/dashboard"
                     element={<AdminDashboard />}
                   />
 
-                  {/* ADMIN CURRENT AFFAIRS */}
+                  {/* =================================================
+                      ADMIN CURRENT AFFAIRS
+                  ================================================= */}
 
                   <Route
                     path="admin/current-affairs"
                     element={<AdminCurrentAffairs />}
                   />
 
-                  {/* ADMIN NEWSPAPER */}
+                  {/* =================================================
+                      ADMIN NEWSPAPER
+                  ================================================= */}
 
                   <Route
                     path="admin/newspaper"
