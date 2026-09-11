@@ -1,4 +1,4 @@
-name: Deploy PadhAI to GitHub Pages
+name: Deploy RankerBhaiya to GitHub Pages
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build PadhAI
+      - name: Build RankerBhaiya
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -56,5 +56,5 @@ jobs:
 
     steps:
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
+        id: deployment
