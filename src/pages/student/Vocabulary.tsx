@@ -120,6 +120,7 @@ export function Vocabulary() {
       meaning: "Meaning",
       pronunciation: "Pronunciation",
       pronounce: "Pronounce",
+      playing: "Playing...",
       example: "Example",
       words: "words",
       noResults: "No vocabulary words found.",
@@ -139,6 +140,7 @@ export function Vocabulary() {
       meaning: "अर्थ",
       pronunciation: "उच्चारण",
       pronounce: "उच्चारण सुनें",
+      playing: "चल रहा है...",
       example: "उदाहरण",
       words: "शब्द",
       noResults: "कोई vocabulary word नहीं मिला।",
@@ -158,6 +160,7 @@ export function Vocabulary() {
       meaning: "Meaning",
       pronunciation: "Pronunciation",
       pronounce: "Pronounce",
+      playing: "Playing...",
       example: "Example",
       words: "words",
       noResults: "Koi vocabulary word nahi mila.",
@@ -183,12 +186,20 @@ export function Vocabulary() {
   }, [search, difficulty]);
 
   const getMeaning = (word: VocabularyWord) => {
-    if (language === "hi") return word.hindi;
-    if (language === "hinglish") return word.hinglish;
+    if (language === "hi") {
+      return `${word.hindi} — ${word.meaning}`;
+    }
+
+    if (language === "hinglish") {
+      return `${word.hinglish} — ${word.meaning}`;
+    }
+
     return word.meaning;
   };
 
-  const difficultyStyle = (level: VocabularyWord["difficulty"]) => {
+  const getDifficultyStyle = (
+    level: VocabularyWord["difficulty"],
+  ) => {
     if (level === "Easy") {
       return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900";
     }
@@ -201,7 +212,10 @@ export function Vocabulary() {
   };
 
   const pronounceWord = (word: VocabularyWord) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window)
+    ) {
       return;
     }
 
@@ -230,12 +244,14 @@ export function Vocabulary() {
   };
 
   const toggleCard = (word: string) => {
-    setExpandedWord((current) => (current === word ? null : word));
+    setExpandedWord((current) =>
+      current === word ? null : word,
+    );
   };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* TOP BAR */}
+      {/* HEADER */}
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
           <button
@@ -275,7 +291,7 @@ export function Vocabulary() {
           </div>
         </section>
 
-        {/* SEARCH + FILTER */}
+        {/* SEARCH + FILTERS */}
         <section className="mt-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-xl">
@@ -286,7 +302,9 @@ export function Vocabulary() {
               <input
                 type="text"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
                 placeholder={ui.search}
                 className="w-full rounded-2xl border border-slate-200 bg-white px-11 py-3.5 text-sm font-medium outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
               />
@@ -323,7 +341,7 @@ export function Vocabulary() {
         </section>
 
         {/* WORD CARDS */}
-        <section className="mt-5 grid gap-5 md:grid-cols-2">
+        <section className="mt-5 grid items-start gap-5 md:grid-cols-2">
           {filteredWords.map((item) => {
             const isExpanded = expandedWord === item.word;
             const isSpeaking = speakingWord === item.word;
@@ -331,21 +349,21 @@ export function Vocabulary() {
             return (
               <article
                 key={item.word}
-                className={`overflow-hidden rounded-[1.75rem] border bg-white shadow-sm transition duration-300 dark:bg-slate-900 ${
+                className={`self-start overflow-hidden rounded-[1.75rem] border bg-white shadow-sm transition duration-300 dark:bg-slate-900 ${
                   isExpanded
                     ? "border-blue-300 shadow-lg shadow-blue-500/10 dark:border-blue-800"
                     : "border-slate-200 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800"
                 }`}
               >
                 {/* CARD HEADER */}
-                <button
-                  type="button"
-                  onClick={() => toggleCard(item.word)}
-                  className="w-full p-6 text-left"
-                  aria-expanded={isExpanded}
-                >
+                <div className="p-6">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => toggleCard(item.word)}
+                      className="min-w-0 flex-1 text-left"
+                      aria-expanded={isExpanded}
+                    >
                       <h2 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">
                         {item.word}
                       </h2>
@@ -353,36 +371,44 @@ export function Vocabulary() {
                       <p className="mt-1 text-sm font-medium text-slate-400">
                         {item.meaning}
                       </p>
-                    </div>
+                    </button>
 
                     <div className="flex shrink-0 items-center gap-2">
                       <span
-                        className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-wider ${difficultyStyle(
+                        className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-wider ${getDifficultyStyle(
                           item.difficulty,
                         )}`}
                       >
                         {item.difficulty}
                       </span>
 
-                      <span
-                        className={`flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-500 transition dark:bg-slate-800 dark:text-slate-300 ${
+                      <button
+                        type="button"
+                        onClick={() => toggleCard(item.word)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 ${
                           isExpanded ? "rotate-180" : ""
                         }`}
-                        aria-hidden="true"
+                        aria-label={
+                          isExpanded
+                            ? "Collapse details"
+                            : "Open details"
+                        }
                       >
                         ↓
-                      </span>
+                      </button>
                     </div>
                   </div>
-                </button>
+                </div>
 
-                {/* EXPANDED DETAILS */}
+                {/* DETAILS */}
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-6 pb-6 dark:border-slate-800">
                     {/* MEANING */}
                     <div className="mt-5 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
                       <div className="flex gap-3">
-                        <div className="mt-0.5 text-lg">📖</div>
+                        <div className="mt-0.5 text-lg">
+                          📖
+                        </div>
 
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">
@@ -399,7 +425,9 @@ export function Vocabulary() {
                     {/* PRONUNCIATION */}
                     <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="text-lg">🔊</div>
+                        <div className="text-lg">
+                          🔊
+                        </div>
 
                         <div className="min-w-0">
                           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">
@@ -414,10 +442,7 @@ export function Vocabulary() {
 
                       <button
                         type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          pronounceWord(item);
-                        }}
+                        onClick={() => pronounceWord(item)}
                         className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-black transition ${
                           isSpeaking
                             ? "border-blue-600 bg-blue-600 text-white"
@@ -425,9 +450,14 @@ export function Vocabulary() {
                         }`}
                         aria-label={`${ui.pronounce} ${item.word}`}
                       >
-                        <span>{isSpeaking ? "🔊" : "▶"}</span>
+                        <span>
+                          {isSpeaking ? "🔊" : "▶"}
+                        </span>
+
                         <span className="hidden sm:inline">
-                          {isSpeaking ? "Playing..." : ui.pronounce}
+                          {isSpeaking
+                            ? ui.playing
+                            : ui.pronounce}
                         </span>
                       </button>
                     </div>
@@ -435,7 +465,9 @@ export function Vocabulary() {
                     {/* EXAMPLE */}
                     <div className="mt-4 rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                       <div className="flex gap-3">
-                        <div className="mt-0.5 text-lg">📝</div>
+                        <div className="mt-0.5 text-lg">
+                          📝
+                        </div>
 
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
