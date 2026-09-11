@@ -167,6 +167,10 @@ export function StudentDashboard() {
     navigate("/student/vocabulary");
   };
 
+  const handleExamTips = () => {
+    navigate("/student/exam-tips");
+  };
+
   /* ===================================================
      EXAM BOOSTER TEXT
   =================================================== */
@@ -687,7 +691,7 @@ export function StudentDashboard() {
 
             <button
               type="button"
-              onClick={() => undefined}
+              onClick={handleExamTips}
               className="group relative overflow-hidden rounded-[1.5rem] border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-6 text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-orange-900/50 dark:from-orange-950/30 dark:via-amber-950/20 dark:to-yellow-950/30"
             >
 
