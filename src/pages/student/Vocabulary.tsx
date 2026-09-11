@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-
 import { supabase } from "../../lib/supabase";
 
 type Category =
@@ -15,7 +14,7 @@ type Category =
   | "confusing"
   | "errors";
 
-type Difficulty = "Easy" | "Medium" | "Hard";
+type Difficulty = "All" | "Easy" | "Medium" | "Hard";
 
 type StudyItem = {
   id: string;
@@ -28,93 +27,110 @@ type StudyItem = {
   pronunciation: string | null;
   example: string | null;
   extra: string | null;
-  difficulty: Difficulty;
+  difficulty: string | null;
   published: boolean;
   created_at: string;
 };
 
 const CATEGORIES: {
-  id: Category;
+  key: Category;
   label: string;
   icon: string;
+  description: string;
 }[] = [
-  { id: "vocabulary", label: "Vocabulary", icon: "📚" },
-  { id: "idioms", label: "Idioms & Phrases", icon: "💬" },
-  { id: "synonyms", label: "Synonyms", icon: "🔄" },
-  { id: "antonyms", label: "Antonyms", icon: "↔️" },
-  { id: "oneWord", label: "One Word", icon: "🎯" },
-  { id: "phrasal", label: "Phrasal Verbs", icon: "🧩" },
-  { id: "confusing", label: "Confusing Words", icon: "⚡" },
-  { id: "errors", label: "Common Errors", icon: "✍️" },
+  {
+    key: "vocabulary",
+    label: "Vocabulary",
+    icon: "📚",
+    description: "Important exam vocabulary",
+  },
+  {
+    key: "idioms",
+    label: "Idioms & Phrases",
+    icon: "💬",
+    description: "Common idioms and phrases",
+  },
+  {
+    key: "synonyms",
+    label: "Synonyms",
+    icon: "🔄",
+    description: "Words with similar meanings",
+  },
+  {
+    key: "antonyms",
+    label: "Antonyms",
+    icon: "↔️",
+    description: "Opposite meaning words",
+  },
+  {
+    key: "oneWord",
+    label: "One Word Substitution",
+    icon: "🎯",
+    description: "One word for a phrase",
+  },
+  {
+    key: "phrasal",
+    label: "Phrasal Verbs",
+    icon: "⚡",
+    description: "Useful phrasal verbs",
+  },
+  {
+    key: "confusing",
+    label: "Confusing Words",
+    icon: "🧠",
+    description: "Frequently confused words",
+  },
+  {
+    key: "errors",
+    label: "Spelling / Common Errors",
+    icon: "✍️",
+    description: "Common spelling and usage errors",
+  },
 ];
 
 const CARD_THEMES = [
-  {
-    bg: "from-orange-50 via-white to-amber-50",
-    darkBg: "dark:from-orange-950/30 dark:via-slate-900 dark:to-amber-950/20",
-    accent: "bg-orange-500",
-    soft: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
-    border: "border-orange-200/70 dark:border-orange-900/50",
-    button:
-      "bg-orange-500 hover:bg-orange-600 shadow-orange-200 dark:shadow-none",
-    icon: "💰",
-  },
-  {
-    bg: "from-blue-50 via-white to-indigo-50",
-    darkBg: "dark:from-blue-950/30 dark:via-slate-900 dark:to-indigo-950/20",
-    accent: "bg-blue-500",
-    soft: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-    border: "border-blue-200/70 dark:border-blue-900/50",
-    button:
-      "bg-blue-600 hover:bg-blue-700 shadow-blue-200 dark:shadow-none",
-    icon: "⏳",
-  },
-  {
-    bg: "from-emerald-50 via-white to-green-50",
-    darkBg:
-      "dark:from-emerald-950/30 dark:via-slate-900 dark:to-green-950/20",
-    accent: "bg-emerald-500",
-    soft: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-    border: "border-emerald-200/70 dark:border-emerald-900/50",
-    button:
-      "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none",
-    icon: "🛡️",
-  },
-  {
-    bg: "from-violet-50 via-white to-purple-50",
-    darkBg:
-      "dark:from-violet-950/30 dark:via-slate-900 dark:to-purple-950/20",
-    accent: "bg-violet-500",
-    soft: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
-    border: "border-violet-200/70 dark:border-violet-900/50",
-    button:
-      "bg-violet-600 hover:bg-violet-700 shadow-violet-200 dark:shadow-none",
-    icon: "💜",
-  },
-  {
-    bg: "from-rose-50 via-white to-pink-50",
-    darkBg: "dark:from-rose-950/30 dark:via-slate-900 dark:to-pink-950/20",
-    accent: "bg-rose-500",
-    soft: "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300",
-    border: "border-rose-200/70 dark:border-rose-900/50",
-    button:
-      "bg-rose-600 hover:bg-rose-700 shadow-rose-200 dark:shadow-none",
-    icon: "✨",
-  },
-  {
-    bg: "from-cyan-50 via-white to-sky-50",
-    darkBg: "dark:from-cyan-950/30 dark:via-slate-900 dark:to-sky-950/20",
-    accent: "bg-cyan-500",
-    soft: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300",
-    border: "border-cyan-200/70 dark:border-cyan-900/50",
-    button:
-      "bg-cyan-600 hover:bg-cyan-700 shadow-cyan-200 dark:shadow-none",
-    icon: "🧠",
-  },
+  "from-indigo-500/10 via-violet-500/5 to-transparent",
+  "from-blue-500/10 via-cyan-500/5 to-transparent",
+  "from-emerald-500/10 via-teal-500/5 to-transparent",
+  "from-orange-500/10 via-amber-500/5 to-transparent",
+  "from-pink-500/10 via-rose-500/5 to-transparent",
+  "from-purple-500/10 via-fuchsia-500/5 to-transparent",
 ];
 
-function getTheme(index: number) {
-  return CARD_THEMES[index % CARD_THEMES.length];
+function normalizeDifficulty(value: string | null): string {
+  if (!value) return "Easy";
+
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "medium") return "Medium";
+  if (normalized === "hard") return "Hard";
+
+  return "Easy";
+}
+
+function getCategoryLabel(category: Category) {
+  return (
+    CATEGORIES.find((item) => item.key === category)?.label ?? "Vocabulary"
+  );
+}
+
+function speakText(text: string) {
+  if (
+    typeof window === "undefined" ||
+    !("speechSynthesis" in window) ||
+    !text.trim()
+  ) {
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-IN";
+  utterance.rate = 0.85;
+  utterance.pitch = 1;
+
+  window.speechSynthesis.speak(utterance);
 }
 
 export default function Vocabulary() {
@@ -122,84 +138,81 @@ export default function Vocabulary() {
   const { i18n } = useTranslation();
 
   const [items, setItems] = useState<StudyItem[]>([]);
-  const [activeCategory, setActiveCategory] =
+  const [selectedCategory, setSelectedCategory] =
     useState<Category>("vocabulary");
-
+  const [difficulty, setDifficulty] = useState<Difficulty>("All");
   const [search, setSearch] = useState("");
-  const [difficulty, setDifficulty] =
-    useState<"All" | Difficulty>("All");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [expandedId, setExpandedId] =
-    useState<string | null>(null);
-  const [speakingId, setSpeakingId] =
-    useState<string | null>(null);
 
-  const currentLanguage =
-    i18n.language?.toLowerCase() || "en";
-
-  const isHindi =
-    currentLanguage === "hi" ||
-    currentLanguage.startsWith("hi-");
-
-  const isHinglish =
-    currentLanguage.includes("hinglish") ||
-    currentLanguage === "en-hi";
-
-  // =========================================================
-  // LOAD CONTENT FROM SUPABASE
-  // =========================================================
+  const currentLanguage = i18n.language?.toLowerCase() ?? "en";
 
   useEffect(() => {
     let mounted = true;
 
-    const loadContent = async () => {
+    async function loadContent() {
       setLoading(true);
       setError("");
 
-      const { data, error: fetchError } =
-        await supabase
-          .from("english_content")
-          .select(`
-            id,
-            category,
-            title,
-            subtitle,
-            meaning,
-            hindi,
-            hinglish,
-            pronunciation,
-            example,
-            extra,
-            difficulty,
-            published,
-            created_at
-          `)
-          .eq("published", true)
-          .order("created_at", {
-            ascending: false,
-          });
+      const { data, error: fetchError } = await supabase
+        .from("english_content")
+        .select(`
+          id,
+          category,
+          title,
+          subtitle,
+          meaning,
+          hindi,
+          hinglish,
+          pronunciation,
+          example,
+          extra,
+          difficulty,
+          published,
+          created_at
+        `)
+        .eq("published", true)
+        .order("created_at", { ascending: false });
 
       if (!mounted) return;
 
       if (fetchError) {
-        console.error(
-          "English content error:",
-          fetchError
-        );
-
+        console.error("Vocabulary fetch error:", fetchError);
         setError(
-          "English content load nahi ho paaya. Please try again."
+          "Vocabulary content load nahi ho pa raha hai. Please try again."
         );
-
         setItems([]);
-      } else {
-        setItems((data || []) as StudyItem[]);
+        setLoading(false);
+        return;
       }
 
+      const validItems: StudyItem[] = (data ?? [])
+        .filter((item) =>
+          CATEGORIES.some(
+            (category) => category.key === item.category
+          )
+        )
+        .map((item) => ({
+          id: String(item.id),
+          category: item.category as Category,
+          title: item.title ?? "",
+          subtitle: item.subtitle ?? null,
+          meaning: item.meaning ?? null,
+          hindi: item.hindi ?? null,
+          hinglish: item.hinglish ?? null,
+          pronunciation: item.pronunciation ?? null,
+          example: item.example ?? null,
+          extra: item.extra ?? null,
+          difficulty: item.difficulty ?? "Easy",
+          published: Boolean(item.published),
+          created_at: item.created_at,
+        }));
+
+      setItems(validItems);
       setLoading(false);
-    };
+    }
 
     loadContent();
 
@@ -208,31 +221,38 @@ export default function Vocabulary() {
     };
   }, []);
 
-  // =========================================================
-  // CATEGORY COUNT
-  // =========================================================
+  const categoryCounts = useMemo(() => {
+    const counts: Record<Category, number> = {
+      vocabulary: 0,
+      idioms: 0,
+      synonyms: 0,
+      antonyms: 0,
+      oneWord: 0,
+      phrasal: 0,
+      confusing: 0,
+      errors: 0,
+    };
 
-  const getCategoryCount = (category: Category) =>
-    items.filter(
-      (item) => item.category === category
-    ).length;
+    for (const item of items) {
+      if (counts[item.category] !== undefined) {
+        counts[item.category]++;
+      }
+    }
 
-  // =========================================================
-  // FILTERED CONTENT
-  // =========================================================
+    return counts;
+  }, [items]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return items.filter((item) => {
-      if (item.category !== activeCategory) {
-        return false;
-      }
+      const categoryMatch = item.category === selectedCategory;
 
-      if (
-        difficulty !== "All" &&
-        item.difficulty !== difficulty
-      ) {
+      const difficultyMatch =
+        difficulty === "All" ||
+        normalizeDifficulty(item.difficulty) === difficulty;
+
+      if (!categoryMatch || !difficultyMatch) {
         return false;
       }
 
@@ -246,6 +266,7 @@ export default function Vocabulary() {
         item.meaning,
         item.hindi,
         item.hinglish,
+        item.pronunciation,
         item.example,
         item.extra,
       ]
@@ -255,147 +276,72 @@ export default function Vocabulary() {
 
       return searchableText.includes(query);
     });
-  }, [
-    items,
-    activeCategory,
-    search,
-    difficulty,
-  ]);
+  }, [items, selectedCategory, difficulty, search]);
 
-  // =========================================================
-  // MEANING
-  // =========================================================
+  const selectedCategoryInfo = CATEGORIES.find(
+    (category) => category.key === selectedCategory
+  );
 
-  const getPrimaryMeaning = (item: StudyItem) => {
-    if (isHindi && item.hindi) {
-      return item.hindi;
+  const getMeaning = (item: StudyItem) => {
+    if (
+      currentLanguage.includes("hi") ||
+      currentLanguage.includes("hindi")
+    ) {
+      return item.hindi || item.hinglish || item.meaning || "";
     }
-
-    if (isHinglish && item.hinglish) {
-      return item.hinglish;
-    }
-
-    return (
-      item.meaning ||
-      item.hinglish ||
-      item.hindi ||
-      "Meaning not available"
-    );
-  };
-
-  // =========================================================
-  // SPEECH
-  // =========================================================
-
-  const pronounce = (
-    item: StudyItem,
-    event?: MouseEvent<HTMLButtonElement>
-  ) => {
-    event?.stopPropagation();
 
     if (
-      typeof window === "undefined" ||
-      !("speechSynthesis" in window)
+      currentLanguage.includes("hinglish") ||
+      currentLanguage.includes("roman")
     ) {
-      return;
+      return item.hinglish || item.meaning || item.hindi || "";
     }
 
-    window.speechSynthesis.cancel();
-
-    if (speakingId === item.id) {
-      setSpeakingId(null);
-      return;
-    }
-
-    const utterance =
-      new SpeechSynthesisUtterance(item.title);
-
-    utterance.lang = "en-US";
-    utterance.rate = 0.78;
-    utterance.pitch = 1;
-
-    utterance.onstart = () => {
-      setSpeakingId(item.id);
-    };
-
-    utterance.onend = () => {
-      setSpeakingId(null);
-    };
-
-    utterance.onerror = () => {
-      setSpeakingId(null);
-    };
-
-    window.speechSynthesis.speak(utterance);
+    return item.meaning || item.hinglish || item.hindi || "";
   };
 
-  // =========================================================
-  // CATEGORY CHANGE
-  // =========================================================
+  const handleCardClick = (id: string) => {
+    setExpandedId((current) => (current === id ? null : id));
+  };
 
-  const changeCategory = (category: Category) => {
-    setActiveCategory(category);
-    setSearch("");
-    setDifficulty("All");
+  const handleSpeak = (
+    event: MouseEvent<HTMLButtonElement>,
+    item: StudyItem
+  ) => {
+    event.stopPropagation();
+
+    const text = [
+      item.title,
+      item.pronunciation ? `Pronunciation: ${item.pronunciation}` : "",
+      item.meaning ?? "",
+    ]
+      .filter(Boolean)
+      .join(". ");
+
+    speakText(text);
+  };
+
+  const handleCategoryChange = (category: Category) => {
+    setSelectedCategory(category);
     setExpandedId(null);
   };
 
-  // =========================================================
-  // RETRY
-  // =========================================================
-
-  const retry = () => {
-    window.location.reload();
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 pb-12 text-slate-900 dark:bg-slate-950 dark:text-white">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+        {/* ===================================================
+            BACK BUTTON
+        =================================================== */}
 
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
-
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="group flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            <span className="text-xl transition group-hover:-translate-x-1">
-              ←
-            </span>
-
-            <span className="hidden sm:inline">
-              Back
-            </span>
-          </button>
-
-          <div className="flex items-center gap-2.5">
-
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-lg font-black text-white shadow-lg shadow-indigo-200 dark:shadow-none">
-              R
-            </div>
-
-            <span className="text-sm font-black tracking-wide text-slate-900 dark:text-white sm:text-base">
-              RANKER BHAIYA
-            </span>
-
-          </div>
-
-          <div className="w-14 sm:w-20" />
-
-        </div>
-
-      </header>
-
-      {/* =====================================================
-          MAIN
-      ===================================================== */}
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+        >
+          <span>←</span>
+          <span>Back</span>
+        </button>
 
         {/* ===================================================
             HERO
@@ -409,7 +355,35 @@ export default function Vocabulary() {
 
           <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-fuchsia-400/20 blur-3xl" />
 
-          <div className="relative max-w-4xl">
+          {/* =================================================
+              VOCAB-BHAIYA EXTERNAL LINK
+          ================================================= */}
+
+          <a
+            href="https://vocabbhaiya.netlify.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Learn More by Vocab-Bhaiya"
+            className="group absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-white/30 bg-white/95 px-3 py-2 text-xs font-black text-violet-700 shadow-lg shadow-violet-950/10 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-xl sm:right-6 sm:top-6 sm:px-4 sm:py-2.5 sm:text-sm"
+          >
+            <span className="text-sm transition-transform duration-300 group-hover:scale-110 sm:text-base">
+              ✨
+            </span>
+
+            <span className="whitespace-nowrap">
+              Learn More by Vocab-Bhaiya
+            </span>
+
+            <span className="text-base transition-transform duration-300 group-hover:translate-x-1">
+              →
+            </span>
+          </a>
+
+          {/* =================================================
+              HERO CONTENT
+          ================================================= */}
+
+          <div className="relative max-w-4xl pr-2 sm:pr-44">
 
             <span className="inline-flex items-center rounded-full border border-white/20 bg-white/15 px-3.5 py-1.5 text-xs font-black tracking-wide backdrop-blur">
               🎯 SMART ENGLISH PREPARATION
@@ -447,147 +421,162 @@ export default function Vocabulary() {
         </section>
 
         {/* ===================================================
-            CATEGORY TABS
+            CATEGORY SECTION
         =================================================== */}
 
         <section className="mb-6">
 
-          <div className="scrollbar-thin flex gap-3 overflow-x-auto pb-2">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-black tracking-tight sm:text-2xl">
+                English Topics
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Choose a topic and start your preparation.
+              </p>
+            </div>
+
+            <div className="hidden rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-black text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 sm:block">
+              {items.length} Total
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
 
             {CATEGORIES.map((category) => {
-              const active =
-                activeCategory === category.id;
-
-              const count =
-                getCategoryCount(category.id);
+              const active = selectedCategory === category.key;
 
               return (
                 <button
-                  key={category.id}
+                  key={category.key}
                   type="button"
-                  onClick={() =>
-                    changeCategory(category.id)
-                  }
-                  className={[
-                    "flex min-w-max items-center gap-2.5 rounded-2xl border px-4 py-3 text-sm font-black transition-all",
+                  onClick={() => handleCategoryChange(category.key)}
+                  className={`group rounded-2xl border p-3 text-left transition-all duration-200 ${
                     active
-                      ? "border-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
-                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700 dark:hover:bg-slate-800",
-                  ].join(" ")}
+                      ? "border-indigo-500 bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-700"
+                  }`}
                 >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xl">
+                      {category.icon}
+                    </span>
 
-                  <span className="text-lg">
-                    {category.icon}
-                  </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        active
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      {categoryCounts[category.key]}
+                    </span>
+                  </div>
 
-                  <span>
+                  <div className="mt-2 text-xs font-black leading-4">
                     {category.label}
-                  </span>
+                  </div>
 
-                  <span
-                    className={[
-                      "rounded-full px-2 py-0.5 text-[10px] font-black",
+                  <div
+                    className={`mt-1 hidden text-[10px] leading-4 sm:block ${
                       active
-                        ? "bg-white/20 text-white"
-                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
-                    ].join(" ")}
+                        ? "text-white/75"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
                   >
-                    {count}
-                  </span>
-
+                    {category.description}
+                  </div>
                 </button>
               );
             })}
 
           </div>
-
         </section>
 
         {/* ===================================================
-            SEARCH
+            SEARCH + FILTER
         =================================================== */}
 
-        <section className="mb-7 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-            <div className="relative flex-1">
+            <div className="relative w-full lg:max-w-xl">
 
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg">
                 🔎
               </span>
 
               <input
-                type="text"
+                type="search"
                 value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-                placeholder={`Search ${
-                  CATEGORIES.find(
-                    (category) =>
-                      category.id ===
-                      activeCategory
-                  )?.label
-                }...`}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-medium outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search word, meaning, Hindi, Hinglish..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
               />
 
             </div>
 
-            <select
-              value={difficulty}
-              onChange={(e) =>
-                setDifficulty(
-                  e.target.value as
-                    | "All"
-                    | Difficulty
-                )
-              }
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-            >
-              <option value="All">
-                All Levels
-              </option>
+            <div className="flex flex-wrap items-center gap-2">
 
-              <option value="Easy">
-                Easy
-              </option>
+              <span className="mr-1 text-xs font-black uppercase tracking-wide text-slate-400">
+                Difficulty
+              </span>
 
-              <option value="Medium">
-                Medium
-              </option>
+              {(["All", "Easy", "Medium", "Hard"] as Difficulty[]).map(
+                (level) => {
+                  const active = difficulty === level;
 
-              <option value="Hard">
-                Hard
-              </option>
-            </select>
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setDifficulty(level)}
+                      className={`rounded-full px-3 py-2 text-xs font-black transition ${
+                        active
+                          ? "bg-indigo-600 text-white shadow-md"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  );
+                }
+              )}
+
+            </div>
+
+          </div>
+        </section>
+
+        {/* ===================================================
+            CURRENT CATEGORY HEADER
+        =================================================== */}
+
+        <section className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-xl dark:bg-indigo-500/10">
+              {selectedCategoryInfo?.icon}
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black">
+                {selectedCategoryInfo?.label}
+              </h2>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {selectedCategoryInfo?.description}
+              </p>
+            </div>
 
           </div>
 
-          <div className="mt-3 flex items-center justify-between px-1 text-xs text-slate-500 dark:text-slate-400">
-
-            <span>
-              {filteredItems.length}{" "}
-              {filteredItems.length === 1
-                ? "item"
-                : "items"}{" "}
-              found
-            </span>
-
-            {(search || difficulty !== "All") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setDifficulty("All");
-                }}
-                className="font-black text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
-              >
-                Clear filters
-              </button>
-            )}
-
+          <div className="text-sm font-bold text-slate-500 dark:text-slate-400">
+            {filteredItems.length}{" "}
+            {filteredItems.length === 1 ? "item" : "items"} found
           </div>
 
         </section>
@@ -597,36 +586,24 @@ export default function Vocabulary() {
         =================================================== */}
 
         {loading && (
-          <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 
-            {Array.from({ length: 6 }).map(
-              (_, index) => (
-                <div
-                  key={index}
-                  className="self-start overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                >
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="animate-pulse rounded-3xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+              >
+                <div className="h-5 w-24 rounded bg-slate-200 dark:bg-slate-800" />
 
-                  <div className="flex gap-4">
+                <div className="mt-5 h-7 w-3/4 rounded bg-slate-200 dark:bg-slate-800" />
 
-                    <div className="h-16 w-16 shrink-0 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                <div className="mt-3 h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
 
-                    <div className="flex-1">
+                <div className="mt-2 h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
 
-                      <div className="h-6 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-
-                      <div className="mt-3 h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-
-                    </div>
-
-                  </div>
-
-                  <div className="mt-6 h-16 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
-
-                  <div className="mt-5 h-11 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800" />
-
-                </div>
-              )
-            )}
+                <div className="mt-6 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800/60" />
+              </div>
+            ))}
 
           </div>
         )}
@@ -636,24 +613,22 @@ export default function Vocabulary() {
         =================================================== */}
 
         {!loading && error && (
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-10 text-center dark:border-red-900/50 dark:bg-red-950/30">
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center dark:border-red-900/50 dark:bg-red-950/20">
 
-            <div className="text-5xl">
-              ⚠️
-            </div>
+            <div className="text-4xl">⚠️</div>
 
-            <h3 className="mt-4 text-xl font-black text-red-700 dark:text-red-300">
+            <h3 className="mt-3 text-lg font-black text-red-700 dark:text-red-300">
               Something went wrong
             </h3>
 
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            <p className="mx-auto mt-2 max-w-lg text-sm text-red-600/80 dark:text-red-300/70">
               {error}
             </p>
 
             <button
               type="button"
-              onClick={retry}
-              className="mt-6 rounded-xl bg-red-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-red-200 transition hover:bg-red-700 dark:shadow-none"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-black text-white shadow-lg transition hover:bg-red-700"
             >
               Try Again
             </button>
@@ -665,352 +640,204 @@ export default function Vocabulary() {
             EMPTY
         =================================================== */}
 
-        {!loading &&
-          !error &&
-          filteredItems.length === 0 && (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">
+        {!loading && !error && filteredItems.length === 0 && (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900">
 
-              <div className="text-5xl">
-                📭
-              </div>
+            <div className="text-5xl">📚</div>
 
-              <h3 className="mt-4 text-xl font-black text-slate-900 dark:text-white">
-                No content found
-              </h3>
+            <h3 className="mt-4 text-xl font-black">
+              No content found
+            </h3>
 
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Is category mein abhi published content
-                available nahi hai.
-              </p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
+              {search
+                ? "Try a different search word or clear the search box."
+                : "Is category ke liye abhi published content available nahi hai."}
+            </p>
 
-            </div>
-          )}
+            {(search || difficulty !== "All") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setDifficulty("All");
+                }}
+                className="mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-black text-white shadow-lg transition hover:bg-indigo-700"
+              >
+                Clear Filters
+              </button>
+            )}
+
+          </div>
+        )}
 
         {/* ===================================================
-            PREMIUM CARDS
+            CONTENT CARDS
         =================================================== */}
 
-        {!loading &&
-          !error &&
-          filteredItems.length > 0 && (
-            <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {!loading && !error && filteredItems.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 
-              {filteredItems.map((item, index) => {
-                const expanded =
-                  expandedId === item.id;
+            {filteredItems.map((item, index) => {
+              const expanded = expandedId === item.id;
+              const theme =
+                CARD_THEMES[index % CARD_THEMES.length];
 
-                const speaking =
-                  speakingId === item.id;
+              const level = normalizeDifficulty(item.difficulty);
 
-                const theme = getTheme(index);
+              return (
+                <article
+                  key={item.id}
+                  onClick={() => handleCardClick(item.id)}
+                  className={`group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br ${theme} bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900 ${
+                    expanded
+                      ? "ring-2 ring-indigo-500/30"
+                      : ""
+                  }`}
+                >
 
-                return (
-                  <article
-                    key={item.id}
-                    className={[
-                      "group relative self-start overflow-hidden rounded-[1.6rem] border bg-gradient-to-br shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
-                      theme.bg,
-                      theme.darkBg,
-                      theme.border,
-                    ].join(" ")}
-                  >
+                  {/* Card Top */}
 
-                    {/* Decorative curved glow */}
+                  <div className="p-5">
 
-                    <div
-                      className={[
-                        "pointer-events-none absolute -left-12 -top-16 h-44 w-44 rounded-full opacity-20 blur-2xl",
-                        theme.accent,
-                      ].join(" ")}
-                    />
+                    <div className="flex items-start justify-between gap-3">
 
-                    {/* =================================================
-                        CARD HEADER
-                    ================================================= */}
+                      <span className="rounded-full bg-indigo-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                        {getCategoryLabel(item.category)}
+                      </span>
 
-                    <div className="relative p-5">
-
-                      <div className="flex items-start gap-4">
-
-                        {/* ICON */}
-
-                        <div
-                          className={[
-                            "relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[1.25rem] text-3xl shadow-lg ring-4 ring-white/70 transition-transform duration-300 group-hover:scale-105 dark:ring-slate-900/40",
-                            theme.accent,
-                          ].join(" ")}
-                        >
-                          <span className="relative z-10">
-                            {theme.icon}
-                          </span>
-
-                          <div className="absolute -right-4 -top-4 h-12 w-12 rounded-full bg-white/20" />
-                        </div>
-
-                        {/* TITLE */}
-
-                        <div className="min-w-0 flex-1">
-
-                          <div className="flex items-start justify-between gap-2">
-
-                            <div className="min-w-0">
-
-                              <h2 className="break-words text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                                {item.title}
-                              </h2>
-
-                              {item.pronunciation && (
-                                <span className="mt-1 inline-flex rounded-lg bg-white/70 px-2 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
-                                  /{item.pronunciation}/
-                                </span>
-                              )}
-
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedId(
-                                  expanded
-                                    ? null
-                                    : item.id
-                                )
-                              }
-                              className="shrink-0 rounded-full bg-white/70 p-1.5 text-sm text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 dark:bg-slate-800/70 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
-                              aria-label={
-                                expanded
-                                  ? "Collapse"
-                                  : "Expand"
-                              }
-                            >
-                              {expanded ? "⌃" : "⌄"}
-                            </button>
-
-                          </div>
-
-                          {item.subtitle && (
-                            <p className="mt-2 line-clamp-2 text-xs font-medium leading-5 text-slate-600 dark:text-slate-400">
-                              {item.subtitle}
-                            </p>
-                          )}
-
-                        </div>
-
-                      </div>
-
-                      {/* BADGES */}
-
-                      <div className="mt-5 flex items-center justify-between gap-3">
-
-                        <span
-                          className={[
-                            "rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide",
-                            item.difficulty === "Easy"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                              : item.difficulty ===
-                                "Hard"
-                              ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-                              : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-                          ].join(" ")}
-                        >
-                          {item.difficulty}
-                        </span>
-
-                        <span className="text-xs font-semibold text-slate-400">
-                          {expanded
-                            ? "Tap to close"
-                            : "Tap to learn"}
-                        </span>
-
-                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
+                          level === "Hard"
+                            ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300"
+                            : level === "Medium"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                        }`}
+                      >
+                        {level}
+                      </span>
 
                     </div>
 
-                    {/* =================================================
-                        MEANING
-                    ================================================= */}
+                    {/* Title */}
 
-                    <div className="relative border-t border-white/70 bg-white/45 px-5 py-4 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/30">
+                    <div className="mt-5 flex items-start justify-between gap-3">
 
-                      <div className="flex gap-3">
+                      <div className="min-w-0">
 
-                        <div
-                          className={[
-                            "mt-1 h-10 w-1 shrink-0 rounded-full",
-                            theme.accent,
-                          ].join(" ")}
-                        />
+                        <h3 className="break-words text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                          {item.title}
+                        </h3>
 
-                        <p className="text-sm font-extrabold leading-6 text-slate-800 dark:text-slate-200">
-                          {getPrimaryMeaning(item)}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                    {/* =================================================
-                        EXAMPLE PREVIEW
-                    ================================================= */}
-
-                    {item.example && (
-                      <div className="px-5 pb-4 pt-1">
-
-                        <div className="rounded-2xl border border-white/70 bg-white/60 px-4 py-3 shadow-sm backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/40">
-
-                          <p className="text-xs italic leading-5 text-slate-600 dark:text-slate-400">
-                            “{item.example}”
+                        {item.subtitle && (
+                          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {item.subtitle}
                           </p>
-
-                        </div>
+                        )}
 
                       </div>
-                    )}
-
-                    {/* =================================================
-                        TAP TO LEARN BUTTON
-                    ================================================= */}
-
-                    <div className="px-5 pb-5">
 
                       <button
                         type="button"
-                        onClick={() =>
-                          setExpandedId(
-                            expanded
-                              ? null
-                              : item.id
-                          )
+                        aria-label={`Listen to ${item.title}`}
+                        onClick={(event) =>
+                          handleSpeak(event, item)
                         }
-                        className={[
-                          "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black text-white shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99]",
-                          theme.button,
-                        ].join(" ")}
+                        className="shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 text-lg shadow-sm transition hover:scale-105 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-indigo-500/10"
                       >
-                        <span>
-                          {expanded
-                            ? "Close details"
-                            : "Tap to learn"}
-                        </span>
-
-                        <span className="text-base">
-                          {expanded ? "↑" : "→"}
-                        </span>
+                        🔊
                       </button>
 
                     </div>
 
-                    {/* =================================================
-                        EXPANDED DETAILS
-                    ================================================= */}
+                    {/* Pronunciation */}
+
+                    {item.pronunciation && (
+                      <div className="mt-3 inline-flex rounded-lg bg-slate-900/5 px-2.5 py-1.5 text-xs font-bold italic text-slate-600 dark:bg-white/5 dark:text-slate-400">
+                        / {item.pronunciation} /
+                      </div>
+                    )}
+
+                    {/* Meaning */}
+
+                    <div className="mt-5 rounded-2xl border border-slate-200/70 bg-white/75 p-4 backdrop-blur dark:border-slate-700/70 dark:bg-slate-950/50">
+
+                      <div className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                        Meaning
+                      </div>
+
+                      <p className="mt-2 text-sm font-bold leading-6 text-slate-700 dark:text-slate-200">
+                        {getMeaning(item) || "Meaning not available."}
+                      </p>
+
+                    </div>
+
+                    {/* Example */}
+
+                    {item.example && (
+                      <div className="mt-4">
+
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          Example
+                        </div>
+
+                        <p className="mt-1.5 text-sm italic leading-6 text-slate-600 dark:text-slate-400">
+                          “{item.example}”
+                        </p>
+
+                      </div>
+                    )}
+
+                    {/* Expanded Content */}
 
                     {expanded && (
-                      <div className="border-t border-white/70 bg-white/70 px-5 pb-5 pt-5 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/60">
-
-                        {/* Pronunciation */}
-
-                        {item.pronunciation && (
-                          <button
-                            type="button"
-                            onClick={(event) =>
-                              pronounce(
-                                item,
-                                event
-                              )
-                            }
-                            className={[
-                              "mb-5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition",
-                              speaking
-                                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                                : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700",
-                            ].join(" ")}
-                          >
-                            <span className="text-lg">
-                              {speaking
-                                ? "🔊"
-                                : "🔈"}
-                            </span>
-
-                            {speaking
-                              ? "Playing pronunciation..."
-                              : "Listen pronunciation"}
-                          </button>
-                        )}
-
-                        {/* Meaning */}
+                      <div className="mt-5 space-y-4 border-t border-slate-200 pt-5 dark:border-slate-800">
 
                         {item.meaning && (
-                          <div className="mb-4">
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-indigo-500">
+                              English Meaning
+                            </div>
 
-                            <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-indigo-600 dark:text-indigo-400">
-                              Meaning
-                            </p>
-
-                            <p className="text-sm font-medium leading-6 text-slate-700 dark:text-slate-300">
+                            <p className="mt-1.5 text-sm leading-6 text-slate-600 dark:text-slate-300">
                               {item.meaning}
                             </p>
-
                           </div>
                         )}
-
-                        {/* Hindi */}
 
                         {item.hindi && (
-                          <div className="mb-4">
-
-                            <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-indigo-600 dark:text-indigo-400">
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-orange-500">
                               Hindi
-                            </p>
+                            </div>
 
-                            <p className="text-sm font-medium leading-6 text-slate-700 dark:text-slate-300">
+                            <p className="mt-1.5 text-sm font-semibold leading-6 text-slate-700 dark:text-slate-300">
                               {item.hindi}
                             </p>
-
                           </div>
                         )}
-
-                        {/* Hinglish */}
 
                         {item.hinglish && (
-                          <div className="mb-4">
-
-                            <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-indigo-600 dark:text-indigo-400">
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-emerald-500">
                               Hinglish
-                            </p>
+                            </div>
 
-                            <p className="text-sm font-medium leading-6 text-slate-700 dark:text-slate-300">
+                            <p className="mt-1.5 text-sm leading-6 text-slate-600 dark:text-slate-300">
                               {item.hinglish}
                             </p>
-
                           </div>
                         )}
-
-                        {/* Example */}
-
-                        {item.example && (
-                          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-
-                            <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
-                              Example
-                            </p>
-
-                            <p className="text-sm font-medium leading-6 text-slate-700 dark:text-slate-300">
-                              {item.example}
-                            </p>
-
-                          </div>
-                        )}
-
-                        {/* Extra */}
 
                         {item.extra && (
-                          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/30">
+                          <div className="rounded-2xl bg-indigo-50 p-4 dark:bg-indigo-500/10">
 
-                            <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-indigo-600 dark:text-indigo-400">
-                              Exam Point
-                            </p>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                              Exam Tip / Extra
+                            </div>
 
-                            <p className="text-sm font-medium leading-6 text-slate-700 dark:text-slate-300">
+                            <p className="mt-1.5 whitespace-pre-line text-sm leading-6 text-slate-700 dark:text-slate-300">
                               {item.extra}
                             </p>
 
@@ -1020,12 +847,45 @@ export default function Vocabulary() {
                       </div>
                     )}
 
-                  </article>
-                );
-              })}
+                  </div>
 
-            </div>
-          )}
+                  {/* Card Footer */}
+
+                  <div className="flex items-center justify-between border-t border-slate-200/70 bg-white/50 px-5 py-3 dark:border-slate-800 dark:bg-slate-950/30">
+
+                    <span className="text-[11px] font-bold text-slate-400">
+                      {expanded
+                        ? "Tap to collapse"
+                        : "Tap to learn more"}
+                    </span>
+
+                    <span className="text-sm font-black text-indigo-600 transition-transform duration-300 group-hover:translate-x-1 dark:text-indigo-400">
+                      {expanded ? "↑" : "→"}
+                    </span>
+
+                  </div>
+
+                </article>
+              );
+            })}
+
+          </div>
+        )}
+
+        {/* ===================================================
+            FOOTER INFO
+        =================================================== */}
+
+        {!loading && !error && items.length > 0 && (
+          <div className="mt-8 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-center dark:border-indigo-900/40 dark:bg-indigo-500/5">
+
+            <p className="text-xs font-semibold leading-5 text-indigo-700 dark:text-indigo-300">
+              💡 Regular practice is the key to improving English
+              for competitive exams. Learn a few words every day.
+            </p>
+
+          </div>
+        )}
 
       </main>
     </div>
