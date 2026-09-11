@@ -17,16 +17,14 @@ export function StudentLogin() {
   const [error, setError] = useState("");
 
   async function redirectStudent(userId: string) {
-    const { data: profile, error: profileError } =
-      await supabase
-        .from("profiles")
-        .select(
-          "full_name, class_name, board, exam",
-        )
-        .eq("id", userId)
-        .maybeSingle();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("full_name, class_name, board, exam")
+      .eq("id", userId)
+      .maybeSingle();
 
     if (profileError) {
+      console.error("Profile fetch error:", profileError);
       throw profileError;
     }
 
@@ -37,14 +35,85 @@ export function StudentLogin() {
       Boolean(profile?.exam);
 
     if (profileComplete) {
-      navigate("/student/dashboard");
+      navigate("/student/dashboard", { replace: true });
     } else {
-      navigate("/student/profile");
+      navigate("/student/profile", { replace: true });
     }
   }
 
+  async function handleLogin() {
+    const cleanEmail = email.trim().toLowerCase();
+
+    const { data, error: loginError } =
+      await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+    if (loginError) {
+      throw loginError;
+    }
+
+    if (!data.user) {
+      throw new Error(
+        "Login failed. Please try again."
+      );
+    }
+
+    await redirectStudent(data.user.id);
+  }
+
+  async function handleSignup() {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = fullName.trim();
+
+    const { data, error: signupError } =
+      await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            full_name: cleanName,
+          },
+        },
+      });
+
+    if (signupError) {
+      throw signupError;
+    }
+
+    if (!data.user) {
+      throw new Error(
+        "Unable to create account. Please try again."
+      );
+    }
+
+    if (!data.session) {
+      setMessage(
+        "Account created successfully. Please check your email and confirm your account before logging in. / अकाउंट बन गया है। कृपया अपना ईमेल चेक करके अकाउंट कन्फर्म करें।"
+      );
+      return;
+    }
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        full_name: cleanName,
+      })
+      .eq("id", data.user.id);
+
+    if (profileError) {
+      console.error(
+        "Profile name update error:",
+        profileError
+      );
+    }
+
+    await redirectStudent(data.user.id);
+  }
+
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
@@ -55,23 +124,25 @@ export function StudentLogin() {
     setError("");
     setMessage("");
 
-    if (!email.trim() || !password) {
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail || !password) {
       setError(
-        "Please enter email and password. / कृपया ईमेल और पासवर्ड दर्ज करें।",
+        "Please enter email and password. / कृपया ईमेल और पासवर्ड दर्ज करें।"
       );
       return;
     }
 
     if (isSignup && !fullName.trim()) {
       setError(
-        "Please enter your full name. / कृपया अपना पूरा नाम दर्ज करें।",
+        "Please enter your full name. / कृपया अपना पूरा नाम दर्ज करें।"
       );
       return;
     }
 
     if (password.length < 6) {
       setError(
-        "Password must be at least 6 characters. / पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।",
+        "Password must be at least 6 characters. / पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।"
       );
       return;
     }
@@ -80,78 +151,54 @@ export function StudentLogin() {
 
     try {
       if (isSignup) {
-        const { data, error: signupError } =
-          await supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: {
-              data: {
-                full_name: fullName.trim(),
-              },
-            },
-          });
-
-        if (signupError) {
-          throw signupError;
-        }
-
-        if (!data.user) {
-          throw new Error(
-            "Unable to create account. Please try again.",
-          );
-        }
-
-        if (!data.session) {
-          setMessage(
-            "Please check your email and confirm your account before logging in. / कृपया अपना ईमेल चेक करके अकाउंट कन्फर्म करें।",
-          );
-          return;
-        }
-
-        const { error: profileError } =
-          await supabase
-            .from("profiles")
-            .update({
-              full_name: fullName.trim(),
-            })
-            .eq("id", data.user.id);
-
-        if (profileError) {
-          console.error(
-            "Profile name update error:",
-            profileError,
-          );
-        }
-
-        await redirectStudent(data.user.id);
+        await handleSignup();
       } else {
-        const { data, error: loginError } =
-          await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-          });
-
-        if (loginError) {
-          throw loginError;
-        }
-
-        if (!data.user) {
-          throw new Error(
-            "Login failed. Please try again.",
-          );
-        }
-
-        await redirectStudent(data.user.id);
+        await handleLogin();
       }
     } catch (err) {
-      console.error("Student login error:", err);
+      console.error("Student authentication error:", err);
 
       const errorMessage =
         err instanceof Error
           ? err.message
           : "Something went wrong. Please try again.";
 
-      setError(errorMessage);
+      // User-friendly Supabase errors
+      if (
+        errorMessage.toLowerCase().includes(
+          "invalid login credentials"
+        )
+      ) {
+        setError(
+          "Invalid email or password. / ईमेल या पासवर्ड गलत है।"
+        );
+      } else if (
+        errorMessage.toLowerCase().includes(
+          "email not confirmed"
+        )
+      ) {
+        setError(
+          "Please confirm your email before logging in. / लॉगिन करने से पहले अपना ईमेल कन्फर्म करें।"
+        );
+      } else if (
+        errorMessage.toLowerCase().includes(
+          "user already registered"
+        )
+      ) {
+        setError(
+          "This email is already registered. Please login instead. / यह ईमेल पहले से रजिस्टर है। लॉगिन करें।"
+        );
+      } else if (
+        errorMessage.toLowerCase().includes(
+          "invalid path specified in request url"
+        )
+      ) {
+        setError(
+          "Supabase configuration error. Please check VITE_SUPABASE_URL in GitHub Secrets."
+        );
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -170,10 +217,11 @@ export function StudentLogin() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900 sm:p-8">
+
         {/* HEADER */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-lg">
-            P
+            R
           </div>
 
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -193,6 +241,7 @@ export function StudentLogin() {
           onSubmit={handleSubmit}
           className="space-y-4"
         >
+
           {/* FULL NAME */}
           {isSignup && (
             <div>
@@ -207,11 +256,11 @@ export function StudentLogin() {
                   setFullName(event.target.value)
                 }
                 placeholder={t(
-                  "studentLogin.fullNamePlaceholder",
+                  "studentLogin.fullNamePlaceholder"
                 )}
                 disabled={loading}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 autoComplete="name"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </div>
           )}
@@ -230,8 +279,8 @@ export function StudentLogin() {
               }
               placeholder="student@example.com"
               disabled={loading}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               autoComplete="email"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
@@ -248,15 +297,15 @@ export function StudentLogin() {
                 setPassword(event.target.value)
               }
               placeholder={t(
-                "studentLogin.passwordPlaceholder",
+                "studentLogin.passwordPlaceholder"
               )}
               disabled={loading}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               autoComplete={
                 isSignup
                   ? "new-password"
                   : "current-password"
               }
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
@@ -290,10 +339,10 @@ export function StudentLogin() {
               ? "Please wait... / कृपया प्रतीक्षा करें..."
               : isSignup
                 ? t(
-                    "studentLogin.createAccountButton",
+                    "studentLogin.createAccountButton"
                   )
                 : t(
-                    "studentLogin.loginButton",
+                    "studentLogin.loginButton"
                   )}
           </button>
         </form>
@@ -312,9 +361,7 @@ export function StudentLogin() {
           >
             {isSignup
               ? t("studentLogin.login")
-              : t(
-                  "studentLogin.createAccount",
-                )}
+              : t("studentLogin.createAccount")}
           </button>
         </div>
       </div>
